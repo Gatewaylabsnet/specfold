@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "build": "electron-vite build",
     "package:win:portable": "npm run build && electron-builder --win portable --x64",
-    "package:win:installer": "npm run build && electron-builder --win nsis --x64"
+    "package:win:installer": "npm run build && electron-builder --win nsis --x64",
+    "package:win": "npm run build && electron-builder --win nsis portable --x64",
+    "icon": "node build/generate-icon.mjs"
   },
   "dependencies": {
     "@openapi-collection-studio/core": "0.1.0",
@@ -43,6 +45,7 @@
     ],
     "asar": true,
     "win": {
+      "icon": "build/icon.ico",
       "artifactName": "${productName}-${version}-${arch}.${ext}",
       "signAndEditExecutable": false
     },

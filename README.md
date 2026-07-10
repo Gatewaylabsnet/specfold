@@ -15,7 +15,8 @@ Everything runs locally. No account, no cloud sync, no team workspace.
 
 ## Features
 
-- Import OpenAPI 3.x, Swagger 2.0, or the app's own Collection JSON — **paste, open a file, or fetch from a URL**.
+- Import OpenAPI 3.x, Swagger 2.0, the app's own Collection JSON, or a **`curl` command** — **paste, open a file, or fetch from a URL**.
+- **Copy any request as a `curl` command** for sharing or scripting.
 - Auto-group imported endpoints by tag, first path segment, or a single folder.
 - Collection / folder / request tree with a Postman-style editor:
   - **search/filter** across request names, URLs, and methods,
@@ -27,6 +28,7 @@ Everything runs locally. No account, no cloud sync, no team workspace.
 - **Save a response field straight into an environment variable** (e.g. `access_token` → `{{accessToken}}`) without any scripting.
 - Send requests and view status, timing, size, headers, and body — with **per-request response history** to compare recent runs.
 - **Export structure check**: a badge confirms the generated document is structurally valid OpenAPI (or lists the concrete issues) before you save/send it.
+- **Round-trip fidelity**: requests imported from OpenAPI 3.x export from their original operation, preserving parameter/response schemas, OAuth2 scopes, and fields like `deprecated`, with your edits overlaid.
 - Keyboard shortcuts: `Ctrl+Enter` sends the active request, `Ctrl+S` saves the workspace.
 - Export a selected folder or the whole collection to OpenAPI YAML/JSON, or the app's Collection JSON.
 - Portable Windows build; CI runs typecheck, tests, and build on every push.
@@ -47,8 +49,16 @@ This app handles API definitions and credentials, and its exports are meant to b
 ### Known limitations / follow-ups
 
 - Renderer `sandbox` is left off because the preload ships as an ESM module (Electron only loads sandboxed preloads as CommonJS). `contextIsolation` is on and `nodeIntegration` is off; a production Content-Security-Policy is applied.
-- HTTP proxy support and full round-trip fidelity for parameter schemas (enum/format/pattern) are not yet implemented — see `docs/REDTEAM_REPORT.md`.
-- The portable build is not code-signed yet.
+- HTTP proxy support is not yet implemented — see `docs/REDTEAM_REPORT.md`.
+- The portable build and installer are not code-signed yet.
+
+## Download
+
+Tagged releases publish a Windows **portable `.exe`** and an **NSIS installer** as
+GitHub release assets (built by `.github/workflows/release.yml` on any `v*` tag).
+
+The build is **not code-signed yet**, so Windows SmartScreen may warn on first run
+("Windows protected your PC" → *More info* → *Run anyway*). Signing is on the roadmap.
 
 ## Project layout
 
@@ -74,9 +84,20 @@ npm test               # run unit tests (packages/core)
 ```bash
 npm run package:win:portable     # portable .exe
 npm run package:win:installer    # NSIS installer
+npm run package:win --workspace @openapi-collection-studio/desktop  # both
 ```
 
 Artifacts are written to `apps/desktop/dist`.
+
+The app icon is generated (no external tools) from
+`apps/desktop/build/generate-icon.mjs`; regenerate it with
+`npm run icon --workspace @openapi-collection-studio/desktop`.
+
+Tagging a release:
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0   # triggers the Release workflow
+```
 
 ## Security review
 
