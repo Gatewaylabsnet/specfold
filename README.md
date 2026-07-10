@@ -15,16 +15,19 @@ Everything runs locally. No account, no cloud sync, no team workspace.
 
 ## Features
 
-- Paste-import OpenAPI 3.x, Swagger 2.0, or the app's own Collection JSON.
+- Import OpenAPI 3.x, Swagger 2.0, or the app's own Collection JSON — **paste, open a file, or fetch from a URL**.
 - Auto-group imported endpoints by tag, first path segment, or a single folder.
-- Collection / folder / request tree with a Postman-style editor.
+- Collection / folder / request tree with a Postman-style editor:
+  - **search/filter** across request names, URLs, and methods,
+  - **rename** (inline, double-click or the pencil icon), **duplicate**, and **delete** for collections, folders, and requests.
 - Query params, path params, headers, body, and auth (bearer / basic / API key).
 - Environments with `{{baseUrl}}`, `{{accessToken}}`-style variables (multi-level: a variable value may reference another variable).
 - Manual JWT token request template.
 - **Save a response field straight into an environment variable** (e.g. `access_token` → `{{accessToken}}`) without any scripting.
 - Send requests and view status, timing, size, headers, and body.
+- Keyboard shortcuts: `Ctrl+Enter` sends the active request, `Ctrl+S` saves the workspace.
 - Export a selected folder or the whole collection to OpenAPI YAML/JSON, or the app's Collection JSON.
-- Portable Windows build.
+- Portable Windows build; CI runs typecheck, tests, and build on every push.
 
 ## Security & data-safety notes
 

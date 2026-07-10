@@ -60,6 +60,34 @@ export function findRequest(collection: Collection, requestId: string): RequestW
   return flattenRequests(collection).find(({ request }) => request.id === requestId);
 }
 
+export function removeFolder(collection: Collection, folderId: string): Folder | undefined {
+  const rootIndex = collection.folders.findIndex((folder) => folder.id === folderId);
+  if (rootIndex >= 0) {
+    return collection.folders.splice(rootIndex, 1)[0];
+  }
+
+  let removed: Folder | undefined;
+  visitFolders(collection.folders, (folder) => {
+    if (removed) {
+      return;
+    }
+    const index = folder.folders.findIndex((child) => child.id === folderId);
+    if (index >= 0) {
+      removed = folder.folders.splice(index, 1)[0];
+    }
+  });
+  return removed;
+}
+
+/** Count every request in a folder subtree, used for delete confirmations. */
+export function countFolderRequests(folder: Folder): number {
+  let count = folder.requests.length;
+  visitFolders(folder.folders, (child) => {
+    count += child.requests.length;
+  });
+  return count;
+}
+
 export function removeRequest(collection: Collection, requestId: string): ApiRequest | undefined {
   const rootIndex = collection.requests.findIndex((request) => request.id === requestId);
   if (rootIndex >= 0) {

@@ -34,6 +34,17 @@ export interface StudioApi {
     canceled: boolean;
     filePath?: string;
   }>;
+  openImportFile(): Promise<{
+    canceled: boolean;
+    content?: string;
+    filePath?: string;
+    error?: string;
+  }>;
+  fetchImportUrl(url: string): Promise<{
+    ok: boolean;
+    content?: string;
+    error?: string;
+  }>;
 }
 
 declare global {

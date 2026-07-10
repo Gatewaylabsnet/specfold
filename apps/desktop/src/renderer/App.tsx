@@ -12,6 +12,9 @@ import {
   Wand2
 } from "lucide-react";
 import {
+  cloneFolder,
+  cloneRequest,
+  countFolderRequests,
   createCollection,
   createEmptyWorkspace,
   createEnvironment,
@@ -28,6 +31,7 @@ import {
   importApiDocument,
   parseCollectionJson,
   previewApiDocument,
+  removeFolder,
   removeRequest,
   serializeCollectionJson,
   type ApiRequest,
@@ -41,7 +45,7 @@ import {
   type KeyValue,
   type Workspace
 } from "@openapi-collection-studio/core";
-import { CollectionTree } from "./components/CollectionTree";
+import { CollectionTree, type TreeActions } from "./components/CollectionTree";
 import { KeyValueEditor } from "./components/KeyValueEditor";
 
 type Screen = "home" | "import" | "editor" | "environments" | "export" | "settings";
@@ -87,6 +91,8 @@ export function App() {
   const [response, setResponse] = useState<ResponseState>();
   const [isSending, setIsSending] = useState(false);
   const [importText, setImportText] = useState("");
+  const [importUrl, setImportUrl] = useState("");
+  const [isFetchingImport, setIsFetchingImport] = useState(false);
   const [grouping, setGrouping] = useState<GroupingStrategy>("tags");
   const [importError, setImportError] = useState("");
   const [importSummary, setImportSummary] = useState("");
@@ -326,6 +332,211 @@ export function App() {
     setSelectedFolderId(targetFolderId || undefined);
   };
 
+  const mutateCollection = (collectionId: string, recipe: (collection: Collection) => void) => {
+    mutateWorkspace((draft) => {
+      const collection = draft.collections.find((candidate) => candidate.id === collectionId);
+      if (collection) {
+        recipe(collection);
+      }
+    });
+  };
+
+  const renameCollection = (collectionId: string, name: string) => {
+    mutateCollection(collectionId, (collection) => {
+      collection.name = name;
+    });
+  };
+
+  const deleteCollection = (collectionId: string) => {
+    const collection = workspace.collections.find((candidate) => candidate.id === collectionId);
+    if (!collection) {
+      return;
+    }
+    const requestCount = flattenRequests(collection).length;
+    if (
+      !window.confirm(
+        `Delete collection "${collection.name}"${requestCount > 0 ? ` and its ${requestCount} request(s)` : ""}? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    mutateWorkspace((draft) => {
+      draft.collections = draft.collections.filter((candidate) => candidate.id !== collectionId);
+    });
+    if (activeCollectionId === collectionId) {
+      const remaining = workspace.collections.filter((candidate) => candidate.id !== collectionId);
+      setActiveCollectionId(remaining[0]?.id);
+      setSelectedFolderId(undefined);
+      setSelectedRequestId(remaining[0] ? firstRequestId(remaining[0]) : undefined);
+      setResponse(undefined);
+    }
+  };
+
+  const renameFolder = (folderId: string, name: string) => {
+    if (!activeCollection) {
+      return;
+    }
+    mutateCollection(activeCollection.id, (collection) => {
+      const folder = findFolder(collection, folderId);
+      if (folder) {
+        folder.name = name;
+      }
+    });
+  };
+
+  const deleteFolder = (folderId: string) => {
+    if (!activeCollection) {
+      return;
+    }
+    const folder = findFolder(activeCollection, folderId);
+    if (!folder) {
+      return;
+    }
+    const requestCount = countFolderRequests(folder);
+    if (
+      !window.confirm(
+        `Delete folder "${folder.name}"${requestCount > 0 ? ` and its ${requestCount} request(s)` : ""}? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    const selectedLocation = selectedRequestId
+      ? findRequest(activeCollection, selectedRequestId)
+      : undefined;
+    const selectionInFolder =
+      selectedLocation?.folderPath.some((candidate) => candidate.id === folderId) ?? false;
+    const selectedFolderInSubtree =
+      selectedFolderId !== undefined &&
+      (selectedFolderId === folderId || Boolean(findFolder({ ...activeCollection, folders: [folder], requests: [] }, selectedFolderId)));
+
+    mutateCollection(activeCollection.id, (collection) => {
+      removeFolder(collection, folderId);
+    });
+    if (selectedFolderInSubtree) {
+      setSelectedFolderId(undefined);
+    }
+    if (selectionInFolder) {
+      setSelectedRequestId(undefined);
+      setResponse(undefined);
+    }
+  };
+
+  const duplicateFolder = (folderId: string) => {
+    if (!activeCollection) {
+      return;
+    }
+    mutateCollection(activeCollection.id, (collection) => {
+      const source = findFolder(collection, folderId);
+      if (!source) {
+        return;
+      }
+      const copy = cloneFolder(source);
+      const rootIndex = collection.folders.findIndex((candidate) => candidate.id === folderId);
+      if (rootIndex >= 0) {
+        collection.folders.splice(rootIndex + 1, 0, copy);
+        return;
+      }
+      for (const { folder } of flattenFolders(collection)) {
+        const index = folder.folders.findIndex((candidate) => candidate.id === folderId);
+        if (index >= 0) {
+          folder.folders.splice(index + 1, 0, copy);
+          return;
+        }
+      }
+    });
+  };
+
+  const renameRequest = (requestId: string, name: string) => {
+    if (!activeCollection) {
+      return;
+    }
+    mutateCollection(activeCollection.id, (collection) => {
+      const location = findRequest(collection, requestId);
+      if (location) {
+        location.request.name = name;
+      }
+    });
+  };
+
+  const deleteRequest = (requestId: string) => {
+    if (!activeCollection) {
+      return;
+    }
+    const location = findRequest(activeCollection, requestId);
+    if (!location) {
+      return;
+    }
+    if (!window.confirm(`Delete request "${location.request.name}"? This cannot be undone.`)) {
+      return;
+    }
+    mutateCollection(activeCollection.id, (collection) => {
+      removeRequest(collection, requestId);
+    });
+    if (selectedRequestId === requestId) {
+      setSelectedRequestId(undefined);
+      setResponse(undefined);
+    }
+  };
+
+  const duplicateRequest = (requestId: string) => {
+    if (!activeCollection) {
+      return;
+    }
+    // Clone outside the state updater: React defers updater execution, so an
+    // id captured inside the recipe would not be available here yet.
+    const source = findRequest(activeCollection, requestId);
+    if (!source) {
+      return;
+    }
+    const copy = cloneRequest(source.request);
+    mutateCollection(activeCollection.id, (collection) => {
+      const location = findRequest(collection, requestId);
+      if (!location) {
+        return;
+      }
+      const container = location.folder ? location.folder.requests : collection.requests;
+      const index = container.findIndex((candidate) => candidate.id === requestId);
+      container.splice(index + 1, 0, copy);
+    });
+    setSelectedRequestId(copy.id);
+    setResponse(undefined);
+  };
+
+  const openImportFile = async () => {
+    const result = await window.studio.openImportFile();
+    if (result.canceled) {
+      return;
+    }
+    if (result.error) {
+      setImportSummary("");
+      setImportError(result.error);
+      return;
+    }
+    if (result.content !== undefined) {
+      setImportText(result.content);
+      setImportError("");
+      setImportSummary(result.filePath ? `Loaded ${result.filePath}` : "File loaded.");
+    }
+  };
+
+  const fetchImportUrl = async () => {
+    const url = importUrl.trim();
+    if (!url) {
+      return;
+    }
+    setIsFetchingImport(true);
+    setImportError("");
+    const result = await window.studio.fetchImportUrl(url);
+    setIsFetchingImport(false);
+    if (result.ok && result.content !== undefined) {
+      setImportText(result.content);
+      setImportSummary("Fetched document from URL. Review it, then press Import.");
+    } else {
+      setImportSummary("");
+      setImportError(result.error ?? "Could not fetch the URL.");
+    }
+  };
+
   const handlePreviewImport = () => {
     setImportError("");
     try {
@@ -371,7 +582,7 @@ export function App() {
   };
 
   const sendActiveRequest = async () => {
-    if (!activeRequest) {
+    if (!activeRequest || isSending) {
       return;
     }
     setIsSending(true);
@@ -380,6 +591,28 @@ export function App() {
     setResponse(result);
     setIsSending(false);
   };
+
+  // Keyboard shortcuts: Ctrl/Cmd+Enter sends the active request,
+  // Ctrl/Cmd+S saves the workspace immediately.
+  const shortcutHandlers = useRef({ send: sendActiveRequest, save: saveWorkspaceNow });
+  shortcutHandlers.current = { send: sendActiveRequest, save: saveWorkspaceNow };
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey)) {
+        return;
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        void shortcutHandlers.current.send();
+      }
+      if (event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        void shortcutHandlers.current.save();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const updateEnvironment = (environmentId: string, recipe: (environment: Environment) => void) => {
     mutateWorkspace((draft) => {
@@ -450,6 +683,23 @@ export function App() {
       exportContent
     );
     setSavedExportPath(result.canceled ? "" : result.filePath ?? "");
+  };
+
+  const treeActions: TreeActions = {
+    onSelectCollection: selectCollection,
+    onSelectFolder: (folderId) => setSelectedFolderId(folderId),
+    onSelectRequest: (requestId) => {
+      setSelectedRequestId(requestId);
+      setResponse(undefined);
+    },
+    onRenameCollection: renameCollection,
+    onDeleteCollection: deleteCollection,
+    onRenameFolder: renameFolder,
+    onDeleteFolder: deleteFolder,
+    onDuplicateFolder: duplicateFolder,
+    onRenameRequest: renameRequest,
+    onDeleteRequest: deleteRequest,
+    onDuplicateRequest: duplicateRequest
   };
 
   if (!loaded) {
@@ -543,8 +793,13 @@ export function App() {
             importError={importError}
             importSummary={importSummary}
             importText={importText}
+            importUrl={importUrl}
+            isFetchingUrl={isFetchingImport}
+            onFetchUrl={fetchImportUrl}
             onGroupingChange={setGrouping}
             onImport={handleImport}
+            onImportUrlChange={setImportUrl}
+            onOpenFile={openImportFile}
             onPreview={handlePreviewImport}
             onTextChange={setImportText}
           />
@@ -561,12 +816,7 @@ export function App() {
             onAddRequest={() => addRequest("blank")}
             onMoveRequest={moveActiveRequest}
             onRequestTabChange={setRequestTab}
-            onSelectCollection={selectCollection}
-            onSelectFolder={(folderId) => setSelectedFolderId(folderId)}
-            onSelectRequest={(requestId) => {
-              setSelectedRequestId(requestId);
-              setResponse(undefined);
-            }}
+            treeActions={treeActions}
             onSend={sendActiveRequest}
             onUpdateRequest={updateActiveRequest}
             onAssignResponseValue={assignResponseValue}
@@ -720,19 +970,29 @@ function HomeScreen({
 
 function ImportScreen({
   importText,
+  importUrl,
+  isFetchingUrl,
   grouping,
   importSummary,
   importError,
   onTextChange,
+  onImportUrlChange,
+  onFetchUrl,
+  onOpenFile,
   onGroupingChange,
   onPreview,
   onImport
 }: {
   importText: string;
+  importUrl: string;
+  isFetchingUrl: boolean;
   grouping: GroupingStrategy;
   importSummary: string;
   importError: string;
   onTextChange(value: string): void;
+  onImportUrlChange(value: string): void;
+  onFetchUrl(): void;
+  onOpenFile(): void;
   onGroupingChange(value: GroupingStrategy): void;
   onPreview(): void;
   onImport(): void;
@@ -743,6 +1003,10 @@ function ImportScreen({
         <div className="pane__header">
           <h2>Import</h2>
           <div className="button-row">
+            <button className="secondary-button" onClick={onOpenFile} type="button">
+              <FolderPlus size={16} />
+              Open file
+            </button>
             <button className="secondary-button" onClick={onPreview} type="button">
               <Play size={16} />
               Preview
@@ -753,10 +1017,32 @@ function ImportScreen({
             </button>
           </div>
         </div>
+        <div className="import-url-row">
+          <input
+            aria-label="Import from URL"
+            onChange={(event) => onImportUrlChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && importUrl.trim() && !isFetchingUrl) {
+                onFetchUrl();
+              }
+            }}
+            placeholder="https://example.com/openapi.json — fetch a document by URL"
+            value={importUrl}
+          />
+          <button
+            className="secondary-button"
+            disabled={!importUrl.trim() || isFetchingUrl}
+            onClick={onFetchUrl}
+            type="button"
+          >
+            <Download size={16} />
+            {isFetchingUrl ? "Fetching..." : "Fetch"}
+          </button>
+        </div>
         <textarea
           className="source-textarea"
           onChange={(event) => onTextChange(event.target.value)}
-          placeholder="Paste OpenAPI 3.x, Swagger 2.0, or Collection JSON"
+          placeholder="Paste OpenAPI 3.x, Swagger 2.0, or Collection JSON — or load it from a file or URL above"
           spellCheck={false}
           value={importText}
         />
@@ -805,9 +1091,7 @@ function EditorScreen({
   response,
   folderOptions,
   isSending,
-  onSelectCollection,
-  onSelectFolder,
-  onSelectRequest,
+  treeActions,
   onAddCollection,
   onAddFolder,
   onAddRequest,
@@ -828,9 +1112,7 @@ function EditorScreen({
   response?: ResponseState;
   folderOptions: ReturnType<typeof flattenFolders>;
   isSending: boolean;
-  onSelectCollection(collectionId: string): void;
-  onSelectFolder(folderId: string): void;
-  onSelectRequest(requestId: string): void;
+  treeActions: TreeActions;
   onAddCollection(): void;
   onAddFolder(): void;
   onAddRequest(): void;
@@ -875,11 +1157,9 @@ function EditorScreen({
           </select>
         </div>
         <CollectionTree
+          {...treeActions}
           activeCollectionId={activeCollection?.id}
           collections={workspace.collections}
-          onSelectCollection={onSelectCollection}
-          onSelectFolder={onSelectFolder}
-          onSelectRequest={onSelectRequest}
           selectedFolderId={selectedFolderId}
           selectedRequestId={selectedRequestId}
         />

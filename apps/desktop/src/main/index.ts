@@ -300,6 +300,50 @@ async function readCappedBody(
   return { bytes, truncated };
 }
 
+const MAX_IMPORT_BYTES = 20 * 1024 * 1024;
+
+async function fetchImportUrl(
+  url: string
+): Promise<{ ok: boolean; content?: string; error?: string }> {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return { ok: false, error: "Invalid URL." };
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return { ok: false, error: "Only http(s) URLs are supported." };
+  }
+
+  const settings = await loadSettings();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), settings.requestTimeoutMs);
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { Accept: "application/json, application/yaml, text/yaml, text/plain, */*" }
+    });
+    if (!response.ok) {
+      return { ok: false, error: `HTTP ${response.status} ${response.statusText}` };
+    }
+    const { bytes, truncated } = await readCappedBody(response, MAX_IMPORT_BYTES);
+    if (truncated) {
+      return {
+        ok: false,
+        error: `Document is larger than ${Math.round(MAX_IMPORT_BYTES / (1024 * 1024))} MB and cannot be imported.`
+      };
+    }
+    return { ok: true, content: new TextDecoder().decode(bytes) };
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      return { ok: false, error: "The request timed out." };
+    }
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function emptyError(statusText: string, message: string): SendRequestResult {
   return {
     status: 0,
@@ -391,6 +435,29 @@ if (!gotSingleInstanceLock) {
     ipcMain.handle("settings:load", () => loadSettings());
     ipcMain.handle("settings:save", (_event, settings: AppSettings) => saveSettings(settings));
     ipcMain.handle("http:send", (_event, payload: SendRequestPayload) => sendHttpRequest(payload));
+    ipcMain.handle("file:openImport", async () => {
+      const result = await dialog.showOpenDialog({
+        title: "Open API document",
+        filters: [
+          { name: "OpenAPI / Swagger / Collection JSON", extensions: ["yaml", "yml", "json"] },
+          { name: "All files", extensions: ["*"] }
+        ],
+        properties: ["openFile"]
+      });
+      if (result.canceled || result.filePaths.length === 0) {
+        return { canceled: true };
+      }
+      const filePath = result.filePaths[0];
+      const content = await readFile(filePath, "utf8");
+      if (content.length > MAX_IMPORT_BYTES) {
+        return {
+          canceled: false,
+          error: `File is larger than ${Math.round(MAX_IMPORT_BYTES / (1024 * 1024))} MB and cannot be imported.`
+        };
+      }
+      return { canceled: false, content, filePath };
+    });
+    ipcMain.handle("import:fetchUrl", (_event, url: string) => fetchImportUrl(url));
     ipcMain.handle(
       "file:saveExport",
       async (_event, payload: { defaultPath: string; content: string }) => {

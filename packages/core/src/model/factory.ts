@@ -129,6 +129,33 @@ export function createEnvironment(name: string): Environment {
   };
 }
 
+/** Deep-copy a request with fresh ids so the copy is independently editable. */
+export function cloneRequest(request: ApiRequest, nameSuffix = " copy"): ApiRequest {
+  const copy = structuredClone(request);
+  copy.id = createId("req");
+  copy.name = `${request.name}${nameSuffix}`;
+  copy.queryParams = copy.queryParams.map((item) => ({ ...item, id: createId("kv") }));
+  copy.pathParams = copy.pathParams.map((item) => ({ ...item, id: createId("kv") }));
+  copy.headers = copy.headers.map((item) => ({ ...item, id: createId("kv") }));
+  copy.responseExamples = copy.responseExamples.map((example) => ({
+    ...example,
+    id: createId("res"),
+    headers: example.headers.map((item) => ({ ...item, id: createId("kv") }))
+  }));
+  return copy;
+}
+
+/** Deep-copy a folder (including children) with fresh ids throughout. */
+export function cloneFolder(folder: Folder, nameSuffix = " copy"): Folder {
+  return {
+    ...structuredClone(folder),
+    id: createId("folder"),
+    name: `${folder.name}${nameSuffix}`,
+    requests: folder.requests.map((request) => cloneRequest(request, "")),
+    folders: folder.folders.map((child) => cloneFolder(child, ""))
+  };
+}
+
 export function createEmptyWorkspace(name = "OpenAPI Collection Studio"): Workspace {
   return {
     id: createId("workspace"),

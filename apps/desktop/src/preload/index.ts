@@ -10,5 +10,7 @@ contextBridge.exposeInMainWorld("studio", {
   sendRequest: (request: ApiRequest, environment?: Environment) =>
     ipcRenderer.invoke("http:send", { request, environment }),
   saveExportFile: (defaultPath: string, content: string) =>
-    ipcRenderer.invoke("file:saveExport", { defaultPath, content })
+    ipcRenderer.invoke("file:saveExport", { defaultPath, content }),
+  openImportFile: () => ipcRenderer.invoke("file:openImport"),
+  fetchImportUrl: (url: string) => ipcRenderer.invoke("import:fetchUrl", url)
 });
