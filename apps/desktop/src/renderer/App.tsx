@@ -9,6 +9,7 @@ import {
   Save,
   Send,
   Settings,
+  Terminal,
   Wand2
 } from "lucide-react";
 import {
@@ -25,6 +26,9 @@ import {
   createRequest,
   checkOpenApiDocument,
   exportCollectionToOpenApiResult,
+  looksLikeCurl,
+  parseCurlCommand,
+  requestToCurl,
   findFolder,
   findRequest,
   flattenFolders,
@@ -586,6 +590,16 @@ export function App() {
 
   const handlePreviewImport = () => {
     setImportError("");
+    if (looksLikeCurl(importText)) {
+      try {
+        const request = parseCurlCommand(importText);
+        setImportSummary(`cURL command: ${request.method} ${request.url}`);
+      } catch (error) {
+        setImportSummary("");
+        setImportError(error instanceof Error ? error.message : String(error));
+      }
+      return;
+    }
     try {
       const collection = parseCollectionJson(importText);
       setImportSummary(`Collection JSON: ${collection.name}`);
@@ -605,9 +619,34 @@ export function App() {
     }
   };
 
+  const importCurl = () => {
+    const request = parseCurlCommand(importText);
+    if (activeCollection) {
+      mutateCollection(activeCollection.id, (collection) => {
+        collection.requests.push(request);
+      });
+      setSelectedFolderId(undefined);
+    } else {
+      const collection = createCollection("Imported Requests");
+      collection.requests.push(request);
+      mutateWorkspace((draft) => {
+        draft.collections.push(collection);
+      });
+      setActiveCollectionId(collection.id);
+    }
+    setSelectedRequestId(request.id);
+    setImportSummary(`Imported cURL request: ${request.name}`);
+    setScreen("editor");
+  };
+
   const handleImport = () => {
     setImportError("");
     try {
+      if (looksLikeCurl(importText)) {
+        importCurl();
+        return;
+      }
+
       let collection: Collection;
       try {
         collection = parseCollectionJson(importText);
@@ -625,6 +664,19 @@ export function App() {
       setScreen("editor");
     } catch (error) {
       setImportError(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  const copyActiveRequestAsCurl = async () => {
+    if (!activeRequest) {
+      return;
+    }
+    const curl = requestToCurl(activeRequest);
+    try {
+      await navigator.clipboard.writeText(curl);
+      setNotice("Copied request as cURL to the clipboard.");
+    } catch {
+      setNotice(curl);
     }
   };
 
@@ -880,6 +932,7 @@ export function App() {
             onRequestTabChange={setRequestTab}
             treeActions={treeActions}
             onSend={sendActiveRequest}
+            onCopyCurl={copyActiveRequestAsCurl}
             onUpdateRequest={updateActiveRequest}
             onAssignResponseValue={assignResponseValue}
             environmentVariableNames={activeEnvironment?.variables.map((variable) => variable.name) ?? []}
@@ -1108,7 +1161,7 @@ function ImportScreen({
         <textarea
           className="source-textarea"
           onChange={(event) => onTextChange(event.target.value)}
-          placeholder="Paste OpenAPI 3.x, Swagger 2.0, or Collection JSON — or load it from a file or URL above"
+          placeholder="Paste OpenAPI 3.x, Swagger 2.0, Collection JSON, or a curl command — or load it from a file or URL above"
           spellCheck={false}
           value={importText}
         />
@@ -1166,6 +1219,7 @@ function EditorScreen({
   onMoveRequest,
   onRequestTabChange,
   onSend,
+  onCopyCurl,
   onAssignResponseValue,
   environmentVariableNames,
   responseHistory
@@ -1189,6 +1243,7 @@ function EditorScreen({
   onMoveRequest(folderId: string): void;
   onRequestTabChange(tab: RequestTab): void;
   onSend(): void;
+  onCopyCurl(): void;
   onAssignResponseValue(path: string, variableName: string): void;
   environmentVariableNames: string[];
 }) {
@@ -1287,6 +1342,10 @@ function EditorScreen({
                   </option>
                 ))}
               </select>
+              <button className="secondary-button" onClick={onCopyCurl} title="Copy as cURL" type="button">
+                <Terminal size={16} />
+                cURL
+              </button>
             </div>
             <div className="request-tabs">
               {(["params", "auth", "headers", "body"] as RequestTab[]).map((tab) => (
