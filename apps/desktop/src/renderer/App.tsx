@@ -23,6 +23,7 @@ import {
   createJwtRequest,
   createKeyValue,
   createRequest,
+  checkOpenApiDocument,
   exportCollectionToOpenApiResult,
   findFolder,
   findRequest,
@@ -31,6 +32,8 @@ import {
   importApiDocument,
   parseCollectionJson,
   previewApiDocument,
+  relocateFolder,
+  relocateRequest,
   removeFolder,
   removeRequest,
   serializeCollectionJson,
@@ -41,11 +44,12 @@ import {
   type EnvironmentVariable,
   type ExportWarning,
   type GroupingStrategy,
+  type OpenApiCheckResult,
   type HttpMethod,
   type KeyValue,
   type Workspace
 } from "@openapi-collection-studio/core";
-import { CollectionTree, type TreeActions } from "./components/CollectionTree";
+import { CollectionTree, type DropTarget, type TreeActions } from "./components/CollectionTree";
 import { KeyValueEditor } from "./components/KeyValueEditor";
 
 type Screen = "home" | "import" | "editor" | "environments" | "export" | "settings";
@@ -78,6 +82,13 @@ interface ResponseState {
   error?: string;
 }
 
+interface ResponseHistoryEntry {
+  at: string;
+  response: ResponseState;
+}
+
+const MAX_HISTORY_PER_REQUEST = 10;
+
 const methods: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"];
 
 export function App() {
@@ -89,6 +100,7 @@ export function App() {
   const [selectedRequestId, setSelectedRequestId] = useState<string>();
   const [requestTab, setRequestTab] = useState<RequestTab>("params");
   const [response, setResponse] = useState<ResponseState>();
+  const [responseHistory, setResponseHistory] = useState<Record<string, ResponseHistoryEntry[]>>({});
   const [isSending, setIsSending] = useState(false);
   const [importText, setImportText] = useState("");
   const [importUrl, setImportUrl] = useState("");
@@ -156,14 +168,18 @@ export function App() {
     (environment) => environment.id === workspace.activeEnvironmentId
   );
 
-  const exportResult = useMemo<{ content: string; warnings: ExportWarning[] }>(() => {
+  const exportResult = useMemo<{
+    content: string;
+    warnings: ExportWarning[];
+    check?: OpenApiCheckResult;
+  }>(() => {
     if (!activeCollection) {
       return { content: "", warnings: [] };
     }
     if (exportFormat === "collection-json") {
       return { content: serializeCollectionJson(activeCollection), warnings: [] };
     }
-    return exportCollectionToOpenApiResult(activeCollection, {
+    const result = exportCollectionToOpenApiResult(activeCollection, {
       format: exportFormat === "openapi-json" ? "json" : "yaml",
       folderIds: exportFolderIds,
       useFolderNamesAsTags: true,
@@ -174,6 +190,11 @@ export function App() {
       includeAllComponents,
       pruneUnusedComponents
     });
+    return {
+      content: result.content,
+      warnings: result.warnings,
+      check: checkOpenApiDocument(result.document)
+    };
   }, [
     activeCollection,
     exportFolderIds,
@@ -502,6 +523,29 @@ export function App() {
     setResponse(undefined);
   };
 
+  const moveRequestTo = (requestId: string, target: DropTarget) => {
+    if (!activeCollection) {
+      return;
+    }
+    mutateCollection(activeCollection.id, (collection) => {
+      relocateRequest(
+        collection,
+        requestId,
+        target.folderId ?? null,
+        target.position === "before" ? target.requestId ?? null : null
+      );
+    });
+  };
+
+  const moveFolderTo = (folderId: string, target: DropTarget) => {
+    if (!activeCollection) {
+      return;
+    }
+    mutateCollection(activeCollection.id, (collection) => {
+      relocateFolder(collection, folderId, target.folderId ?? null, null);
+    });
+  };
+
   const openImportFile = async () => {
     const result = await window.studio.openImportFile();
     if (result.canceled) {
@@ -585,10 +629,23 @@ export function App() {
     if (!activeRequest || isSending) {
       return;
     }
+    const requestId = activeRequest.id;
     setIsSending(true);
     setResponse(undefined);
     const result = await window.studio.sendRequest(activeRequest, activeEnvironment);
     setResponse(result);
+    if (!result.error) {
+      setResponseHistory((current) => {
+        const entries = current[requestId] ?? [];
+        return {
+          ...current,
+          [requestId]: [{ at: new Date().toISOString(), response: result }, ...entries].slice(
+            0,
+            MAX_HISTORY_PER_REQUEST
+          )
+        };
+      });
+    }
     setIsSending(false);
   };
 
@@ -699,7 +756,9 @@ export function App() {
     onDuplicateFolder: duplicateFolder,
     onRenameRequest: renameRequest,
     onDeleteRequest: deleteRequest,
-    onDuplicateRequest: duplicateRequest
+    onDuplicateRequest: duplicateRequest,
+    onMoveRequestTo: moveRequestTo,
+    onMoveFolderTo: moveFolderTo
   };
 
   if (!loaded) {
@@ -821,6 +880,7 @@ export function App() {
             onUpdateRequest={updateActiveRequest}
             onAssignResponseValue={assignResponseValue}
             environmentVariableNames={activeEnvironment?.variables.map((variable) => variable.name) ?? []}
+            responseHistory={selectedRequestId ? responseHistory[selectedRequestId] ?? [] : []}
             requestTab={requestTab}
             response={response}
             selectedFolderId={selectedFolderId}
@@ -860,6 +920,7 @@ export function App() {
             activeCollection={activeCollection}
             exportContent={exportContent}
             exportWarnings={exportResult.warnings}
+            exportCheck={exportResult.check}
             exportFolderIds={exportFolderIds}
             exportFormat={exportFormat}
             includeAllComponents={includeAllComponents}
@@ -1101,7 +1162,8 @@ function EditorScreen({
   onRequestTabChange,
   onSend,
   onAssignResponseValue,
-  environmentVariableNames
+  environmentVariableNames,
+  responseHistory
 }: {
   workspace: Workspace;
   activeCollection?: Collection;
@@ -1113,6 +1175,7 @@ function EditorScreen({
   folderOptions: ReturnType<typeof flattenFolders>;
   isSending: boolean;
   treeActions: TreeActions;
+  responseHistory: ResponseHistoryEntry[];
   onAddCollection(): void;
   onAddFolder(): void;
   onAddRequest(): void;
@@ -1256,6 +1319,7 @@ function EditorScreen({
       </div>
       <ResponsePanel
         response={response}
+        history={responseHistory}
         onAssignResponseValue={onAssignResponseValue}
         environmentVariableNames={environmentVariableNames}
       />
@@ -1451,40 +1515,63 @@ function AuthFields({
 
 function ResponsePanel({
   response,
+  history,
   onAssignResponseValue,
   environmentVariableNames
 }: {
   response?: ResponseState;
+  history: ResponseHistoryEntry[];
   onAssignResponseValue(path: string, variableName: string): void;
   environmentVariableNames: string[];
 }) {
   const [responseTab, setResponseTab] = useState<ResponseTab>("body");
   const [assignPath, setAssignPath] = useState("access_token");
   const [assignVariable, setAssignVariable] = useState("accessToken");
+  const [historyIndex, setHistoryIndex] = useState(0);
 
   useEffect(() => {
     setResponseTab("body");
+    // A fresh send resets the view to the latest response.
+    setHistoryIndex(0);
   }, [response?.status, response?.body, response?.rawBody]);
 
-  const isJsonResponse = Boolean(response && !response.error && looksLikeJson(response.rawBody));
+  // Show the selected history entry when browsing; otherwise the live response.
+  const displayed = history[historyIndex]?.response ?? response;
+  const isJsonResponse = Boolean(displayed && !displayed.error && looksLikeJson(displayed.rawBody));
 
   return (
     <aside className="response-panel">
       <div className="response-panel__head">
         <h2>Response</h2>
-        {response && !response.error && (
+        {displayed && !displayed.error && (
           <span className="status-pill">
-            {response.status} | {response.durationMs} ms | {formatBytes(response.sizeBytes)}
+            {displayed.status} | {displayed.durationMs} ms | {formatBytes(displayed.sizeBytes)}
           </span>
         )}
       </div>
-      {response?.error && <div className="status-box status-box--error">{response.error}</div>}
-      {response?.truncated && (
+      {history.length > 1 && (
+        <label className="history-row">
+          <span>History</span>
+          <select
+            onChange={(event) => setHistoryIndex(Number(event.target.value))}
+            value={historyIndex}
+          >
+            {history.map((entry, index) => (
+              <option key={entry.at} value={index}>
+                {index === 0 ? "Latest" : formatHistoryTime(entry.at)} — {entry.response.status} (
+                {entry.response.durationMs} ms)
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {displayed?.error && <div className="status-box status-box--error">{displayed.error}</div>}
+      {displayed?.truncated && (
         <div className="status-box status-box--warning">
           Response was larger than the size limit and has been truncated. Increase the limit in Settings if needed.
         </div>
       )}
-      {response && !response.error ? (
+      {displayed && !displayed.error ? (
         <>
           <div className="response-tabs">
             {(["body", "headers", "raw"] as ResponseTab[]).map((tab) => (
@@ -1500,10 +1587,10 @@ function ResponsePanel({
           </div>
           <pre>
             {responseTab === "headers"
-              ? JSON.stringify(response.headers, null, 2)
+              ? JSON.stringify(displayed.headers, null, 2)
               : responseTab === "raw"
-                ? response.rawBody
-                : response.body}
+                ? displayed.rawBody
+                : displayed.body}
           </pre>
           {isJsonResponse && (
             <div className="assign-row">
@@ -1694,6 +1781,7 @@ function ExportScreen({
   exportFolderIds,
   exportContent,
   exportWarnings,
+  exportCheck,
   includeAllComponents,
   includeExamples,
   pruneUnusedComponents,
@@ -1710,6 +1798,7 @@ function ExportScreen({
   exportFolderIds: string[];
   exportContent: string;
   exportWarnings: ExportWarning[];
+  exportCheck?: OpenApiCheckResult;
   includeAllComponents: boolean;
   includeExamples: boolean;
   pruneUnusedComponents: boolean;
@@ -1802,8 +1891,27 @@ function ExportScreen({
       <div className="pane">
         <div className="pane__header">
           <h2>Preview</h2>
-          <span>{activeCollection?.name ?? "No collection selected"}</span>
+          <div className="pane__header-meta">
+            {exportCheck && (
+              <span className={exportCheck.ok ? "valid-badge valid-badge--ok" : "valid-badge valid-badge--warn"}>
+                {exportCheck.ok
+                  ? "Valid OpenAPI structure"
+                  : `${exportCheck.issues.length} structure issue${exportCheck.issues.length === 1 ? "" : "s"}`}
+              </span>
+            )}
+            <span>{activeCollection?.name ?? "No collection selected"}</span>
+          </div>
         </div>
+        {exportCheck && !exportCheck.ok && (
+          <div className="status-box status-box--warning">
+            <strong>Structure check:</strong>
+            <ul>
+              {exportCheck.issues.map((issue, index) => (
+                <li key={index}>{issue}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         {secretWarnings.length > 0 && (
           <div className="status-box status-box--error">
             <strong>Possible secret leak:</strong>
@@ -1954,7 +2062,15 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024) {
     return `${bytes} B`;
   }
-  return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatHistoryTime(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? iso : date.toLocaleTimeString();
 }
 
 function slug(value: string): string {

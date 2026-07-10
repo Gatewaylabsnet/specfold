@@ -2,6 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Copy, FileText, Folder, Layers, Pencil, Search, Trash2, X } from "lucide-react";
 import type { ApiRequest, Collection, Folder as FolderType } from "@openapi-collection-studio/core";
 
+export type DragKind = "request" | "folder";
+
+/** Where a dropped item should land relative to the drop target. */
+export interface DropTarget {
+  /** "before" a sibling request/folder, or "inside" a folder (append). */
+  position: "before" | "inside";
+  /** Target request id when reordering requests before it. */
+  requestId?: string;
+  /** Target/parent folder id (undefined = collection root). */
+  folderId?: string;
+}
+
 export interface TreeActions {
   onSelectCollection(collectionId: string): void;
   onSelectFolder(folderId: string): void;
@@ -14,6 +26,13 @@ export interface TreeActions {
   onRenameRequest(requestId: string, name: string): void;
   onDeleteRequest(requestId: string): void;
   onDuplicateRequest(requestId: string): void;
+  onMoveRequestTo(requestId: string, target: DropTarget): void;
+  onMoveFolderTo(folderId: string, target: DropTarget): void;
+}
+
+interface DragState {
+  kind: DragKind;
+  id: string;
 }
 
 interface CollectionTreeProps extends TreeActions {
@@ -27,13 +46,19 @@ export function CollectionTree(props: CollectionTreeProps) {
   const { collections, activeCollectionId } = props;
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string>();
+  const [drag, setDrag] = useState<DragState>();
+  const [dropHint, setDropHint] = useState<string>();
   const query = search.trim().toLowerCase();
 
   const treeContext: TreeContext = {
     ...props,
     query,
     editingId,
-    setEditingId
+    setEditingId,
+    drag,
+    setDrag,
+    dropHint,
+    setDropHint
   };
 
   return (
@@ -76,6 +101,10 @@ interface TreeContext extends TreeActions {
   query: string;
   editingId?: string;
   setEditingId(id?: string): void;
+  drag?: DragState;
+  setDrag(drag?: DragState): void;
+  dropHint?: string;
+  setDropHint(id?: string): void;
 }
 
 function requestMatches(request: ApiRequest, query: string): boolean {
@@ -118,6 +147,7 @@ function CollectionNode({
   }
 
   const isActive = collection.id === context.activeCollectionId;
+  const isRootDropTarget = context.dropHint === `collection:${collection.id}` && context.drag !== undefined;
 
   return (
     <div className="tree__collection">
@@ -132,6 +162,29 @@ function CollectionNode({
         id={collection.id}
         label={collection.name}
         context={context}
+        dropClass={isRootDropTarget ? "is-drop-inside" : ""}
+        onDragOver={
+          isActive
+            ? () => {
+                if (context.drag) {
+                  context.setDropHint(`collection:${collection.id}`);
+                }
+              }
+            : undefined
+        }
+        onDrop={
+          isActive
+            ? () => {
+                if (context.drag?.kind === "request") {
+                  context.onMoveRequestTo(context.drag.id, { position: "inside" });
+                } else if (context.drag?.kind === "folder") {
+                  context.onMoveFolderTo(context.drag.id, { position: "inside" });
+                }
+                context.setDrag(undefined);
+                context.setDropHint(undefined);
+              }
+            : undefined
+        }
         onSelect={() => context.onSelectCollection(collection.id)}
         onRename={(name) => context.onRenameCollection(collection.id, name)}
         onDelete={() => context.onDeleteCollection(collection.id)}
@@ -169,6 +222,11 @@ function FolderNode({
       )
     : folder.folders;
 
+  const isDropTarget =
+    context.dropHint === `folder:${folder.id}` &&
+    context.drag !== undefined &&
+    !(context.drag.kind === "folder" && context.drag.id === folder.id);
+
   return (
     <div className="tree__folder">
       <TreeRow
@@ -184,6 +242,27 @@ function FolderNode({
         label={folder.name}
         badge={query ? undefined : String(folder.requests.length || "")}
         context={context}
+        draggable
+        dropClass={isDropTarget ? "is-drop-inside" : ""}
+        onDragStart={() => context.setDrag({ kind: "folder", id: folder.id })}
+        onDragEnd={() => {
+          context.setDrag(undefined);
+          context.setDropHint(undefined);
+        }}
+        onDragOver={() => {
+          if (context.drag && !(context.drag.kind === "folder" && context.drag.id === folder.id)) {
+            context.setDropHint(`folder:${folder.id}`);
+          }
+        }}
+        onDrop={() => {
+          if (context.drag?.kind === "request") {
+            context.onMoveRequestTo(context.drag.id, { position: "inside", folderId: folder.id });
+          } else if (context.drag?.kind === "folder" && context.drag.id !== folder.id) {
+            context.onMoveFolderTo(context.drag.id, { position: "inside", folderId: folder.id });
+          }
+          context.setDrag(undefined);
+          context.setDropHint(undefined);
+        }}
         onSelect={() => context.onSelectFolder(folder.id)}
         onRename={(name) => context.onRenameFolder(folder.id, name)}
         onDelete={() => context.onDeleteFolder(folder.id)}
@@ -191,7 +270,13 @@ function FolderNode({
       />
       <div>
         {visibleRequests.map((request) => (
-          <RequestNode context={context} depth={depth + 1} key={request.id} request={request} />
+          <RequestNode
+            containerFolderId={folder.id}
+            context={context}
+            depth={depth + 1}
+            key={request.id}
+            request={request}
+          />
         ))}
         {visibleFolders.map((child) => (
           <FolderNode context={context} depth={depth + 1} folder={child} key={child.id} />
@@ -204,12 +289,19 @@ function FolderNode({
 function RequestNode({
   request,
   context,
+  containerFolderId,
   depth = 0
 }: {
   request: ApiRequest;
   context: TreeContext;
+  containerFolderId?: string;
   depth?: number;
 }) {
+  const dropClass =
+    context.dropHint === `req:${request.id}` && context.drag?.kind === "request"
+      ? "is-drop-before"
+      : "";
+
   return (
     <TreeRow
       className={
@@ -227,6 +319,29 @@ function RequestNode({
       indent={28 + depth * 14}
       label={request.name}
       context={context}
+      draggable
+      dropClass={dropClass}
+      onDragStart={() => context.setDrag({ kind: "request", id: request.id })}
+      onDragEnd={() => {
+        context.setDrag(undefined);
+        context.setDropHint(undefined);
+      }}
+      onDragOver={() => {
+        if (context.drag?.kind === "request" && context.drag.id !== request.id) {
+          context.setDropHint(`req:${request.id}`);
+        }
+      }}
+      onDrop={() => {
+        if (context.drag?.kind === "request" && context.drag.id !== request.id) {
+          context.onMoveRequestTo(context.drag.id, {
+            position: "before",
+            requestId: request.id,
+            folderId: containerFolderId
+          });
+        }
+        context.setDrag(undefined);
+        context.setDropHint(undefined);
+      }}
       onSelect={() => context.onSelectRequest(request.id)}
       onRename={(name) => context.onRenameRequest(request.id, name)}
       onDelete={() => context.onDeleteRequest(request.id)}
@@ -247,6 +362,12 @@ function TreeRow({
   badge,
   indent,
   context,
+  draggable,
+  dropClass,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
   onSelect,
   onRename,
   onDelete,
@@ -259,6 +380,12 @@ function TreeRow({
   badge?: string;
   indent?: number;
   context: TreeContext;
+  draggable?: boolean;
+  dropClass?: string;
+  onDragStart?(): void;
+  onDragEnd?(): void;
+  onDragOver?(): void;
+  onDrop?(): void;
   onSelect(): void;
   onRename(name: string): void;
   onDelete(): void;
@@ -285,7 +412,39 @@ function TreeRow({
   };
 
   return (
-    <div className="tree-row" style={indent ? { paddingLeft: `${indent}px` } : undefined}>
+    <div
+      className={dropClass ? `tree-row ${dropClass}` : "tree-row"}
+      draggable={draggable && !isEditing}
+      onDragStart={
+        onDragStart
+          ? (event) => {
+              event.dataTransfer.effectAllowed = "move";
+              // Firefox requires data to be set for a drag to start.
+              event.dataTransfer.setData("text/plain", id);
+              onDragStart();
+            }
+          : undefined
+      }
+      onDragEnd={onDragEnd}
+      onDragOver={
+        onDragOver
+          ? (event) => {
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "move";
+              onDragOver();
+            }
+          : undefined
+      }
+      onDrop={
+        onDrop
+          ? (event) => {
+              event.preventDefault();
+              onDrop();
+            }
+          : undefined
+      }
+      style={indent ? { paddingLeft: `${indent}px` } : undefined}
+    >
       {isEditing ? (
         <div className={`${className} tree-row__edit`}>
           {icon}

@@ -21,16 +21,26 @@ if (import.meta.env.DEV && typeof window.studio === "undefined") {
       allowInsecureTls: false
     }),
     saveSettings: async (settings) => settings,
-    sendRequest: async () => ({
-      status: 0,
-      statusText: "Unavailable",
-      durationMs: 0,
-      sizeBytes: 0,
-      headers: {},
-      body: "",
-      rawBody: "",
-      error: "Sending requests requires the desktop app (browser preview mode)."
-    }),
+    sendRequest: async (request) => {
+      // Canned success so the editor/response/history flow is reviewable in a
+      // browser without a real network stack. Never used in the packaged app.
+      const payload = {
+        ok: true,
+        method: request.method,
+        access_token: `demo-token-${Math.floor(Math.random() * 1e6)}`,
+        receivedAt: new Date().toISOString()
+      };
+      const rawBody = JSON.stringify(payload);
+      return {
+        status: 200,
+        statusText: "OK",
+        durationMs: 12 + Math.floor(Math.random() * 40),
+        sizeBytes: rawBody.length,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload, null, 2),
+        rawBody
+      };
+    },
     saveExportFile: async () => ({ canceled: true }),
     openImportFile: async () => ({ canceled: true }),
     fetchImportUrl: async () => ({

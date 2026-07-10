@@ -1039,3 +1039,85 @@ textarea:focus-visible {
   border-color: #7ba7dd;
   box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.12);
 }
+
+/* Drag-and-drop reordering */
+.tree-row.is-drop-before::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: #1f6feb;
+}
+
+.tree-row.is-drop-inside {
+  background: #e0ecff;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px #9cc2f5;
+}
+
+.tree-row[draggable="true"] {
+  cursor: grab;
+}
+
+.tree-row[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+/* Export validation badge */
+.pane__header-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.valid-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.valid-badge--ok {
+  color: #0f7a44;
+  background: #e6f6ec;
+  border: 1px solid #b5e3c6;
+}
+
+.valid-badge--ok::before {
+  content: "\2713";
+}
+
+.valid-badge--warn {
+  color: #7a5a10;
+  background: #fff6e6;
+  border: 1px solid #f0d9a8;
+}
+
+.valid-badge--warn::before {
+  content: "\26A0";
+}
+
+/* Response history picker */
+.history-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: #52657c;
+}
+
+.history-row span {
+  font-weight: 600;
+}
+
+.history-row select {
+  flex: 1;
+  min-width: 0;
+}

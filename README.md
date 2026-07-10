@@ -19,12 +19,14 @@ Everything runs locally. No account, no cloud sync, no team workspace.
 - Auto-group imported endpoints by tag, first path segment, or a single folder.
 - Collection / folder / request tree with a Postman-style editor:
   - **search/filter** across request names, URLs, and methods,
-  - **rename** (inline, double-click or the pencil icon), **duplicate**, and **delete** for collections, folders, and requests.
+  - **rename** (inline, double-click or the pencil icon), **duplicate**, and **delete** for collections, folders, and requests,
+  - **drag-and-drop** to reorder requests and move requests/folders between folders.
 - Query params, path params, headers, body, and auth (bearer / basic / API key).
 - Environments with `{{baseUrl}}`, `{{accessToken}}`-style variables (multi-level: a variable value may reference another variable).
 - Manual JWT token request template.
 - **Save a response field straight into an environment variable** (e.g. `access_token` → `{{accessToken}}`) without any scripting.
-- Send requests and view status, timing, size, headers, and body.
+- Send requests and view status, timing, size, headers, and body — with **per-request response history** to compare recent runs.
+- **Export structure check**: a badge confirms the generated document is structurally valid OpenAPI (or lists the concrete issues) before you save/send it.
 - Keyboard shortcuts: `Ctrl+Enter` sends the active request, `Ctrl+S` saves the workspace.
 - Export a selected folder or the whole collection to OpenAPI YAML/JSON, or the app's Collection JSON.
 - Portable Windows build; CI runs typecheck, tests, and build on every push.
