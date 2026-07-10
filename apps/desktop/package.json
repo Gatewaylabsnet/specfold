@@ -1,0 +1,59 @@
+{
+  "name": "@openapi-collection-studio/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop shell for OpenAPI Collection Studio.",
+  "author": "OpenAPI Collection Studio contributors",
+  "type": "module",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "build": "electron-vite build",
+    "package:win:portable": "npm run build && electron-builder --win portable --x64",
+    "package:win:installer": "npm run build && electron-builder --win nsis --x64"
+  },
+  "dependencies": {
+    "@openapi-collection-studio/core": "0.1.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "electron": "31.7.7",
+    "electron-builder": "^24.13.3",
+    "electron-vite": "^2.3.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.3.4"
+  },
+  "build": {
+    "appId": "dev.local.openapi-collection-studio",
+    "productName": "OpenAPI Collection Studio",
+    "electronVersion": "31.7.7",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-${arch}-portable.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

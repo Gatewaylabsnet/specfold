@@ -1,0 +1,44 @@
+openapi: 3.0.3
+info:
+  title: Simple API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                ok: true
+  /users/{id}:
+    get:
+      summary: Get user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: includePosts
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: User response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+

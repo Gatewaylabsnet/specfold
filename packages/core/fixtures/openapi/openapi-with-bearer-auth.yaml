@@ -1,0 +1,22 @@
+openapi: 3.0.3
+info:
+  title: Bearer API
+  version: 1.0.0
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+paths:
+  /profile:
+    get:
+      summary: Profile
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+

@@ -1,0 +1,23 @@
+{
+  "name": "openapi-collection-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first Windows desktop REST API collection editor for OpenAPI and Swagger imports.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @openapi-collection-studio/desktop",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "package:win:portable": "npm run package:win:portable --workspace @openapi-collection-studio/desktop",
+    "package:win:installer": "npm run package:win:installer --workspace @openapi-collection-studio/desktop"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}
+
