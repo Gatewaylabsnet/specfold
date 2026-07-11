@@ -103,6 +103,51 @@ export function createJwtRequest(): ApiRequest {
   };
 }
 
+/**
+ * Apinizer-flavored token request: OAuth2 Resource Owner Password Credentials
+ * grant, form-encoded, with client credentials in Basic auth. All values are
+ * {{variables}} so they resolve from an environment. Adjust the token path or
+ * fields per your Apinizer deployment.
+ */
+export function createApinizerJwtRequest(): ApiRequest {
+  return {
+    ...createRequest({
+      name: "Apinizer JWT Token",
+      method: "POST",
+      url: "{{baseUrl}}/auth/jwt"
+    }),
+    description:
+      "OAuth2 password grant against Apinizer. Set baseUrl, clientId, clientSecret, username, password (and scope if used) in an environment.",
+    headers: [createKeyValue("Content-Type", "application/x-www-form-urlencoded")],
+    auth: { type: "basic", username: "{{clientId}}", password: "{{clientSecret}}" },
+    body: {
+      mode: "raw",
+      contentType: "application/x-www-form-urlencoded",
+      raw: "grant_type=password&username={{username}}&password={{password}}&scope={{scope}}"
+    },
+    responseExamples: [
+      {
+        id: createId("res"),
+        name: "Token response",
+        status: 200,
+        headers: [createKeyValue("Content-Type", "application/json")],
+        contentType: "application/json",
+        body: JSON.stringify(
+          {
+            access_token: "...",
+            token_type: "Bearer",
+            expires_in: 3600,
+            refresh_token: "...",
+            scope: ""
+          },
+          null,
+          2
+        )
+      }
+    ]
+  };
+}
+
 export function createFolder(name: string): Folder {
   return {
     id: createId("folder"),

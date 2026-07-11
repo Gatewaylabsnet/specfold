@@ -24,7 +24,7 @@ Everything runs locally. No account, no cloud sync, no team workspace.
   - **drag-and-drop** to reorder requests and move requests/folders between folders.
 - Query params, path params, headers, body, and auth (bearer / basic / API key).
 - Environments with `{{baseUrl}}`, `{{accessToken}}`-style variables (multi-level: a variable value may reference another variable).
-- Manual JWT token request template.
+- Manual request templates: a generic **JWT token request** and an **Apinizer JWT token** request (OAuth2 password grant, form-encoded) — both dropped into an `Auth` folder ready to wire up.
 - **Save a response field straight into an environment variable** (e.g. `access_token` → `{{accessToken}}`) without any scripting.
 - Send requests and view status, timing, size, headers, and body — with **per-request response history** to compare recent runs.
 - **Export structure check**: a badge confirms the generated document is structurally valid OpenAPI (or lists the concrete issues) before you save/send it.
@@ -32,6 +32,27 @@ Everything runs locally. No account, no cloud sync, no team workspace.
 - Keyboard shortcuts: `Ctrl+Enter` sends the active request, `Ctrl+S` saves the workspace.
 - Export a selected folder or the whole collection to OpenAPI YAML/JSON, or the app's Collection JSON.
 - Portable Windows build; CI runs typecheck, tests, and build on every push.
+
+## Apinizer workflow
+
+A common flow when working with an Apinizer API gateway:
+
+1. Paste the OpenAPI/Swagger document exported from Apinizer into **Import**.
+2. In the editor sidebar, open the **Templates** dropdown → **Apinizer JWT Token (OAuth2)**.
+   This adds a `POST {{baseUrl}}/auth/jwt` request into an `Auth` folder:
+   - `Content-Type: application/x-www-form-urlencoded`
+   - Basic auth with `{{clientId}}` / `{{clientSecret}}`
+   - body: `grant_type=password&username={{username}}&password={{password}}&scope={{scope}}`
+3. In **Environments**, create a `Local` environment and set `baseUrl`, `clientId`,
+   `clientSecret`, `username`, `password` (and `scope` if your setup uses it). Mark
+   secrets as *secret* so they are encrypted at rest.
+4. **Send** the token request, then use **Save field to variable** on the response to
+   store `access_token` into `{{accessToken}}`.
+5. Other requests referencing `{{accessToken}}` (bearer auth) now authenticate.
+6. Select the folder you want and **Export** it as OpenAPI YAML/JSON to hand off.
+
+Adjust the token path, fields, or auth placement in the request editor to match your
+specific Apinizer deployment — the template is a starting point.
 
 ## Security & data-safety notes
 

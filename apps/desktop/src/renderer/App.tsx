@@ -16,6 +16,7 @@ import {
   cloneFolder,
   cloneRequest,
   countFolderRequests,
+  createApinizerJwtRequest,
   createCollection,
   createEmptyWorkspace,
   createEnvironment,
@@ -293,24 +294,34 @@ export function App() {
     setSelectedFolderId(folder.id);
   };
 
-  const addRequest = (kind: "blank" | "jwt") => {
+  const addRequest = (kind: "blank" | "jwt" | "apinizer-jwt") => {
     if (!activeCollection) {
       return;
     }
-    const request = kind === "jwt" ? createJwtRequest() : createRequest({ name: "New Request" });
+    const isAuthTemplate = kind === "jwt" || kind === "apinizer-jwt";
+    const request =
+      kind === "jwt"
+        ? createJwtRequest()
+        : kind === "apinizer-jwt"
+          ? createApinizerJwtRequest()
+          : createRequest({ name: "New Request" });
     const existingAuthFolder = activeCollection.folders.find((folder) => folder.name === "Auth");
-    const newAuthFolder = kind === "jwt" && !existingAuthFolder ? createFolder("Auth") : undefined;
-    const targetFolderId =
-      kind === "jwt" ? existingAuthFolder?.id ?? newAuthFolder?.id : selectedFolderId;
+    // Pre-generate the new Auth folder id so the updater stays pure: it builds
+    // a fresh folder object each run (React StrictMode invokes it twice in dev)
+    // but always with this stable id, instead of mutating a shared object.
+    const newAuthFolderId = isAuthTemplate && !existingAuthFolder ? createId("folder") : undefined;
+    const targetFolderId = isAuthTemplate
+      ? existingAuthFolder?.id ?? newAuthFolderId
+      : selectedFolderId;
     mutateWorkspace((draft) => {
       const collection = draft.collections.find((candidate) => candidate.id === activeCollection.id);
       if (!collection) {
         return;
       }
       let folder = targetFolderId ? findFolder(collection, targetFolderId) : undefined;
-      if (newAuthFolder && !folder) {
-        collection.folders.push(newAuthFolder);
-        folder = newAuthFolder;
+      if (isAuthTemplate && !folder) {
+        folder = { ...createFolder("Auth"), id: newAuthFolderId ?? createId("folder") };
+        collection.folders.push(folder);
       }
       if (folder) {
         folder.requests.push(request);
@@ -320,7 +331,7 @@ export function App() {
     });
     setSelectedFolderId(targetFolderId);
     setSelectedRequestId(request.id);
-    setRequestTab(kind === "jwt" ? "body" : "params");
+    setRequestTab(isAuthTemplate ? "body" : "params");
     setScreen("editor");
   };
 
@@ -927,6 +938,7 @@ export function App() {
             onAddCollection={addCollection}
             onAddFolder={addFolder}
             onAddJwtRequest={() => addRequest("jwt")}
+            onAddApinizerJwtRequest={() => addRequest("apinizer-jwt")}
             onAddRequest={() => addRequest("blank")}
             onMoveRequest={moveActiveRequest}
             onRequestTabChange={setRequestTab}
@@ -1215,6 +1227,7 @@ function EditorScreen({
   onAddFolder,
   onAddRequest,
   onAddJwtRequest,
+  onAddApinizerJwtRequest,
   onUpdateRequest,
   onMoveRequest,
   onRequestTabChange,
@@ -1239,6 +1252,7 @@ function EditorScreen({
   onAddFolder(): void;
   onAddRequest(): void;
   onAddJwtRequest(): void;
+  onAddApinizerJwtRequest(): void;
   onUpdateRequest(recipe: (request: ApiRequest) => void): void;
   onMoveRequest(folderId: string): void;
   onRequestTabChange(tab: RequestTab): void;
@@ -1270,6 +1284,8 @@ function EditorScreen({
             onChange={(event) => {
               if (event.target.value === "jwt") {
                 onAddJwtRequest();
+              } else if (event.target.value === "apinizer-jwt") {
+                onAddApinizerJwtRequest();
               }
               event.target.value = "";
             }}
@@ -1277,6 +1293,7 @@ function EditorScreen({
           >
             <option value="">Templates</option>
             <option value="jwt">JWT Token Request</option>
+            <option value="apinizer-jwt">Apinizer JWT Token (OAuth2)</option>
           </select>
         </div>
         <CollectionTree

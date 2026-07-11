@@ -3,6 +3,7 @@ import {
   cloneFolder,
   cloneRequest,
   countFolderRequests,
+  createApinizerJwtRequest,
   createCollection,
   createFolder,
   createKeyValue,
@@ -54,5 +55,25 @@ describe("model helpers", () => {
     expect(removed?.id).toBe(child.id);
     expect(findFolder(collection, child.id)).toBeUndefined();
     expect(countFolderRequests(parent)).toBe(1);
+  });
+
+  it("builds an Apinizer OAuth2 password-grant token request", () => {
+    const request = createApinizerJwtRequest();
+
+    expect(request.method).toBe("POST");
+    expect(request.url).toBe("{{baseUrl}}/auth/jwt");
+    expect(request.body.mode).toBe("raw");
+    expect(request.body.contentType).toBe("application/x-www-form-urlencoded");
+    expect(request.body.raw).toContain("grant_type=password");
+    expect(request.body.raw).toContain("username={{username}}");
+    expect(request.auth).toEqual({
+      type: "basic",
+      username: "{{clientId}}",
+      password: "{{clientSecret}}"
+    });
+    expect(request.headers[0]).toMatchObject({
+      key: "Content-Type",
+      value: "application/x-www-form-urlencoded"
+    });
   });
 });
