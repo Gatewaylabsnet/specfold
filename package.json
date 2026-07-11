@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "description": "Local-first Windows desktop REST API collection editor for OpenAPI and Swagger imports.",
+  "author": "GatewayLabs (https://gatewaylabs.net)",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/Gatewaylabsnet/openapi-collection-studio",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Gatewaylabsnet/openapi-collection-studio.git"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"

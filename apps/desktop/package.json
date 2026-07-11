@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "description": "Desktop shell for OpenAPI Collection Studio.",
-  "author": "OpenAPI Collection Studio contributors",
+  "author": "GatewayLabs (https://gatewaylabs.net)",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
@@ -33,7 +34,7 @@
     "vite": "^5.3.4"
   },
   "build": {
-    "appId": "dev.local.openapi-collection-studio",
+    "appId": "net.gatewaylabs.openapi-collection-studio",
     "productName": "OpenAPI Collection Studio",
     "electronVersion": "31.7.7",
     "directories": {
