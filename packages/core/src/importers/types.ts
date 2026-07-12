@@ -14,6 +14,21 @@ export interface ParsedApiDocument {
 export interface ImportOptions {
   grouping: GroupingStrategy;
   collectionName?: string;
+  /**
+   * When provided, only operations whose `"<method> <path>"` key (lowercase
+   * method) is in this list are imported. Undefined imports everything.
+   */
+  operationKeys?: string[];
+}
+
+/** One selectable operation surfaced to the UI before import. */
+export interface ImportOperationSummary {
+  /** Stable selection key: `"<method> <path>"` with a lowercase method. */
+  key: string;
+  method: string;
+  path: string;
+  summary?: string;
+  tags: string[];
 }
 
 export interface ImportPreview {

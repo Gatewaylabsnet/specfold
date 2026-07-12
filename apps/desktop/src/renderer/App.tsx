@@ -35,6 +35,7 @@ import {
   flattenFolders,
   flattenRequests,
   importApiDocument,
+  listOperations,
   parseCollectionJson,
   previewApiDocument,
   relocateFolder,
@@ -49,6 +50,7 @@ import {
   type EnvironmentVariable,
   type ExportWarning,
   type GroupingStrategy,
+  type ImportOperationSummary,
   type OpenApiCheckResult,
   type HttpMethod,
   type KeyValue,
@@ -110,6 +112,8 @@ export function App() {
   const [importText, setImportText] = useState("");
   const [importUrl, setImportUrl] = useState("");
   const [isFetchingImport, setIsFetchingImport] = useState(false);
+  const [importOperations, setImportOperations] = useState<ImportOperationSummary[]>([]);
+  const [selectedImportKeys, setSelectedImportKeys] = useState<Set<string>>(new Set());
   const [grouping, setGrouping] = useState<GroupingStrategy>("tags");
   const [importError, setImportError] = useState("");
   const [importSummary, setImportSummary] = useState("");
@@ -155,6 +159,28 @@ export function App() {
     }, 350);
     return () => window.clearTimeout(saveTimer.current);
   }, [loaded, workspace]);
+
+  // Extract the operation list from the pasted document (debounced so large
+  // documents are not re-parsed on every keystroke). All operations start
+  // selected; the user can narrow the set before importing.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (!importText.trim() || looksLikeCurl(importText)) {
+        setImportOperations([]);
+        setSelectedImportKeys(new Set());
+        return;
+      }
+      try {
+        const operations = listOperations(importText);
+        setImportOperations(operations);
+        setSelectedImportKeys(new Set(operations.map((operation) => operation.key)));
+      } catch {
+        setImportOperations([]);
+        setSelectedImportKeys(new Set());
+      }
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [importText]);
 
   const activeCollection = useMemo(
     () => workspace.collections.find((collection) => collection.id === activeCollectionId),
@@ -657,12 +683,22 @@ export function App() {
         importCurl();
         return;
       }
+      if (importOperations.length > 0 && selectedImportKeys.size === 0) {
+        setImportError("Select at least one operation to import.");
+        return;
+      }
 
       let collection: Collection;
       try {
         collection = parseCollectionJson(importText);
       } catch {
-        collection = importApiDocument(importText, { grouping }).collection;
+        collection = importApiDocument(importText, {
+          grouping,
+          operationKeys:
+            importOperations.length > 0 && selectedImportKeys.size < importOperations.length
+              ? [...selectedImportKeys]
+              : undefined
+        }).collection;
       }
 
       mutateWorkspace((draft) => {
@@ -920,6 +956,26 @@ export function App() {
             importText={importText}
             importUrl={importUrl}
             isFetchingUrl={isFetchingImport}
+            operations={importOperations}
+            selectedOperationKeys={selectedImportKeys}
+            onToggleOperation={(key) =>
+              setSelectedImportKeys((current) => {
+                const next = new Set(current);
+                if (next.has(key)) {
+                  next.delete(key);
+                } else {
+                  next.add(key);
+                }
+                return next;
+              })
+            }
+            onSelectAllOperations={(selectAll) =>
+              setSelectedImportKeys(
+                selectAll
+                  ? new Set(importOperations.map((operation) => operation.key))
+                  : new Set()
+              )
+            }
             onFetchUrl={fetchImportUrl}
             onGroupingChange={setGrouping}
             onImport={handleImport}
@@ -1106,6 +1162,10 @@ function ImportScreen({
   grouping,
   importSummary,
   importError,
+  operations,
+  selectedOperationKeys,
+  onToggleOperation,
+  onSelectAllOperations,
   onTextChange,
   onImportUrlChange,
   onFetchUrl,
@@ -1120,6 +1180,10 @@ function ImportScreen({
   grouping: GroupingStrategy;
   importSummary: string;
   importError: string;
+  operations: ImportOperationSummary[];
+  selectedOperationKeys: Set<string>;
+  onToggleOperation(key: string): void;
+  onSelectAllOperations(selectAll: boolean): void;
   onTextChange(value: string): void;
   onImportUrlChange(value: string): void;
   onFetchUrl(): void;
@@ -1128,6 +1192,9 @@ function ImportScreen({
   onPreview(): void;
   onImport(): void;
 }) {
+  const importDisabled =
+    !importText.trim() || (operations.length > 0 && selectedOperationKeys.size === 0);
+
   return (
     <section className="import-layout">
       <div className="pane">
@@ -1142,9 +1209,10 @@ function ImportScreen({
               <Play size={16} />
               Preview
             </button>
-            <button className="primary-button" disabled={!importText.trim()} onClick={onImport} type="button">
+            <button className="primary-button" disabled={importDisabled} onClick={onImport} type="button">
               <Import size={16} />
               Import
+              {operations.length > 0 && ` (${selectedOperationKeys.size})`}
             </button>
           </div>
         </div>
@@ -1204,6 +1272,53 @@ function ImportScreen({
           />
           <span>Single folder</span>
         </label>
+        {operations.length > 0 && (
+          <>
+            <div className="ops-header">
+              <h3>Operations</h3>
+              <span className="ops-count">
+                {selectedOperationKeys.size}/{operations.length} selected
+              </span>
+            </div>
+            <div className="button-row ops-actions">
+              <button
+                className="secondary-button"
+                disabled={selectedOperationKeys.size === operations.length}
+                onClick={() => onSelectAllOperations(true)}
+                type="button"
+              >
+                Select all
+              </button>
+              <button
+                className="secondary-button"
+                disabled={selectedOperationKeys.size === 0}
+                onClick={() => onSelectAllOperations(false)}
+                type="button"
+              >
+                Deselect all
+              </button>
+            </div>
+            <div className="ops-list">
+              {operations.map((operation) => (
+                <label
+                  className="check-row ops-row"
+                  key={operation.key}
+                  title={operation.summary ?? operation.path}
+                >
+                  <input
+                    checked={selectedOperationKeys.has(operation.key)}
+                    onChange={() => onToggleOperation(operation.key)}
+                    type="checkbox"
+                  />
+                  <span className={`method method--${operation.method.toLowerCase()}`}>
+                    {operation.method}
+                  </span>
+                  <span className="ops-path">{operation.path}</span>
+                </label>
+              ))}
+            </div>
+          </>
+        )}
         <div className={importError ? "status-box status-box--error" : "status-box"}>
           {importError || importSummary || "Preview results appear here."}
         </div>

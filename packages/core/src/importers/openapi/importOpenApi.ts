@@ -68,12 +68,16 @@ export function importOpenApiDocument(
   const warnings: string[] = [];
   const paths = getRecord(document, "paths");
   const securitySchemes = collectSecuritySchemes(document);
+  const selectedKeys = options.operationKeys ? new Set(options.operationKeys) : undefined;
 
   for (const [path, pathItemInput] of Object.entries(paths)) {
     const pathItem = asRecord(pathItemInput);
     for (const method of HTTP_METHODS) {
       const operation = asRecord(pathItem[method]);
       if (Object.keys(operation).length === 0) {
+        continue;
+      }
+      if (selectedKeys && !selectedKeys.has(`${method} ${path}`)) {
         continue;
       }
 

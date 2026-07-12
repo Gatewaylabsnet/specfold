@@ -17,6 +17,7 @@ Everything runs locally. No account, no cloud sync, no team workspace.
 
 - Import OpenAPI 3.x, Swagger 2.0, the app's own Collection JSON, or a **`curl` command** — **paste, open a file, or fetch from a URL**.
 - **Copy any request as a `curl` command** for sharing or scripting.
+- **Pick exactly which operations to import**: the Import screen lists every method + path with checkboxes, plus *Select all* / *Deselect all* and a live count.
 - Auto-group imported endpoints by tag, first path segment, or a single folder.
 - Collection / folder / request tree with a Postman-style editor:
   - **search/filter** across request names, URLs, and methods,
