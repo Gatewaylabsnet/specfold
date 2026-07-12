@@ -413,6 +413,19 @@ function applyContentSecurityPolicy(): void {
   });
 }
 
+// Display name shown in menus, dialogs, and the Windows taskbar. Change this
+// one constant if the product is ever renamed. Must be set before the first
+// getPath("userData") call so dev and packaged builds share a storage folder.
+const PRODUCT_NAME = "OpenAPI Collection Studio";
+const APP_ID = "net.gatewaylabs.openapi-collection-studio";
+
+app.setName(PRODUCT_NAME);
+if (process.platform === "win32") {
+  // Without an explicit AppUserModelID, the taskbar groups the dev process as
+  // "Electron". This makes it identify as the product in every mode.
+  app.setAppUserModelId(APP_ID);
+}
+
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
   app.quit();
