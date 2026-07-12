@@ -16,20 +16,18 @@
     "package:win": "npm run build && electron-builder --win nsis portable --x64 -p never",
     "icon": "node build/generate-icon.mjs"
   },
-  "dependencies": {
-    "@openapi-collection-studio/core": "0.1.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "lucide-react": "^0.468.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
   "devDependencies": {
+    "@openapi-collection-studio/core": "0.1.0",
     "@types/node": "^20.14.10",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
     "electron": "31.7.7",
     "electron-builder": "^24.13.3",
     "electron-vite": "^2.3.0",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "typescript": "^5.5.4",
     "vite": "^5.3.4"
   },

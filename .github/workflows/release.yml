@@ -37,15 +37,7 @@ jobs:
           npm test
 
       - name: Package Windows portable (required)
-        shell: bash
-        run: |
-          set -o pipefail
-          if npm run package:win:portable --workspace @openapi-collection-studio/desktop 2>&1 | tee build.log; then
-            exit 0
-          fi
-          ERR=$(grep -nE 'ENOENT|Error:|⨯|cannot|not found|EPERM|EACCES|failedTask|Cannot find' build.log | tail -10 | tr '\n' '§' | sed 's/"/'"'"'/g')
-          echo "::error title=portable-build-error::${ERR}"
-          exit 1
+        run: npm run package:win:portable --workspace @openapi-collection-studio/desktop
 
       - name: Package Windows installer (best-effort)
         continue-on-error: true
