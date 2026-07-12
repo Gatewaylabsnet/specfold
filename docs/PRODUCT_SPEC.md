@@ -2,7 +2,7 @@
 
 ## Goal
 
-OpenAPI Collection Studio is a Windows-first desktop REST API client for teams and individual developers who want an offline, account-free way to turn OpenAPI or Swagger definitions into editable API collections.
+Specfold is a Windows-first desktop REST API client for teams and individual developers who want an offline, account-free way to turn OpenAPI or Swagger definitions into editable API collections.
 
 ## Core Jobs
 

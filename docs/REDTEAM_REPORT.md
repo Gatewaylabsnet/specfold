@@ -1,4 +1,4 @@
-# Red Team Raporu — OpenAPI Collection Studio
+# Red Team Raporu — Specfold
 
 **Tarih:** 2026-07-10
 **Kapsam:** Ürün konsepti + mevcut kod tabanı (`apps/desktop`, `packages/core`), v0.1.0
