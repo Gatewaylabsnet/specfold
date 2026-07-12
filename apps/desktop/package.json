@@ -35,6 +35,7 @@
     "appId": "net.gatewaylabs.specfold",
     "productName": "Specfold",
     "electronVersion": "31.7.7",
+    "npmRebuild": false,
     "directories": {
       "output": "dist"
     },
