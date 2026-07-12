@@ -1,4 +1,10 @@
-# OpenAPI Collection Studio
+<p align="center">
+  <img src="apps/desktop/build/logo.svg" width="96" height="96" alt="OpenAPI Collection Studio logo" />
+</p>
+
+<h1 align="center">OpenAPI Collection Studio</h1>
+
+<p align="center">A <a href="https://gatewaylabs.net">GatewayLabs</a> tool</p>
 
 Local-first Windows desktop tool to **import OpenAPI/Swagger, organize requests into collections/folders, add manual requests (e.g. a JWT token request), test them, and export selected folders back to OpenAPI YAML/JSON**.
 
