@@ -5,10 +5,10 @@
   "description": "Local-first Windows desktop REST API collection editor for OpenAPI and Swagger imports.",
   "author": "GatewayLabs (https://gatewaylabs.net)",
   "license": "Apache-2.0",
-  "homepage": "https://github.com/Gatewaylabsnet/openapi-collection-studio",
+  "homepage": "https://github.com/Gatewaylabsnet/specfold",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Gatewaylabsnet/openapi-collection-studio.git"
+    "url": "https://github.com/Gatewaylabsnet/specfold.git"
   },
   "workspaces": [
     "apps/*",
