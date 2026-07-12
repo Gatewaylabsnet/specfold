@@ -2,7 +2,7 @@
   "name": "@openapi-collection-studio/desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "Desktop shell for OpenAPI Collection Studio.",
+  "description": "Desktop shell for Specfold.",
   "author": "GatewayLabs (https://gatewaylabs.net)",
   "license": "Apache-2.0",
   "type": "module",
@@ -34,8 +34,8 @@
     "vite": "^5.3.4"
   },
   "build": {
-    "appId": "net.gatewaylabs.openapi-collection-studio",
-    "productName": "OpenAPI Collection Studio",
+    "appId": "net.gatewaylabs.specfold",
+    "productName": "Specfold",
     "electronVersion": "31.7.7",
     "directories": {
       "output": "dist"

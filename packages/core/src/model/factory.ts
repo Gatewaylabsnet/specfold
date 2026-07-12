@@ -201,7 +201,7 @@ export function cloneFolder(folder: Folder, nameSuffix = " copy"): Folder {
   };
 }
 
-export function createEmptyWorkspace(name = "OpenAPI Collection Studio"): Workspace {
+export function createEmptyWorkspace(name = "Specfold"): Workspace {
   return {
     id: createId("workspace"),
     schemaVersion: 1,

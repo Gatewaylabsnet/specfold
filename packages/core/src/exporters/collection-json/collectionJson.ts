@@ -18,7 +18,7 @@ export function serializeCollectionJson(collection: Collection): string {
 export function parseCollectionJson(text: string): Collection {
   const parsed = JSON.parse(text) as Partial<CollectionJsonDocument>;
   if (parsed.schema !== "openapi-collection-studio.collection.v1" || !parsed.collection) {
-    throw new Error("Not an OpenAPI Collection Studio collection JSON document.");
+    throw new Error("Not a Specfold collection JSON document.");
   }
   return parsed.collection;
 }

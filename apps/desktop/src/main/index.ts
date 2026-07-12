@@ -374,7 +374,7 @@ function createWindow(): void {
     height: 920,
     minWidth: 1100,
     minHeight: 720,
-    title: "OpenAPI Collection Studio",
+    title: "Specfold",
     backgroundColor: "#f6f7f9",
     webPreferences: {
       preload: join(__dirname, "../preload/index.mjs"),
@@ -416,8 +416,8 @@ function applyContentSecurityPolicy(): void {
 // Display name shown in menus, dialogs, and the Windows taskbar. Change this
 // one constant if the product is ever renamed. Must be set before the first
 // getPath("userData") call so dev and packaged builds share a storage folder.
-const PRODUCT_NAME = "OpenAPI Collection Studio";
-const APP_ID = "net.gatewaylabs.openapi-collection-studio";
+const PRODUCT_NAME = "Specfold";
+const APP_ID = "net.gatewaylabs.specfold";
 
 app.setName(PRODUCT_NAME);
 if (process.platform === "win32") {

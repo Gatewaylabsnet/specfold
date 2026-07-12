@@ -873,7 +873,7 @@ export function App() {
         <div className="brand">
           <BrandMark />
           <div>
-            <h1>OpenAPI Collection Studio</h1>
+            <h1>Specfold</h1>
             <p>{workspace.collections.length} collections | {workspace.environments.length} environments</p>
           </div>
         </div>
@@ -2206,7 +2206,7 @@ function SettingsScreen({
 
 function BrandMark() {
   return (
-    <svg className="brand__mark" viewBox="0 0 256 256" role="img" aria-label="OpenAPI Collection Studio">
+    <svg className="brand__mark" viewBox="0 0 256 256" role="img" aria-label="Specfold">
       <defs>
         <linearGradient id="brand-badge" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#2563EB" />
