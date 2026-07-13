@@ -45,21 +45,21 @@ Everything runs locally. No account, no cloud sync, no team workspace.
 A common flow when working with an Apinizer API gateway:
 
 1. Paste the OpenAPI/Swagger document exported from Apinizer into **Import**.
-2. In the editor sidebar, open the **Templates** dropdown → **Apinizer JWT Token (OAuth2)**.
-   This adds a `POST {{baseUrl}}/auth/jwt` request into an `Auth` folder:
-   - `Content-Type: application/x-www-form-urlencoded`
-   - Basic auth with `{{clientId}}` / `{{clientSecret}}`
-   - body: `grant_type=password&username={{username}}&password={{password}}&scope={{scope}}`
-3. In **Environments**, create a `Local` environment and set `baseUrl`, `clientId`,
-   `clientSecret`, `username`, `password` (and `scope` if your setup uses it). Mark
-   secrets as *secret* so they are encrypted at rest.
+2. In the editor sidebar, open the **Templates** dropdown → **Apinizer Access Token (client_credentials)**.
+   This adds the exact Management API token request from Apinizer's
+   [API reference](https://docs.apinizer.com/api-reference/auth) —
+   `POST {{baseUrl}}/apiops/auth/token`:
+   - `Content-Type: application/x-www-form-urlencoded`, `Accept: application/json`
+   - no request auth (credentials go in the body)
+   - form body: `grant_type=client_credentials`, `client_id={{username}}`, `client_secret={{password}}`
+3. In **Environments**, create a `Local` environment and set `baseUrl` (your Apinizer
+   manager address, e.g. `https://demo.apinizer.com`), `username`, and `password`.
+   Mark secrets as *secret* so they are encrypted at rest.
 4. **Send** the token request, then use **Save field to variable** on the response to
    store `access_token` into `{{accessToken}}`.
-5. Other requests referencing `{{accessToken}}` (bearer auth) now authenticate.
+5. Other requests using bearer auth with `{{accessToken}}` now authenticate
+   (`Authorization: Bearer <access_token>`).
 6. Select the folder you want and **Export** it as OpenAPI YAML/JSON to hand off.
-
-Adjust the token path, fields, or auth placement in the request editor to match your
-specific Apinizer deployment — the template is a starting point.
 
 ## Security & data-safety notes
 

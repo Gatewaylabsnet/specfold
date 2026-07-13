@@ -1453,7 +1453,7 @@ function EditorScreen({
           >
             <option value="">Templates</option>
             <option value="jwt">JWT Token Request</option>
-            <option value="apinizer-jwt">Apinizer JWT Token (OAuth2)</option>
+            <option value="apinizer-jwt">Apinizer Access Token (client_credentials)</option>
           </select>
         </div>
         <CollectionTree

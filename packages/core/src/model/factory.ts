@@ -104,30 +104,35 @@ export function createJwtRequest(): ApiRequest {
 }
 
 /**
- * Apinizer-flavored token request: OAuth2 Resource Owner Password Credentials
- * grant, form-encoded, with client credentials in Basic auth. All values are
- * {{variables}} so they resolve from an environment. Adjust the token path or
- * fields per your Apinizer deployment.
+ * Apinizer Management API access-token request, matching Apinizer's official
+ * API reference (docs.apinizer.com/api-reference/auth): POST
+ * {manager}/apiops/auth/token with a form-urlencoded client_credentials grant
+ * where client_id = Apinizer username and client_secret = Apinizer password.
+ * The endpoint needs no auth itself. Returns { access_token, token_type,
+ * expires_in }. Values are {{variables}}; store the returned access_token as
+ * {{accessToken}} for Bearer auth on other requests.
  */
 export function createApinizerJwtRequest(): ApiRequest {
   return {
     ...createRequest({
-      name: "Apinizer JWT Token",
+      name: "Apinizer Access Token",
       method: "POST",
-      url: "{{baseUrl}}/auth/jwt"
+      url: "{{baseUrl}}/apiops/auth/token"
     }),
     description:
-      "OAuth2 password grant against Apinizer. Set baseUrl, clientId, clientSecret, username, password (and scope if used) in an environment.",
-    headers: [createKeyValue("Content-Type", "application/x-www-form-urlencoded")],
-    auth: { type: "basic", username: "{{clientId}}", password: "{{clientSecret}}" },
+      "Apinizer Management API token (client_credentials grant). Set baseUrl to your Apinizer manager address; username/password (sent as client_id/client_secret) come from the environment. The response's access_token is used as Bearer auth on other requests.",
+    headers: [
+      createKeyValue("Content-Type", "application/x-www-form-urlencoded"),
+      createKeyValue("Accept", "application/json")
+    ],
+    auth: { type: "none" },
     body: {
       mode: "form",
       contentType: "application/x-www-form-urlencoded",
       form: [
-        createKeyValue("grant_type", "password"),
-        createKeyValue("username", "{{username}}"),
-        createKeyValue("password", "{{password}}"),
-        createKeyValue("scope", "{{scope}}")
+        createKeyValue("grant_type", "client_credentials"),
+        createKeyValue("client_id", "{{username}}"),
+        createKeyValue("client_secret", "{{password}}")
       ]
     },
     responseExamples: [
@@ -139,11 +144,9 @@ export function createApinizerJwtRequest(): ApiRequest {
         contentType: "application/json",
         body: JSON.stringify(
           {
-            access_token: "...",
+            access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
             token_type: "Bearer",
-            expires_in: 3600,
-            refresh_token: "...",
-            scope: ""
+            expires_in: 3600
           },
           null,
           2
