@@ -991,6 +991,10 @@ export function App() {
             onAddJwtRequest={() => addRequest("jwt")}
             onGoEditor={() => setScreen("editor")}
             onGoImport={() => setScreen("import")}
+            onOpenCollection={(collectionId) => {
+              selectCollection(collectionId);
+              setScreen("editor");
+            }}
             onNewWorkspace={createNewWorkspace}
             onWorkspaceNameChange={(name) =>
               mutateWorkspace((draft) => {
@@ -1115,6 +1119,7 @@ function HomeScreen({
   onGoEditor,
   onAddCollection,
   onAddJwtRequest,
+  onOpenCollection,
   onNewWorkspace,
   onWorkspaceNameChange
 }: {
@@ -1124,9 +1129,11 @@ function HomeScreen({
   onGoEditor(): void;
   onAddCollection(): void;
   onAddJwtRequest(): void;
+  onOpenCollection(collectionId: string): void;
   onNewWorkspace(): void;
   onWorkspaceNameChange(name: string): void;
 }) {
+  const hasCollections = workspace.collections.length > 0;
   const requestCount = workspace.collections.reduce(
     (total, collection) => total + flattenRequests(collection).length,
     0
@@ -1179,20 +1186,47 @@ function HomeScreen({
           Open editor
         </button>
       </div>
-      <div className="workspace-table">
-        <div className="workspace-table__head">
-          <span>Collection</span>
-          <span>Version</span>
-          <span>Requests</span>
-        </div>
-        {workspace.collections.map((collection) => (
-          <div className="workspace-table__row" key={collection.id}>
-            <span>{collection.name}</span>
-            <span>{collection.version ?? "0.1.0"}</span>
-            <span>{flattenRequests(collection).length}</span>
+      {hasCollections ? (
+        <div className="workspace-table">
+          <div className="workspace-table__head">
+            <span>Collection</span>
+            <span>Version</span>
+            <span>Requests</span>
           </div>
-        ))}
-      </div>
+          {workspace.collections.map((collection) => (
+            <button
+              className="workspace-table__row workspace-table__row--button"
+              key={collection.id}
+              onClick={() => onOpenCollection(collection.id)}
+              title="Open in editor"
+              type="button"
+            >
+              <span>{collection.name}</span>
+              <span>{collection.version ?? "0.1.0"}</span>
+              <span>{flattenRequests(collection).length}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="home-empty">
+          <FileJson size={30} />
+          <h2>No collections yet</h2>
+          <p>
+            Paste or open an OpenAPI/Swagger document to turn its endpoints into a
+            request collection, or start a collection from scratch.
+          </p>
+          <div className="button-row">
+            <button className="primary-button" onClick={onGoImport} type="button">
+              <Import size={16} />
+              Import OpenAPI
+            </button>
+            <button className="secondary-button" onClick={onAddCollection} type="button">
+              <Plus size={16} />
+              New collection
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -1426,20 +1460,24 @@ function EditorScreen({
     <section className="editor-layout">
       <aside className="sidebar">
         <div className="sidebar__toolbar">
-          <button className="icon-button" onClick={onAddCollection} title="New collection" type="button">
-            <Plus size={16} />
+          <button
+            className="secondary-button sidebar__new"
+            disabled={!activeCollection}
+            onClick={onAddRequest}
+            title="New request"
+            type="button"
+          >
+            <FilePlus2 size={16} />
+            New request
           </button>
           <button className="icon-button" disabled={!activeCollection} onClick={onAddFolder} title="New folder" type="button">
             <FolderPlus size={16} />
           </button>
-          <button className="icon-button" disabled={!activeCollection} onClick={onAddRequest} title="New request" type="button">
-            <FilePlus2 size={16} />
-          </button>
-          <button className="icon-button" disabled={!activeCollection} onClick={onAddJwtRequest} title="JWT token request" type="button">
-            <Wand2 size={16} />
+          <button className="icon-button" onClick={onAddCollection} title="New collection" type="button">
+            <Plus size={16} />
           </button>
           <select
-            aria-label="New Request From Template"
+            aria-label="New request from template"
             className="toolbar-menu"
             disabled={!activeCollection}
             onChange={(event) => {
@@ -1450,11 +1488,12 @@ function EditorScreen({
               }
               event.target.value = "";
             }}
+            title="Add from a template"
             value=""
           >
             <option value="">Templates</option>
-            <option value="jwt">JWT Token Request</option>
-            <option value="apinizer-jwt">Apinizer JWT Token</option>
+            <option value="jwt">JWT token request</option>
+            <option value="apinizer-jwt">Apinizer JWT token</option>
           </select>
         </div>
         <CollectionTree
@@ -1533,7 +1572,7 @@ function EditorScreen({
                   onClick={() => onRequestTabChange(tab)}
                   type="button"
                 >
-                  {tab}
+                  {tabLabel(tab)}
                 </button>
               ))}
             </div>
@@ -1838,7 +1877,7 @@ function ResponsePanel({
                 onClick={() => setResponseTab(tab)}
                 type="button"
               >
-                {tab}
+                {tabLabel(tab)}
               </button>
             ))}
           </div>
@@ -2372,6 +2411,13 @@ function slug(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+}
+
+function tabLabel(tab: string): string {
+  if (tab === "raw") {
+    return "Raw";
+  }
+  return tab.charAt(0).toUpperCase() + tab.slice(1);
 }
 
 function looksLikeJson(text: string): boolean {
