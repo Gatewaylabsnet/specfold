@@ -57,19 +57,20 @@ describe("model helpers", () => {
     expect(countFolderRequests(parent)).toBe(1);
   });
 
-  it("builds an Apinizer client_credentials access-token request", () => {
+  it("builds an Apinizer JWT password-grant token request", () => {
     const request = createApinizerJwtRequest();
 
     expect(request.method).toBe("POST");
-    expect(request.url).toBe("{{baseUrl}}/apiops/auth/token");
+    expect(request.url).toBe("{{baseUrl}}/auth/jwt");
     expect(request.body.mode).toBe("form");
     expect(request.body.contentType).toBe("application/x-www-form-urlencoded");
     const formPairs = Object.fromEntries((request.body.form ?? []).map((f) => [f.key, f.value]));
-    expect(formPairs.grant_type).toBe("client_credentials");
-    expect(formPairs.client_id).toBe("{{username}}");
-    expect(formPairs.client_secret).toBe("{{password}}");
+    expect(formPairs.grant_type).toBe("password");
+    expect(formPairs.username).toBe("{{username}}");
+    expect(formPairs.password).toBe("{{password}}");
+    expect(formPairs.client_id).toBe("{{clientId}}");
+    expect(formPairs.client_secret).toBe("{{clientSecret}}");
     // The token endpoint itself needs no auth; credentials go in the body.
     expect(request.auth).toEqual({ type: "none" });
-    expect(request.headers.map((h) => h.key)).toContain("Accept");
   });
 });

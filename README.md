@@ -45,16 +45,16 @@ Everything runs locally. No account, no cloud sync, no team workspace.
 A common flow when working with an Apinizer API gateway:
 
 1. Paste the OpenAPI/Swagger document exported from Apinizer into **Import**.
-2. In the editor sidebar, open the **Templates** dropdown → **Apinizer Access Token (client_credentials)**.
-   This adds the exact Management API token request from Apinizer's
-   [API reference](https://docs.apinizer.com/api-reference/auth) —
-   `POST {{baseUrl}}/apiops/auth/token`:
-   - `Content-Type: application/x-www-form-urlencoded`, `Accept: application/json`
+2. In the editor sidebar, open the **Templates** dropdown → **Apinizer JWT Token**.
+   This adds a `POST {{baseUrl}}/auth/jwt` request (password grant):
+   - `Content-Type: application/x-www-form-urlencoded`
    - no request auth (credentials go in the body)
-   - form body: `grant_type=client_credentials`, `client_id={{username}}`, `client_secret={{password}}`
+   - form body: `grant_type=password`, `username={{username}}`, `password={{password}}`,
+     `client_id={{clientId}}`, `client_secret={{clientSecret}}`
 3. In **Environments**, create a `Local` environment and set `baseUrl` (your Apinizer
-   manager address, e.g. `https://demo.apinizer.com`), `username`, and `password`.
-   Mark secrets as *secret* so they are encrypted at rest.
+   gateway address), `username`, `password`, `clientId`, and `clientSecret`.
+   Mark secrets as *secret* so they are encrypted at rest. (Some Apinizer
+   deployments use a different token path/grant — adjust the fields to match yours.)
 4. **Send** the token request, then use **Save field to variable** on the response to
    store `access_token` into `{{accessToken}}`.
 5. Other requests using bearer auth with `{{accessToken}}` now authenticate
