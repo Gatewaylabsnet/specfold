@@ -129,7 +129,8 @@ export function createApinizerJwtRequest(): ApiRequest {
         createKeyValue("username", "{{username}}"),
         createKeyValue("password", "{{password}}"),
         createKeyValue("client_id", "{{clientId}}"),
-        createKeyValue("client_secret", "{{clientSecret}}")
+        // Apinizer's standard value for this field is a literal dash.
+        createKeyValue("client_secret", "-")
       ]
     },
     responseExamples: [

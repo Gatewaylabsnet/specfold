@@ -50,9 +50,9 @@ A common flow when working with an Apinizer API gateway:
    - `Content-Type: application/x-www-form-urlencoded`
    - no request auth (credentials go in the body)
    - form body: `grant_type=password`, `username={{username}}`, `password={{password}}`,
-     `client_id={{clientId}}`, `client_secret={{clientSecret}}`
+     `client_id={{clientId}}`, `client_secret=-` (Apinizer's standard value)
 3. In **Environments**, create a `Local` environment and set `baseUrl` (your Apinizer
-   gateway address), `username`, `password`, `clientId`, and `clientSecret`.
+   gateway address), `username`, `password`, and `clientId`.
    Mark secrets as *secret* so they are encrypted at rest. (Some Apinizer
    deployments use a different token path/grant — adjust the fields to match yours.)
 4. **Send** the token request, then use **Save field to variable** on the response to

@@ -69,7 +69,7 @@ describe("model helpers", () => {
     expect(formPairs.username).toBe("{{username}}");
     expect(formPairs.password).toBe("{{password}}");
     expect(formPairs.client_id).toBe("{{clientId}}");
-    expect(formPairs.client_secret).toBe("{{clientSecret}}");
+    expect(formPairs.client_secret).toBe("-");
     // The token endpoint itself needs no auth; credentials go in the body.
     expect(request.auth).toEqual({ type: "none" });
   });
