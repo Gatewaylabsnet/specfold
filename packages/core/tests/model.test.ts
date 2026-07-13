@@ -62,10 +62,11 @@ describe("model helpers", () => {
 
     expect(request.method).toBe("POST");
     expect(request.url).toBe("{{baseUrl}}/auth/jwt");
-    expect(request.body.mode).toBe("raw");
+    expect(request.body.mode).toBe("form");
     expect(request.body.contentType).toBe("application/x-www-form-urlencoded");
-    expect(request.body.raw).toContain("grant_type=password");
-    expect(request.body.raw).toContain("username={{username}}");
+    const formPairs = Object.fromEntries((request.body.form ?? []).map((f) => [f.key, f.value]));
+    expect(formPairs.grant_type).toBe("password");
+    expect(formPairs.username).toBe("{{username}}");
     expect(request.auth).toEqual({
       type: "basic",
       username: "{{clientId}}",

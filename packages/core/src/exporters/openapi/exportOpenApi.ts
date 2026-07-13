@@ -470,6 +470,27 @@ function requestBodyForRequest(
     return undefined;
   }
 
+  if (request.body.mode === "form") {
+    const pairs = (request.body.form ?? []).filter(isEnabledKeyValue);
+    const properties: AnyRecord = {};
+    const example: AnyRecord = {};
+    for (const pair of pairs) {
+      properties[pair.key] = { type: "string" };
+      if (options.includeRequestExamples) {
+        example[pair.key] = pair.value;
+      }
+    }
+    return {
+      required: true,
+      content: {
+        "application/x-www-form-urlencoded": {
+          schema: { type: "object", properties },
+          example: options.includeRequestExamples ? example : undefined
+        }
+      }
+    };
+  }
+
   const contentType = request.body.contentType ?? "application/json";
   const media: AnyRecord = {
     schema: request.body.schema ?? { type: "object" }

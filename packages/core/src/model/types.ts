@@ -7,7 +7,7 @@ export type HttpMethod =
   | "OPTIONS"
   | "HEAD";
 
-export type BodyMode = "none" | "json" | "raw";
+export type BodyMode = "none" | "json" | "raw" | "form";
 
 export interface KeyValue {
   id: string;
@@ -21,6 +21,8 @@ export interface RequestBody {
   mode: BodyMode;
   contentType?: string;
   raw?: string;
+  /** Field pairs for mode "form" (application/x-www-form-urlencoded). */
+  form?: KeyValue[];
   json?: unknown;
   schema?: unknown;
 }

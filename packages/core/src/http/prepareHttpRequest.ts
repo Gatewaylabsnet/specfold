@@ -45,6 +45,16 @@ export function prepareHttpRequest(
   }
 
   let body = requestWithPathParams.body.raw;
+  if (requestWithPathParams.body.mode === "form") {
+    const pairs = (requestWithPathParams.body.form ?? []).filter((item) => item.enabled && item.key);
+    body = pairs
+      .map((item) => `${encodeURIComponent(item.key)}=${encodeURIComponent(item.value)}`)
+      .join("&");
+    headers["Content-Type"] =
+      headers["Content-Type"] ??
+      requestWithPathParams.body.contentType ??
+      "application/x-www-form-urlencoded";
+  }
   if (requestWithPathParams.body.mode === "none" || requestWithPathParams.method === "GET") {
     body = undefined;
   }

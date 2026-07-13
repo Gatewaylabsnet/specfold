@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, safeStorage, session } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, safeStorage, session } from "electron";
 import { copyFile, mkdir, readdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
@@ -368,6 +368,17 @@ function formatBody(body: string, contentType: string | null): string {
   return body;
 }
 
+function resolveWindowIcon(): Electron.NativeImage | undefined {
+  // The running window's title-bar and taskbar icon come from here (the exe
+  // file icon is separate and needs rcedit/winCodeSign, which isn't available
+  // on this build path). Dev: apps/desktop/build; packaged: bundled in asar.
+  const iconPath = process.env.ELECTRON_RENDERER_URL
+    ? join(__dirname, "../../build/icon.png")
+    : join(app.getAppPath(), "build/icon.png");
+  const image = nativeImage.createFromPath(iconPath);
+  return image.isEmpty() ? undefined : image;
+}
+
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1440,
@@ -375,6 +386,7 @@ function createWindow(): void {
     minWidth: 1100,
     minHeight: 720,
     title: "Specfold",
+    icon: resolveWindowIcon(),
     backgroundColor: "#f6f7f9",
     webPreferences: {
       preload: join(__dirname, "../preload/index.mjs"),

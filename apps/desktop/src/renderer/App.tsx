@@ -131,6 +131,16 @@ export function App() {
   const [notice, setNotice] = useState<string>();
   const saveTimer = useRef<number>();
 
+  // Auto-dismiss transient banners (copied cURL, saved variable, etc.) so they
+  // do not linger. The user can also close them with the x button.
+  useEffect(() => {
+    if (!notice) {
+      return;
+    }
+    const timer = window.setTimeout(() => setNotice(undefined), 5000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
   useEffect(() => {
     window.studio.loadWorkspace().then((result) => {
       setWorkspace(result.workspace);
@@ -335,20 +345,23 @@ export function App() {
           ? createApinizerJwtRequest()
           : createRequest({ name: "New Request" });
     const existingAuthFolder = activeCollection.folders.find((folder) => folder.name === "Auth");
+    // Prefer the folder the user has selected — a new request/token goes into
+    // it. Only fall back to a dedicated "Auth" folder for token templates when
+    // no folder is selected.
+    const useAuthFallback = isAuthTemplate && !selectedFolderId;
     // Pre-generate the new Auth folder id so the updater stays pure: it builds
     // a fresh folder object each run (React StrictMode invokes it twice in dev)
     // but always with this stable id, instead of mutating a shared object.
-    const newAuthFolderId = isAuthTemplate && !existingAuthFolder ? createId("folder") : undefined;
-    const targetFolderId = isAuthTemplate
-      ? existingAuthFolder?.id ?? newAuthFolderId
-      : selectedFolderId;
+    const newAuthFolderId = useAuthFallback && !existingAuthFolder ? createId("folder") : undefined;
+    const targetFolderId =
+      selectedFolderId ?? (useAuthFallback ? existingAuthFolder?.id ?? newAuthFolderId : undefined);
     mutateWorkspace((draft) => {
       const collection = draft.collections.find((candidate) => candidate.id === activeCollection.id);
       if (!collection) {
         return;
       }
       let folder = targetFolderId ? findFolder(collection, targetFolderId) : undefined;
-      if (isAuthTemplate && !folder) {
+      if (useAuthFallback && !folder) {
         folder = { ...createFolder("Auth"), id: newAuthFolderId ?? createId("folder") };
         collection.folders.push(folder);
       }
@@ -1639,7 +1652,7 @@ function RequestTabPanel({
   return (
     <div className="tab-panel">
       <div className="segmented">
-        {(["none", "json", "raw"] as const).map((mode) => (
+        {(["none", "json", "raw", "form"] as const).map((mode) => (
           <button
             className={activeRequest.body.mode === mode ? "is-active" : ""}
             key={mode}
@@ -1650,25 +1663,40 @@ function RequestTabPanel({
                   request.body.contentType = request.body.contentType ?? "application/json";
                   request.body.raw = request.body.raw ?? "{}";
                 }
+                if (mode === "form") {
+                  request.body.contentType = "application/x-www-form-urlencoded";
+                  request.body.form = request.body.form ?? [];
+                }
               })
             }
             type="button"
           >
-            {mode}
+            {mode === "form" ? "form-urlencoded" : mode}
           </button>
         ))}
       </div>
-      <textarea
-        className="body-editor"
-        disabled={activeRequest.body.mode === "none"}
-        onChange={(event) =>
-          onUpdateRequest((request) => {
-            request.body.raw = event.target.value;
-          })
-        }
-        spellCheck={false}
-        value={activeRequest.body.raw ?? ""}
-      />
+      {activeRequest.body.mode === "form" ? (
+        <KeyValueEditor
+          onChange={(values) =>
+            onUpdateRequest((request) => {
+              request.body.form = values;
+            })
+          }
+          values={activeRequest.body.form ?? []}
+        />
+      ) : (
+        <textarea
+          className="body-editor"
+          disabled={activeRequest.body.mode === "none"}
+          onChange={(event) =>
+            onUpdateRequest((request) => {
+              request.body.raw = event.target.value;
+            })
+          }
+          spellCheck={false}
+          value={activeRequest.body.raw ?? ""}
+        />
+      )}
     </div>
   );
 }

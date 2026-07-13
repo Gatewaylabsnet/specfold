@@ -121,9 +121,14 @@ export function createApinizerJwtRequest(): ApiRequest {
     headers: [createKeyValue("Content-Type", "application/x-www-form-urlencoded")],
     auth: { type: "basic", username: "{{clientId}}", password: "{{clientSecret}}" },
     body: {
-      mode: "raw",
+      mode: "form",
       contentType: "application/x-www-form-urlencoded",
-      raw: "grant_type=password&username={{username}}&password={{password}}&scope={{scope}}"
+      form: [
+        createKeyValue("grant_type", "password"),
+        createKeyValue("username", "{{username}}"),
+        createKeyValue("password", "{{password}}"),
+        createKeyValue("scope", "{{scope}}")
+      ]
     },
     responseExamples: [
       {

@@ -107,6 +107,11 @@ export function resolveRequestVariables(
       : { value: undefined, missing: [] as string[] };
   rawBody.missing.forEach((name) => missing.add(name));
 
+  const formBody = request.body.form
+    ? resolveKeyValues(request.body.form, variables)
+    : undefined;
+  formBody?.missing.forEach((name) => missing.add(name));
+
   const auth = { ...request.auth };
   if (auth.type === "bearer") {
     const resolved = resolveVariablesInText(auth.token, variables);
@@ -139,7 +144,8 @@ export function resolveRequestVariables(
       headers: headers.values,
       body: {
         ...request.body,
-        raw: rawBody.value
+        raw: rawBody.value,
+        form: formBody ? formBody.values : request.body.form
       },
       auth
     },

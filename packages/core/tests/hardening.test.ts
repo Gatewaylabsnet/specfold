@@ -161,6 +161,24 @@ describe("variable resolution", () => {
   });
 });
 
+describe("form-urlencoded body", () => {
+  it("encodes enabled form fields and sets the content type", () => {
+    const request = createRequest({ name: "Token", method: "POST", url: "https://api.example.com/auth" });
+    request.body = {
+      mode: "form",
+      contentType: "application/x-www-form-urlencoded",
+      form: [
+        createKeyValue("grant_type", "password"),
+        createKeyValue("user name", "a b"),
+        { id: "x", key: "off", value: "1", enabled: false }
+      ]
+    };
+    const prepared = prepareHttpRequest(request);
+    expect(prepared.headers["Content-Type"]).toBe("application/x-www-form-urlencoded");
+    expect(prepared.body).toBe("grant_type=password&user%20name=a%20b");
+  });
+});
+
 describe("basic auth encoding", () => {
   it("encodes non-Latin1 credentials as UTF-8 base64", () => {
     const request = createRequest({ name: "Auth", method: "GET", url: "https://api.example.com/x" });
