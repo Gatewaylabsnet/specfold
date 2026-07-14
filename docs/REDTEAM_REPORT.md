@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-The original pre-v1 review identified four release-blocking classes of risk: silent data loss, export leaks, plaintext secrets, and weak desktop shell hardening. The v1.0 hardening pass closes those blockers and leaves two operational risks that depend on external credentials: Windows code signing and macOS notarization.
+The original pre-v1 review identified four release-blocking classes of risk: silent data loss, export leaks, plaintext secrets, and weak desktop shell hardening. The v1.0 hardening pass closes those blockers and leaves two operational release risks: Windows code signing and macOS notarization.
 
 Specfold is still a local REST client. It intentionally sends arbitrary user-configured HTTP requests. That behavior is product scope, not a vulnerability by itself.
 

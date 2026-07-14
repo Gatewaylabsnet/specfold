@@ -63,8 +63,8 @@ Everything runs locally. No account, no cloud sync, no team workspace.
 
 ### Known Limitations / Follow-Ups
 
-- Release builds are not code-signed yet unless signing credentials are supplied to the release workflow.
-- macOS builds are not notarized yet unless Apple notarization credentials are supplied to the release workflow.
+- Release builds are not code-signed yet.
+- macOS builds are not notarized yet.
 - SOCKS proxies are not supported; configure an HTTP(S) proxy for Specfold.
 - Auto-update is not implemented in v1.0.
 
@@ -76,7 +76,7 @@ Tagged releases publish draft GitHub Release assets from `.github/workflows/rele
 - macOS x64 and arm64: `.dmg` and `.zip`.
 - Linux x64: `.AppImage` and `.deb`.
 
-Unsigned Windows builds may trigger SmartScreen. Unsigned and non-notarized macOS builds may require opening from Finder with **Open** to confirm Gatekeeper prompts. Signing and notarization are supported by the workflow when credentials are configured.
+Unsigned Windows builds may trigger SmartScreen. Unsigned and non-notarized macOS builds may require opening from Finder with **Open** to confirm Gatekeeper prompts.
 
 ## Project Layout
 
