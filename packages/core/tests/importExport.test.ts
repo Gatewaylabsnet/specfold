@@ -114,9 +114,22 @@ describe("OpenAPI and Swagger import/export", () => {
       grouping: "firstPathSegment"
     });
     const serialized = serializeCollectionJson(result.collection);
+    const document = JSON.parse(serialized);
     const parsed = parseCollectionJson(serialized);
 
+    expect(document.schema).toBe("specfold.collection.v1");
     expect(parsed).toEqual(result.collection);
+  });
+
+  it("imports legacy Collection JSON schema ids", () => {
+    const collection = createCollection("Legacy Collection JSON");
+    const serialized = JSON.stringify({
+      schema: "openapi-collection-studio.collection.v1",
+      exportedAt: new Date().toISOString(),
+      collection
+    });
+
+    expect(parseCollectionJson(serialized)).toEqual(collection);
   });
 });
 
