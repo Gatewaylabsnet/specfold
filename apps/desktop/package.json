@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Desktop shell for Specfold.",
+  "desktopName": "Specfold.desktop",
   "author": "GatewayLabs (https://gatewaylabs.net)",
   "license": "Apache-2.0",
   "type": "module",
@@ -41,6 +42,7 @@
   "build": {
     "appId": "net.gatewaylabs.specfold",
     "productName": "Specfold",
+    "executableName": "Specfold",
     "electronVersion": "43.1.0",
     "npmRebuild": false,
     "directories": {
@@ -81,6 +83,7 @@
       "category": "Development",
       "icon": "build/icon.png",
       "maintainer": "GatewayLabs <info@gatewaylabs.net>",
+      "syncDesktopName": true,
       "target": [
         {
           "target": "AppImage",

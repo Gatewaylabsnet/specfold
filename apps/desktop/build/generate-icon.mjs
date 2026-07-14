@@ -1,15 +1,17 @@
 // Generates apps/desktop/build/icon.ico, icon.icns, and icon.png with no dependencies.
-// Draws a rounded-square gradient badge with a small "endpoints" node graph,
-// supersampled 2x for smooth edges, encodes a PNG via Node's zlib, and wraps
-// it in an ICO container. Run: node apps/desktop/build/generate-icon.mjs
-import { deflateSync } from "node:zlib";
+// Draws a rounded-square gradient badge with a small endpoint node graph,
+// supersamples for smooth edges, encodes PNGs via Node's zlib, then wraps the
+// platform-specific icon containers. Run: node apps/desktop/build/generate-icon.mjs
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { deflateSync } from "node:zlib";
 
-const SIZE = 256;
-const SS = 2; // supersample factor
-const W = SIZE * SS;
+const BASE_SIZE = 256;
+const SS = 2;
+const GRAD_A = [37, 99, 235]; // #2563EB
+const GRAD_B = [124, 58, 237]; // #7C3AED
+const WHITE = [255, 255, 255];
 
 function lerp(a, b, t) {
   return a + (b - a) * t;
@@ -17,15 +19,6 @@ function lerp(a, b, t) {
 
 function mix(c1, c2, t) {
   return [lerp(c1[0], c2[0], t), lerp(c1[1], c2[1], t), lerp(c1[2], c2[2], t)];
-}
-
-// Signed distance helpers (in supersampled space).
-function roundedRectInside(x, y, w, h, r) {
-  const dx = Math.max(r - x, x - (w - r), 0);
-  const dy = Math.max(r - y, y - (h - r), 0);
-  return Math.hypot(dx, dy) <= r || (x >= r && x <= w - r) || (y >= r && y <= h - r)
-    ? insideRounded(x, y, w, h, r)
-    : false;
 }
 
 function insideRounded(x, y, w, h, r) {
@@ -42,78 +35,75 @@ function distToSegment(px, py, ax, ay, bx, by) {
   return Math.hypot(px - (ax + dx * t), py - (ay + dy * t));
 }
 
-const GRAD_A = [37, 99, 235]; // #2563EB
-const GRAD_B = [124, 58, 237]; // #7C3AED
-const WHITE = [255, 255, 255];
+function renderPixels(size) {
+  const scale = size / BASE_SIZE;
+  const canvasSize = size * SS;
+  const nodes = [
+    [90, 92],
+    [176, 108],
+    [116, 178]
+  ].map(([x, y]) => [x * scale * SS, y * scale * SS]);
+  const edges = [
+    [0, 1],
+    [1, 2],
+    [2, 0]
+  ];
+  const nodeR = 15 * scale * SS;
+  const edgeR = 8 * scale * SS;
+  const radius = 48 * scale * SS;
 
-// Node graph in 256-space, scaled to supersample space.
-const nodes = [
-  [90, 92],
-  [176, 108],
-  [116, 178]
-].map(([x, y]) => [x * SS, y * SS]);
-const edges = [
-  [0, 1],
-  [1, 2],
-  [2, 0]
-];
-const nodeR = 15 * SS;
-const edgeR = 8 * SS;
-
-function sampleColor(x, y) {
-  // Outside the rounded badge -> transparent.
-  if (!insideRounded(x, y, W, W, 48 * SS)) {
-    return [0, 0, 0, 0];
-  }
-  const t = (x + y) / (2 * W);
-  let color = mix(GRAD_A, GRAD_B, t);
-
-  // White marks (edges then nodes on top).
-  let markCoverage = 0;
-  for (const [a, b] of edges) {
-    const d = distToSegment(x, y, nodes[a][0], nodes[a][1], nodes[b][0], nodes[b][1]);
-    markCoverage = Math.max(markCoverage, d <= edgeR ? 1 : 0);
-  }
-  for (const [nx, ny] of nodes) {
-    if (Math.hypot(x - nx, y - ny) <= nodeR) {
-      markCoverage = 1;
+  function sampleColor(x, y) {
+    if (!insideRounded(x, y, canvasSize, canvasSize, radius)) {
+      return [0, 0, 0, 0];
     }
-  }
-  if (markCoverage > 0) {
-    color = WHITE;
-  }
-  return [color[0], color[1], color[2], 255];
-}
+    const t = (x + y) / (2 * canvasSize);
+    let color = mix(GRAD_A, GRAD_B, t);
 
-// Render supersampled, then box-average down to SIZE (premultiplied-correct).
-const pixels = Buffer.alloc(SIZE * SIZE * 4);
-for (let y = 0; y < SIZE; y += 1) {
-  for (let x = 0; x < SIZE; x += 1) {
-    let r = 0;
-    let g = 0;
-    let b = 0;
-    let a = 0;
-    for (let sy = 0; sy < SS; sy += 1) {
-      for (let sx = 0; sx < SS; sx += 1) {
-        const [pr, pg, pb, pa] = sampleColor(x * SS + sx + 0.5, y * SS + sy + 0.5);
-        const alpha = pa / 255;
-        r += pr * alpha;
-        g += pg * alpha;
-        b += pb * alpha;
-        a += alpha;
+    let markCoverage = 0;
+    for (const [a, b] of edges) {
+      const d = distToSegment(x, y, nodes[a][0], nodes[a][1], nodes[b][0], nodes[b][1]);
+      markCoverage = Math.max(markCoverage, d <= edgeR ? 1 : 0);
+    }
+    for (const [nx, ny] of nodes) {
+      if (Math.hypot(x - nx, y - ny) <= nodeR) {
+        markCoverage = 1;
       }
     }
-    const n = SS * SS;
-    const idx = (y * SIZE + x) * 4;
-    const outAlpha = a / n;
-    pixels[idx] = outAlpha > 0 ? Math.round(r / a) : 0;
-    pixels[idx + 1] = outAlpha > 0 ? Math.round(g / a) : 0;
-    pixels[idx + 2] = outAlpha > 0 ? Math.round(b / a) : 0;
-    pixels[idx + 3] = Math.round(outAlpha * 255);
+    if (markCoverage > 0) {
+      color = WHITE;
+    }
+    return [color[0], color[1], color[2], 255];
   }
+
+  const pixels = Buffer.alloc(size * size * 4);
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let a = 0;
+      for (let sy = 0; sy < SS; sy += 1) {
+        for (let sx = 0; sx < SS; sx += 1) {
+          const [pr, pg, pb, pa] = sampleColor(x * SS + sx + 0.5, y * SS + sy + 0.5);
+          const alpha = pa / 255;
+          r += pr * alpha;
+          g += pg * alpha;
+          b += pb * alpha;
+          a += alpha;
+        }
+      }
+      const sampleCount = SS * SS;
+      const idx = (y * size + x) * 4;
+      const outAlpha = a / sampleCount;
+      pixels[idx] = outAlpha > 0 ? Math.round(r / a) : 0;
+      pixels[idx + 1] = outAlpha > 0 ? Math.round(g / a) : 0;
+      pixels[idx + 2] = outAlpha > 0 ? Math.round(b / a) : 0;
+      pixels[idx + 3] = Math.round(outAlpha * 255);
+    }
+  }
+  return pixels;
 }
 
-// --- PNG encoding ---
 const CRC_TABLE = (() => {
   const table = new Uint32Array(256);
   for (let n = 0; n < 256; n += 1) {
@@ -148,55 +138,66 @@ function encodePng(width, height, rgba) {
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(width, 0);
   ihdr.writeUInt32BE(height, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 6; // RGBA
+  ihdr[8] = 8;
+  ihdr[9] = 6;
   const raw = Buffer.alloc((width * 4 + 1) * height);
   for (let y = 0; y < height; y += 1) {
-    raw[y * (width * 4 + 1)] = 0; // filter: none
+    raw[y * (width * 4 + 1)] = 0;
     rgba.copy(raw, y * (width * 4 + 1) + 1, y * width * 4, (y + 1) * width * 4);
   }
   const idat = deflateSync(raw, { level: 9 });
-  return Buffer.concat([
-    sig,
-    chunk("IHDR", ihdr),
-    chunk("IDAT", idat),
-    chunk("IEND", Buffer.alloc(0))
-  ]);
+  return Buffer.concat([sig, chunk("IHDR", ihdr), chunk("IDAT", idat), chunk("IEND", Buffer.alloc(0))]);
 }
 
-const png = encodePng(SIZE, SIZE, pixels);
+function renderPng(size) {
+  return encodePng(size, size, renderPixels(size));
+}
 
-// --- ICO container (single 256x256 PNG entry) ---
 function encodeIco(pngBuf) {
   const header = Buffer.alloc(6);
-  header.writeUInt16LE(0, 0); // reserved
-  header.writeUInt16LE(1, 2); // type: icon
-  header.writeUInt16LE(1, 4); // count
+  header.writeUInt16LE(0, 0);
+  header.writeUInt16LE(1, 2);
+  header.writeUInt16LE(1, 4);
   const entry = Buffer.alloc(16);
-  entry[0] = 0; // width 0 == 256
-  entry[1] = 0; // height 0 == 256
-  entry[2] = 0; // palette
-  entry[3] = 0; // reserved
-  entry.writeUInt16LE(1, 4); // color planes
-  entry.writeUInt16LE(32, 6); // bpp
+  entry[0] = 0;
+  entry[1] = 0;
+  entry[2] = 0;
+  entry[3] = 0;
+  entry.writeUInt16LE(1, 4);
+  entry.writeUInt16LE(32, 6);
   entry.writeUInt32LE(pngBuf.length, 8);
-  entry.writeUInt32LE(6 + 16, 12); // offset
+  entry.writeUInt32LE(6 + 16, 12);
   return Buffer.concat([header, entry, pngBuf]);
 }
 
-// --- ICNS container (single 256x256 PNG entry) ---
-function encodeIcns(pngBuf) {
-  const entry = Buffer.alloc(8);
-  entry.write("ic08", 0, "ascii");
-  entry.writeUInt32BE(8 + pngBuf.length, 4);
+function encodeIcnsEntry(type, pngBuf) {
+  const header = Buffer.alloc(8);
+  header.write(type, 0, "ascii");
+  header.writeUInt32BE(8 + pngBuf.length, 4);
+  return Buffer.concat([header, pngBuf]);
+}
+
+function encodeIcns(entries) {
+  const body = Buffer.concat(entries.map(({ type, png }) => encodeIcnsEntry(type, png)));
   const header = Buffer.alloc(8);
   header.write("icns", 0, "ascii");
-  header.writeUInt32BE(8 + entry.length + pngBuf.length, 4);
-  return Buffer.concat([header, entry, pngBuf]);
+  header.writeUInt32BE(8 + body.length, 4);
+  return Buffer.concat([header, body]);
 }
 
+const png256 = renderPng(256);
+const icns = encodeIcns([
+  { type: "icp4", png: renderPng(16) },
+  { type: "icp5", png: renderPng(32) },
+  { type: "icp6", png: renderPng(64) },
+  { type: "ic07", png: renderPng(128) },
+  { type: "ic08", png: png256 },
+  { type: "ic09", png: renderPng(512) },
+  { type: "ic10", png: renderPng(1024) }
+]);
+
 const here = dirname(fileURLToPath(import.meta.url));
-writeFileSync(join(here, "icon.png"), png);
-writeFileSync(join(here, "icon.ico"), encodeIco(png));
-writeFileSync(join(here, "icon.icns"), encodeIcns(png));
+writeFileSync(join(here, "icon.png"), png256);
+writeFileSync(join(here, "icon.ico"), encodeIco(png256));
+writeFileSync(join(here, "icon.icns"), icns);
 console.log("Wrote build/icon.png, build/icon.ico, and build/icon.icns");
