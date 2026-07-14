@@ -1,5 +1,5 @@
 :root {
-  --sidebar-width: 300px;
+  --sidebar-width: 320px;
   --control-height: 34px;
   color: #18202c;
   background: #f6f7f9;
@@ -56,6 +56,7 @@ textarea:focus {
 }
 
 select {
+  max-width: 100%;
   min-height: 34px;
   padding: 0 10px;
 }
@@ -96,7 +97,9 @@ pre {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  min-width: 0;
   min-height: 34px;
+  overflow: hidden;
   padding: 0 13px;
   border-radius: 7px;
   color: #4e5c6d;
@@ -130,6 +133,7 @@ pre {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
+  min-width: 0;
   padding: 16px 22px 12px;
   border-bottom: 1px solid #dce1e8;
   background: #fff;
@@ -150,7 +154,8 @@ pre {
 .topbar__environment {
   display: grid;
   gap: 5px;
-  min-width: 260px;
+  width: min(260px, 36vw);
+  min-width: 0;
   color: #536072;
   font-size: 12px;
 }
@@ -159,6 +164,7 @@ pre {
   display: flex;
   align-items: end;
   gap: 10px;
+  min-width: 0;
 }
 
 .save-status {
@@ -228,9 +234,13 @@ pre {
   align-items: center;
   justify-content: center;
   gap: 7px;
+  min-width: 0;
+  max-width: 100%;
   min-height: 34px;
+  overflow: hidden;
   border-radius: 6px;
   cursor: pointer;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -256,6 +266,7 @@ pre {
 }
 
 .icon-button {
+  flex: none;
   width: 34px;
   color: #334155;
   border: 1px solid #cfd6df;
@@ -517,6 +528,10 @@ pre {
   padding: 12px;
 }
 
+.nav-btn svg {
+  flex: none;
+}
+
 .sidebar__nav {
   display: grid;
   gap: 6px;
@@ -531,31 +546,79 @@ pre {
 
 .sidebar__toolbar {
   display: grid;
-  grid-template-columns: var(--control-height) var(--control-height) minmax(0, 1fr);
-  grid-template-areas:
-    "new new new"
-    "folder collection templates";
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  min-width: 0;
+}
+
+.sidebar__quick-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--control-height) var(--control-height);
   gap: 8px;
   min-width: 0;
 }
 
 .sidebar__new {
-  grid-area: new;
+  grid-area: auto;
   justify-content: center;
   width: 100%;
   min-width: 0;
 }
 
 .sidebar__folder {
-  grid-area: folder;
+  grid-area: auto;
 }
 
 .sidebar__collection {
-  grid-area: collection;
+  grid-area: auto;
+}
+
+.sidebar__template {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid #dde4ee;
+  border-radius: 7px;
+  background: #f8fafc;
+}
+
+.sidebar__template-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: #4c5d72;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sidebar__template-title svg {
+  flex: none;
+}
+
+.sidebar__template-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(72px, auto);
+  gap: 8px;
+  min-width: 0;
+}
+
+.sidebar__template-create {
+  padding: 0 10px;
+}
+
+.sidebar__template-target {
+  min-width: 0;
+  overflow: hidden;
+  color: #66758a;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .toolbar-menu {
-  grid-area: templates;
+  grid-area: auto;
   width: 100%;
   min-width: 0;
   height: var(--control-height);
@@ -847,8 +910,22 @@ pre {
     grid-template-columns: minmax(360px, 1fr) 320px;
   }
 
+  .request-line {
+    grid-template-columns: 104px minmax(0, 1fr) auto;
+  }
+
   .request-meta {
     grid-template-columns: 1fr;
+  }
+
+  .kv-editor__head,
+  .kv-editor__row {
+    grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1fr) 34px;
+  }
+
+  .env-table__head,
+  .env-table__row {
+    grid-template-columns: 68px minmax(0, 1fr) minmax(0, 1fr) 62px 34px;
   }
 }
 
@@ -1280,6 +1357,18 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+}
+
+.brand > div {
+  min-width: 0;
+}
+
+.brand h1,
+.brand p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .brand__mark {

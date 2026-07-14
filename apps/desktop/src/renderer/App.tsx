@@ -1121,6 +1121,26 @@ function CollectionsSidebar({
   onAddJwtRequest(): void;
   onAddApinizerJwtRequest(): void;
 }) {
+  const [templateKind, setTemplateKind] = useState<"" | "jwt" | "apinizer-jwt">("");
+  const selectedFolderPath =
+    activeCollection && selectedFolderId
+      ? flattenFolders(activeCollection)
+          .find(({ folder }) => folder.id === selectedFolderId)
+          ?.path.map((folder) => folder.name)
+          .join(" / ")
+      : "";
+  const templateTarget = selectedFolderPath || (templateKind ? "Auth folder" : "Collection root");
+  const canCreateTemplate = Boolean(activeCollection && templateKind);
+
+  const createTemplateRequest = () => {
+    if (templateKind === "jwt") {
+      onAddJwtRequest();
+    } else if (templateKind === "apinizer-jwt") {
+      onAddApinizerJwtRequest();
+    }
+    setTemplateKind("");
+  };
+
   return (
     <aside className="sidebar">
       <nav className="sidebar__nav" aria-label="Primary">
@@ -1161,47 +1181,66 @@ function CollectionsSidebar({
         </NavButton>
       </nav>
       <div className="sidebar__toolbar">
-        <button
-          className="secondary-button sidebar__new"
-          disabled={!activeCollection}
-          onClick={onAddRequest}
-          title="New request"
-          type="button"
-        >
-          <FilePlus2 size={16} />
-          New request
-        </button>
-        <button
-          className="icon-button sidebar__folder"
-          disabled={!activeCollection}
-          onClick={onAddFolder}
-          title="New folder"
-          type="button"
-        >
-          <FolderPlus size={16} />
-        </button>
-        <button className="icon-button sidebar__collection" onClick={onAddCollection} title="New collection" type="button">
-          <Plus size={16} />
-        </button>
-        <select
-          aria-label="New request from template"
-          className="toolbar-menu"
-          disabled={!activeCollection}
-          onChange={(event) => {
-            if (event.target.value === "jwt") {
-              onAddJwtRequest();
-            } else if (event.target.value === "apinizer-jwt") {
-              onAddApinizerJwtRequest();
-            }
-            event.target.value = "";
-          }}
-          title="Add from a template"
-          value=""
-        >
-          <option value="">Templates</option>
-          <option value="jwt">JWT token request</option>
-          <option value="apinizer-jwt">Apinizer JWT token</option>
-        </select>
+        <div className="sidebar__quick-actions">
+          <button
+            className="secondary-button sidebar__new"
+            disabled={!activeCollection}
+            onClick={onAddRequest}
+            title="New request"
+            type="button"
+          >
+            <FilePlus2 size={16} />
+            New request
+          </button>
+          <button
+            className="icon-button sidebar__folder"
+            disabled={!activeCollection}
+            onClick={onAddFolder}
+            title="New folder"
+            type="button"
+          >
+            <FolderPlus size={16} />
+          </button>
+          <button
+            className="icon-button sidebar__collection"
+            onClick={onAddCollection}
+            title="New collection"
+            type="button"
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+        <div className="sidebar__template">
+          <div className="sidebar__template-title">
+            <Wand2 size={14} />
+            <span>Request template</span>
+          </div>
+          <div className="sidebar__template-controls">
+            <select
+              aria-label="Request template"
+              className="toolbar-menu"
+              disabled={!activeCollection}
+              onChange={(event) => setTemplateKind(event.target.value as "" | "jwt" | "apinizer-jwt")}
+              title="Request template"
+              value={templateKind}
+            >
+              <option value="">Select template</option>
+              <option value="jwt">JWT token</option>
+              <option value="apinizer-jwt">Apinizer JWT</option>
+            </select>
+            <button
+              className="secondary-button sidebar__template-create"
+              disabled={!canCreateTemplate}
+              onClick={createTemplateRequest}
+              type="button"
+            >
+              Create
+            </button>
+          </div>
+          <div className="sidebar__template-target" title={templateTarget}>
+            Target: {templateTarget}
+          </div>
+        </div>
       </div>
       <CollectionTree
         {...treeActions}
