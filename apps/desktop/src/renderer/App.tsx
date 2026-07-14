@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Boxes,
   Download,
   FileJson,
   FilePlus2,
@@ -60,7 +61,7 @@ import {
 import { CollectionTree, type DropTarget, type TreeActions } from "./components/CollectionTree";
 import { KeyValueEditor } from "./components/KeyValueEditor";
 
-type Screen = "home" | "import" | "editor" | "environments" | "export" | "settings";
+type Screen = "editor" | "import" | "environments" | "export" | "settings";
 type RequestTab = "params" | "auth" | "headers" | "body";
 type ResponseTab = "body" | "headers" | "raw";
 type ExportFormat = "openapi-yaml" | "openapi-json" | "collection-json";
@@ -102,7 +103,7 @@ const methods: HttpMethod[] = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS
 export function App() {
   const [workspace, setWorkspace] = useState<Workspace>(() => createEmptyWorkspace());
   const [loaded, setLoaded] = useState(false);
-  const [screen, setScreen] = useState<Screen>("home");
+  const [screen, setScreen] = useState<Screen>("editor");
   const [activeCollectionId, setActiveCollectionId] = useState<string>();
   const [selectedFolderId, setSelectedFolderId] = useState<string>();
   const [selectedRequestId, setSelectedRequestId] = useState<string>();
@@ -292,7 +293,7 @@ export function App() {
     setSelectedRequestId(undefined);
     setResponse(undefined);
     setSavedExportPath("");
-    setScreen("home");
+    setScreen("editor");
   };
 
   const selectCollection = (collectionId: string) => {
@@ -894,11 +895,15 @@ export function App() {
   };
 
   const treeActions: TreeActions = {
-    onSelectCollection: selectCollection,
+    onSelectCollection: (collectionId) => {
+      selectCollection(collectionId);
+      setScreen("editor");
+    },
     onSelectFolder: (folderId) => setSelectedFolderId(folderId),
     onSelectRequest: (requestId) => {
       setSelectedRequestId(requestId);
       setResponse(undefined);
+      setScreen("editor");
     },
     onRenameCollection: renameCollection,
     onDeleteCollection: deleteCollection,
@@ -926,12 +931,37 @@ export function App() {
             <p>{workspace.collections.length} collections | {workspace.environments.length} environments</p>
           </div>
         </div>
+        <nav className="topbar__nav">
+          <NavButton
+            active={screen === "import"}
+            icon={<Import size={16} />}
+            onClick={() => setScreen(screen === "import" ? "editor" : "import")}
+          >
+            Import
+          </NavButton>
+          <NavButton
+            active={screen === "environments"}
+            icon={<Boxes size={16} />}
+            onClick={() => setScreen(screen === "environments" ? "editor" : "environments")}
+          >
+            Environments
+          </NavButton>
+          <NavButton
+            active={screen === "export"}
+            icon={<Download size={16} />}
+            onClick={() => setScreen(screen === "export" ? "editor" : "export")}
+          >
+            Export
+          </NavButton>
+          <NavButton
+            active={screen === "settings"}
+            icon={<Settings size={16} />}
+            onClick={() => setScreen(screen === "settings" ? "editor" : "settings")}
+          >
+            Settings
+          </NavButton>
+        </nav>
         <div className="topbar__actions">
-          <span className={`save-status save-status--${saveStatus}`}>{saveStatusLabel(saveStatus)}</span>
-          <button className="secondary-button" onClick={() => void saveWorkspaceNow()} type="button">
-            <Save size={16} />
-            Save
-          </button>
           <label className="topbar__environment">
             <span>Environment</span>
             <select
@@ -950,29 +980,9 @@ export function App() {
               ))}
             </select>
           </label>
+          <span className={`save-status save-status--${saveStatus}`}>{saveStatusLabel(saveStatus)}</span>
         </div>
       </header>
-
-      <nav className="screen-tabs">
-        <TabButton active={screen === "home"} icon={<FileJson size={17} />} onClick={() => setScreen("home")}>
-          Home
-        </TabButton>
-        <TabButton active={screen === "import"} icon={<Import size={17} />} onClick={() => setScreen("import")}>
-          Import
-        </TabButton>
-        <TabButton active={screen === "editor"} icon={<Send size={17} />} onClick={() => setScreen("editor")}>
-          Editor
-        </TabButton>
-        <TabButton active={screen === "environments"} icon={<Settings size={17} />} onClick={() => setScreen("environments")}>
-          Environments
-        </TabButton>
-        <TabButton active={screen === "export"} icon={<Download size={17} />} onClick={() => setScreen("export")}>
-          Export
-        </TabButton>
-        <TabButton active={screen === "settings"} icon={<Settings size={17} />} onClick={() => setScreen("settings")}>
-          Settings
-        </TabButton>
-      </nav>
 
       {notice && (
         <div className="notice-banner">
@@ -983,27 +993,20 @@ export function App() {
         </div>
       )}
 
-      <main className="content">
-        {screen === "home" && (
-          <HomeScreen
-            activeCollection={activeCollection}
-            onAddCollection={addCollection}
-            onAddJwtRequest={() => addRequest("jwt")}
-            onGoEditor={() => setScreen("editor")}
-            onGoImport={() => setScreen("import")}
-            onOpenCollection={(collectionId) => {
-              selectCollection(collectionId);
-              setScreen("editor");
-            }}
-            onNewWorkspace={createNewWorkspace}
-            onWorkspaceNameChange={(name) =>
-              mutateWorkspace((draft) => {
-                draft.name = name;
-              })
-            }
-            workspace={workspace}
-          />
-        )}
+      <div className="workspace">
+        <CollectionsSidebar
+          activeCollection={activeCollection}
+          onAddApinizerJwtRequest={() => addRequest("apinizer-jwt")}
+          onAddCollection={addCollection}
+          onAddFolder={addFolder}
+          onAddJwtRequest={() => addRequest("jwt")}
+          onAddRequest={() => addRequest("blank")}
+          selectedFolderId={selectedFolderId}
+          selectedRequestId={selectedRequestId}
+          treeActions={treeActions}
+          workspace={workspace}
+        />
+        <main className="workspace-main">
         {screen === "import" && (
           <ImportScreen
             grouping={grouping}
@@ -1031,35 +1034,41 @@ export function App() {
             onTextChange={setImportText}
           />
         )}
-        {screen === "editor" && (
-          <EditorScreen
-            activeCollection={activeCollection}
-            activeRequest={activeRequest}
-            folderOptions={activeCollection ? flattenFolders(activeCollection) : []}
-            isSending={isSending}
-            onAddCollection={addCollection}
-            onAddFolder={addFolder}
-            onAddJwtRequest={() => addRequest("jwt")}
-            onAddApinizerJwtRequest={() => addRequest("apinizer-jwt")}
-            onAddRequest={() => addRequest("blank")}
-            onMoveRequest={moveActiveRequest}
-            onRequestTabChange={setRequestTab}
-            treeActions={treeActions}
-            onSend={sendActiveRequest}
-            onCopyCurl={copyActiveRequestAsCurl}
-            onUpdateRequest={updateActiveRequest}
-            onAssignResponseValue={assignResponseValue}
-            environmentVariableNames={activeEnvironment?.variables.map((variable) => variable.name) ?? []}
-            responseHistory={selectedRequestId ? responseHistory[selectedRequestId] ?? [] : []}
-            requestTab={requestTab}
-            response={response}
-            selectedFolderId={selectedFolderId}
-            selectedRequestId={selectedRequestId}
-            workspace={workspace}
-          />
-        )}
+        {screen === "editor" &&
+          (workspace.collections.length === 0 ? (
+            <WelcomeMain onImport={() => setScreen("import")} onNewCollection={addCollection} />
+          ) : (
+            <RequestWorkspace
+              activeCollection={activeCollection}
+              activeRequest={activeRequest}
+              folderOptions={activeCollection ? flattenFolders(activeCollection) : []}
+              isSending={isSending}
+              onAddJwtRequest={() => addRequest("jwt")}
+              onAddRequest={() => addRequest("blank")}
+              onMoveRequest={moveActiveRequest}
+              onRequestTabChange={setRequestTab}
+              onSend={sendActiveRequest}
+              onCopyCurl={copyActiveRequestAsCurl}
+              onUpdateRequest={updateActiveRequest}
+              onAssignResponseValue={assignResponseValue}
+              environmentVariableNames={activeEnvironment?.variables.map((variable) => variable.name) ?? []}
+              responseHistory={selectedRequestId ? responseHistory[selectedRequestId] ?? [] : []}
+              requestTab={requestTab}
+              response={response}
+            />
+          ))}
         {screen === "settings" && (
-          <SettingsScreen settings={settings} onChange={updateSettings} />
+          <SettingsScreen
+            settings={settings}
+            onChange={updateSettings}
+            workspaceName={workspace.name}
+            onWorkspaceNameChange={(name) =>
+              mutateWorkspace((draft) => {
+                draft.name = name;
+              })
+            }
+            onNewWorkspace={createNewWorkspace}
+          />
         )}
         {screen === "environments" && (
           <EnvironmentScreen
@@ -1107,127 +1116,132 @@ export function App() {
             savedExportPath={savedExportPath}
           />
         )}
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
 
-function HomeScreen({
+function CollectionsSidebar({
   workspace,
   activeCollection,
-  onGoImport,
-  onGoEditor,
+  selectedFolderId,
+  selectedRequestId,
+  treeActions,
+  onAddRequest,
+  onAddFolder,
   onAddCollection,
   onAddJwtRequest,
-  onOpenCollection,
-  onNewWorkspace,
-  onWorkspaceNameChange
+  onAddApinizerJwtRequest
 }: {
   workspace: Workspace;
   activeCollection?: Collection;
-  onGoImport(): void;
-  onGoEditor(): void;
+  selectedFolderId?: string;
+  selectedRequestId?: string;
+  treeActions: TreeActions;
+  onAddRequest(): void;
+  onAddFolder(): void;
   onAddCollection(): void;
   onAddJwtRequest(): void;
-  onOpenCollection(collectionId: string): void;
-  onNewWorkspace(): void;
-  onWorkspaceNameChange(name: string): void;
+  onAddApinizerJwtRequest(): void;
 }) {
-  const hasCollections = workspace.collections.length > 0;
-  const requestCount = workspace.collections.reduce(
-    (total, collection) => total + flattenRequests(collection).length,
-    0
-  );
-
   return (
-    <section className="home-grid">
-      <div className="workspace-header">
-        <label className="field">
-          <span>Workspace</span>
-          <input
-            onChange={(event) => onWorkspaceNameChange(event.target.value)}
-            value={workspace.name}
-          />
-        </label>
-        <button className="secondary-button" onClick={onNewWorkspace} type="button">
-          <Plus size={17} />
-          New workspace
+    <aside className="sidebar">
+      <div className="sidebar__toolbar">
+        <button
+          className="secondary-button sidebar__new"
+          disabled={!activeCollection}
+          onClick={onAddRequest}
+          title="New request"
+          type="button"
+        >
+          <FilePlus2 size={16} />
+          New request
         </button>
+        <button className="icon-button" disabled={!activeCollection} onClick={onAddFolder} title="New folder" type="button">
+          <FolderPlus size={16} />
+        </button>
+        <button className="icon-button" onClick={onAddCollection} title="New collection" type="button">
+          <Plus size={16} />
+        </button>
+        <select
+          aria-label="New request from template"
+          className="toolbar-menu"
+          disabled={!activeCollection}
+          onChange={(event) => {
+            if (event.target.value === "jwt") {
+              onAddJwtRequest();
+            } else if (event.target.value === "apinizer-jwt") {
+              onAddApinizerJwtRequest();
+            }
+            event.target.value = "";
+          }}
+          title="Add from a template"
+          value=""
+        >
+          <option value="">Templates</option>
+          <option value="jwt">JWT token request</option>
+          <option value="apinizer-jwt">Apinizer JWT token</option>
+        </select>
       </div>
-      <div className="summary-band">
-        <div>
-          <span className="metric">{workspace.collections.length}</span>
-          <span>Collections</span>
-        </div>
-        <div>
-          <span className="metric">{requestCount}</span>
-          <span>Requests</span>
-        </div>
-        <div>
-          <span className="metric">{workspace.environments.length}</span>
-          <span>Environments</span>
+      <CollectionTree
+        {...treeActions}
+        activeCollectionId={activeCollection?.id}
+        collections={workspace.collections}
+        selectedFolderId={selectedFolderId}
+        selectedRequestId={selectedRequestId}
+      />
+    </aside>
+  );
+}
+
+function WelcomeMain({
+  onImport,
+  onNewCollection
+}: {
+  onImport(): void;
+  onNewCollection(): void;
+}) {
+  return (
+    <div className="welcome-main">
+      <div className="home-empty">
+        <FileJson size={32} />
+        <h2>Welcome to Specfold</h2>
+        <p>
+          Import an OpenAPI/Swagger document to turn its endpoints into an editable
+          request collection, or start a collection from scratch.
+        </p>
+        <div className="button-row">
+          <button className="primary-button" onClick={onImport} type="button">
+            <Import size={16} />
+            Import OpenAPI
+          </button>
+          <button className="secondary-button" onClick={onNewCollection} type="button">
+            <Plus size={16} />
+            New collection
+          </button>
         </div>
       </div>
-      <div className="action-strip">
-        <button className="primary-button" onClick={onGoImport} type="button">
-          <Import size={17} />
-          Import OpenAPI
-        </button>
-        <button className="secondary-button" onClick={onAddCollection} type="button">
-          <Plus size={17} />
-          New collection
-        </button>
-        <button className="secondary-button" disabled={!activeCollection} onClick={onAddJwtRequest} type="button">
-          <Wand2 size={17} />
-          JWT request
-        </button>
-        <button className="secondary-button" disabled={!activeCollection} onClick={onGoEditor} type="button">
-          <Send size={17} />
-          Open editor
-        </button>
-      </div>
-      {hasCollections ? (
-        <div className="workspace-table">
-          <div className="workspace-table__head">
-            <span>Collection</span>
-            <span>Version</span>
-            <span>Requests</span>
-          </div>
-          {workspace.collections.map((collection) => (
-            <button
-              className="workspace-table__row workspace-table__row--button"
-              key={collection.id}
-              onClick={() => onOpenCollection(collection.id)}
-              title="Open in editor"
-              type="button"
-            >
-              <span>{collection.name}</span>
-              <span>{collection.version ?? "0.1.0"}</span>
-              <span>{flattenRequests(collection).length}</span>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="home-empty">
-          <FileJson size={30} />
-          <h2>No collections yet</h2>
-          <p>
-            Paste or open an OpenAPI/Swagger document to turn its endpoints into a
-            request collection, or start a collection from scratch.
-          </p>
-          <div className="button-row">
-            <button className="primary-button" onClick={onGoImport} type="button">
-              <Import size={16} />
-              Import OpenAPI
-            </button>
-            <button className="secondary-button" onClick={onAddCollection} type="button">
-              <Plus size={16} />
-              New collection
-            </button>
-          </div>
-        </div>
-      )}
-    </section>
+    </div>
+  );
+}
+
+function NavButton({
+  children,
+  active,
+  icon,
+  onClick
+}: {
+  children: string;
+  active: boolean;
+  icon: React.ReactNode;
+  onClick(): void;
+}) {
+  return (
+    <button className={active ? "nav-btn is-active" : "nav-btn"} onClick={onClick} type="button">
+      {icon}
+      {children}
+    </button>
   );
 }
 
@@ -1407,22 +1421,15 @@ function ImportScreen({
   );
 }
 
-function EditorScreen({
-  workspace,
+function RequestWorkspace({
   activeCollection,
   activeRequest,
-  selectedFolderId,
-  selectedRequestId,
   requestTab,
   response,
   folderOptions,
   isSending,
-  treeActions,
-  onAddCollection,
-  onAddFolder,
   onAddRequest,
   onAddJwtRequest,
-  onAddApinizerJwtRequest,
   onUpdateRequest,
   onMoveRequest,
   onRequestTabChange,
@@ -1432,22 +1439,15 @@ function EditorScreen({
   environmentVariableNames,
   responseHistory
 }: {
-  workspace: Workspace;
   activeCollection?: Collection;
   activeRequest?: ApiRequest;
-  selectedFolderId?: string;
-  selectedRequestId?: string;
   requestTab: RequestTab;
   response?: ResponseState;
   folderOptions: ReturnType<typeof flattenFolders>;
   isSending: boolean;
-  treeActions: TreeActions;
   responseHistory: ResponseHistoryEntry[];
-  onAddCollection(): void;
-  onAddFolder(): void;
   onAddRequest(): void;
   onAddJwtRequest(): void;
-  onAddApinizerJwtRequest(): void;
   onUpdateRequest(recipe: (request: ApiRequest) => void): void;
   onMoveRequest(folderId: string): void;
   onRequestTabChange(tab: RequestTab): void;
@@ -1458,52 +1458,6 @@ function EditorScreen({
 }) {
   return (
     <section className="editor-layout">
-      <aside className="sidebar">
-        <div className="sidebar__toolbar">
-          <button
-            className="secondary-button sidebar__new"
-            disabled={!activeCollection}
-            onClick={onAddRequest}
-            title="New request"
-            type="button"
-          >
-            <FilePlus2 size={16} />
-            New request
-          </button>
-          <button className="icon-button" disabled={!activeCollection} onClick={onAddFolder} title="New folder" type="button">
-            <FolderPlus size={16} />
-          </button>
-          <button className="icon-button" onClick={onAddCollection} title="New collection" type="button">
-            <Plus size={16} />
-          </button>
-          <select
-            aria-label="New request from template"
-            className="toolbar-menu"
-            disabled={!activeCollection}
-            onChange={(event) => {
-              if (event.target.value === "jwt") {
-                onAddJwtRequest();
-              } else if (event.target.value === "apinizer-jwt") {
-                onAddApinizerJwtRequest();
-              }
-              event.target.value = "";
-            }}
-            title="Add from a template"
-            value=""
-          >
-            <option value="">Templates</option>
-            <option value="jwt">JWT token request</option>
-            <option value="apinizer-jwt">Apinizer JWT token</option>
-          </select>
-        </div>
-        <CollectionTree
-          {...treeActions}
-          activeCollectionId={activeCollection?.id}
-          collections={workspace.collections}
-          selectedFolderId={selectedFolderId}
-          selectedRequestId={selectedRequestId}
-        />
-      </aside>
       <div className="request-panel">
         {activeRequest ? (
           <>
@@ -2248,10 +2202,16 @@ function ExportScreen({
 
 function SettingsScreen({
   settings,
-  onChange
+  onChange,
+  workspaceName,
+  onWorkspaceNameChange,
+  onNewWorkspace
 }: {
   settings: AppSettings;
   onChange(patch: Partial<AppSettings>): void;
+  workspaceName: string;
+  onWorkspaceNameChange(name: string): void;
+  onNewWorkspace(): void;
 }) {
   return (
     <section className="settings-layout">
@@ -2259,6 +2219,16 @@ function SettingsScreen({
         <div className="pane__header">
           <h2>Settings</h2>
         </div>
+        <h3>Workspace</h3>
+        <label className="field">
+          <span>Workspace name</span>
+          <input onChange={(event) => onWorkspaceNameChange(event.target.value)} value={workspaceName} />
+        </label>
+        <button className="secondary-button" onClick={onNewWorkspace} type="button">
+          <Plus size={16} />
+          New workspace
+        </button>
+        <h3>Requests</h3>
         <label className="field">
           <span>Request timeout (ms)</span>
           <input
@@ -2322,25 +2292,6 @@ function BrandMark() {
         <circle cx="120" cy="176" r="19" />
       </g>
     </svg>
-  );
-}
-
-function TabButton({
-  children,
-  active,
-  icon,
-  onClick
-}: {
-  children: string;
-  active: boolean;
-  icon: React.ReactNode;
-  onClick(): void;
-}) {
-  return (
-    <button className={active ? "screen-tab is-active" : "screen-tab"} onClick={onClick} type="button">
-      {icon}
-      {children}
-    </button>
   );
 }
 

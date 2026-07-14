@@ -73,9 +73,59 @@ pre {
 }
 
 .app-shell {
-  display: grid;
-  grid-template-rows: auto auto 1fr;
+  display: flex;
+  flex-direction: column;
   height: 100vh;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
+.workspace-main {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.topbar__nav {
+  display: flex;
+  gap: 4px;
+}
+
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 13px;
+  border-radius: 7px;
+  color: #4e5c6d;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.13s ease, color 0.13s ease;
+}
+
+.nav-btn:hover {
+  background: #eef2f7;
+}
+
+.nav-btn.is-active {
+  color: #133d75;
+  background: #e7f0ff;
+}
+
+.welcome-main {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 24px;
+}
+
+.welcome-main .home-empty {
+  max-width: 560px;
 }
 
 .topbar {
@@ -458,7 +508,7 @@ pre {
 
 .editor-layout {
   display: grid;
-  grid-template-columns: 320px minmax(420px, 1fr) minmax(360px, 39%);
+  grid-template-columns: minmax(420px, 1fr) minmax(340px, 40%);
   height: 100%;
 }
 
@@ -748,8 +798,12 @@ pre {
 }
 
 @media (max-width: 1180px) {
+  .workspace {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
   .editor-layout {
-    grid-template-columns: 280px minmax(390px, 1fr) 340px;
+    grid-template-columns: minmax(360px, 1fr) 320px;
   }
 
   .request-meta {
