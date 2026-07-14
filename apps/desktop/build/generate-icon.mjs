@@ -1,4 +1,4 @@
-// Generates apps/desktop/build/icon.ico (and icon.png) with no dependencies.
+// Generates apps/desktop/build/icon.ico, icon.icns, and icon.png with no dependencies.
 // Draws a rounded-square gradient badge with a small "endpoints" node graph,
 // supersampled 2x for smooth edges, encodes a PNG via Node's zlib, and wraps
 // it in an ICO container. Run: node apps/desktop/build/generate-icon.mjs
@@ -184,7 +184,19 @@ function encodeIco(pngBuf) {
   return Buffer.concat([header, entry, pngBuf]);
 }
 
+// --- ICNS container (single 256x256 PNG entry) ---
+function encodeIcns(pngBuf) {
+  const entry = Buffer.alloc(8);
+  entry.write("ic08", 0, "ascii");
+  entry.writeUInt32BE(8 + pngBuf.length, 4);
+  const header = Buffer.alloc(8);
+  header.write("icns", 0, "ascii");
+  header.writeUInt32BE(8 + entry.length + pngBuf.length, 4);
+  return Buffer.concat([header, entry, pngBuf]);
+}
+
 const here = dirname(fileURLToPath(import.meta.url));
 writeFileSync(join(here, "icon.png"), png);
 writeFileSync(join(here, "icon.ico"), encodeIco(png));
-console.log("Wrote build/icon.png and build/icon.ico");
+writeFileSync(join(here, "icon.icns"), encodeIcns(png));
+console.log("Wrote build/icon.png, build/icon.ico, and build/icon.icns");

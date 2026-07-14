@@ -14,7 +14,16 @@ export default defineConfig({
     }
   },
   preload: {
-    plugins: [externalizeDepsPlugin()]
+    plugins: [externalizeDepsPlugin()],
+    build: {
+      rollupOptions: {
+        output: {
+          format: "cjs",
+          entryFileNames: "[name].cjs",
+          chunkFileNames: "chunks/[name]-[hash].cjs"
+        }
+      }
+    }
   },
   renderer: {
     plugins: [react()],
@@ -26,4 +35,3 @@ export default defineConfig({
     }
   }
 });
-

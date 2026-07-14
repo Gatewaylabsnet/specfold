@@ -1,4 +1,6 @@
 :root {
+  --sidebar-width: 300px;
+  --control-height: 34px;
   color: #18202c;
   background: #f6f7f9;
   font-family:
@@ -14,7 +16,7 @@
 
 body {
   margin: 0;
-  min-width: 1000px;
+  min-width: 1100px;
   min-height: 720px;
   background: #f6f7f9;
 }
@@ -80,7 +82,7 @@ pre {
 
 .workspace {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   flex: 1;
   min-height: 0;
 }
@@ -88,11 +90,6 @@ pre {
 .workspace-main {
   min-height: 0;
   overflow: hidden;
-}
-
-.topbar__nav {
-  display: flex;
-  gap: 4px;
 }
 
 .nav-btn {
@@ -514,19 +511,54 @@ pre {
 
 .sidebar {
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 10px;
+  overflow: hidden;
   padding: 12px;
 }
 
-.sidebar__toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
+.sidebar__nav {
+  display: grid;
+  gap: 6px;
   padding-bottom: 10px;
+  border-bottom: 1px solid #e1e6ee;
+}
+
+.sidebar__nav .nav-btn {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.sidebar__toolbar {
+  display: grid;
+  grid-template-columns: var(--control-height) var(--control-height) minmax(0, 1fr);
+  grid-template-areas:
+    "new new new"
+    "folder collection templates";
+  gap: 8px;
+  min-width: 0;
+}
+
+.sidebar__new {
+  grid-area: new;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.sidebar__folder {
+  grid-area: folder;
+}
+
+.sidebar__collection {
+  grid-area: collection;
 }
 
 .toolbar-menu {
-  min-width: 120px;
+  grid-area: templates;
+  width: 100%;
+  min-width: 0;
+  height: var(--control-height);
 }
 
 .tree {
@@ -616,6 +648,14 @@ pre {
   grid-template-columns: 112px minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
+  min-width: 0;
+}
+
+.request-line select,
+.request-line input,
+.request-meta select,
+.request-meta input {
+  min-width: 0;
 }
 
 .request-line input,
@@ -627,9 +667,10 @@ pre {
 
 .request-meta {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px;
+  grid-template-columns: minmax(160px, 1fr) minmax(150px, 240px) auto;
   gap: 10px;
   margin: 10px 0 12px;
+  min-width: 0;
 }
 
 .request-tabs {
@@ -799,7 +840,7 @@ pre {
 
 @media (max-width: 1180px) {
   .workspace {
-    grid-template-columns: 260px minmax(0, 1fr);
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   }
 
   .editor-layout {
@@ -1254,20 +1295,7 @@ textarea:focus-visible {
   font-size: 11px;
 }
 
-/* UX polish: clearer sidebar creation, clickable home rows, empty state */
-.sidebar__toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.sidebar__new {
-  flex: 1;
-  min-width: 0;
-  justify-content: center;
-}
-
+/* UX polish: clickable home rows, empty state */
 .workspace-table__row--button {
   width: 100%;
   border: 0;

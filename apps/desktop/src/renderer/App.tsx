@@ -931,36 +931,6 @@ export function App() {
             <p>{workspace.collections.length} collections | {workspace.environments.length} environments</p>
           </div>
         </div>
-        <nav className="topbar__nav">
-          <NavButton
-            active={screen === "import"}
-            icon={<Import size={16} />}
-            onClick={() => setScreen(screen === "import" ? "editor" : "import")}
-          >
-            Import
-          </NavButton>
-          <NavButton
-            active={screen === "environments"}
-            icon={<Boxes size={16} />}
-            onClick={() => setScreen(screen === "environments" ? "editor" : "environments")}
-          >
-            Environments
-          </NavButton>
-          <NavButton
-            active={screen === "export"}
-            icon={<Download size={16} />}
-            onClick={() => setScreen(screen === "export" ? "editor" : "export")}
-          >
-            Export
-          </NavButton>
-          <NavButton
-            active={screen === "settings"}
-            icon={<Settings size={16} />}
-            onClick={() => setScreen(screen === "settings" ? "editor" : "settings")}
-          >
-            Settings
-          </NavButton>
-        </nav>
         <div className="topbar__actions">
           <label className="topbar__environment">
             <span>Environment</span>
@@ -1003,6 +973,8 @@ export function App() {
           onAddRequest={() => addRequest("blank")}
           selectedFolderId={selectedFolderId}
           selectedRequestId={selectedRequestId}
+          screen={screen}
+          onScreenChange={setScreen}
           treeActions={treeActions}
           workspace={workspace}
         />
@@ -1127,6 +1099,8 @@ function CollectionsSidebar({
   activeCollection,
   selectedFolderId,
   selectedRequestId,
+  screen,
+  onScreenChange,
   treeActions,
   onAddRequest,
   onAddFolder,
@@ -1138,6 +1112,8 @@ function CollectionsSidebar({
   activeCollection?: Collection;
   selectedFolderId?: string;
   selectedRequestId?: string;
+  screen: Screen;
+  onScreenChange(screen: Screen): void;
   treeActions: TreeActions;
   onAddRequest(): void;
   onAddFolder(): void;
@@ -1147,6 +1123,43 @@ function CollectionsSidebar({
 }) {
   return (
     <aside className="sidebar">
+      <nav className="sidebar__nav" aria-label="Primary">
+        <NavButton
+          active={screen === "editor"}
+          icon={<FileJson size={16} />}
+          onClick={() => onScreenChange("editor")}
+        >
+          Editor
+        </NavButton>
+        <NavButton
+          active={screen === "import"}
+          icon={<Import size={16} />}
+          onClick={() => onScreenChange(screen === "import" ? "editor" : "import")}
+        >
+          Import
+        </NavButton>
+        <NavButton
+          active={screen === "environments"}
+          icon={<Boxes size={16} />}
+          onClick={() => onScreenChange(screen === "environments" ? "editor" : "environments")}
+        >
+          Environments
+        </NavButton>
+        <NavButton
+          active={screen === "export"}
+          icon={<Download size={16} />}
+          onClick={() => onScreenChange(screen === "export" ? "editor" : "export")}
+        >
+          Export
+        </NavButton>
+        <NavButton
+          active={screen === "settings"}
+          icon={<Settings size={16} />}
+          onClick={() => onScreenChange(screen === "settings" ? "editor" : "settings")}
+        >
+          Settings
+        </NavButton>
+      </nav>
       <div className="sidebar__toolbar">
         <button
           className="secondary-button sidebar__new"
@@ -1158,10 +1171,16 @@ function CollectionsSidebar({
           <FilePlus2 size={16} />
           New request
         </button>
-        <button className="icon-button" disabled={!activeCollection} onClick={onAddFolder} title="New folder" type="button">
+        <button
+          className="icon-button sidebar__folder"
+          disabled={!activeCollection}
+          onClick={onAddFolder}
+          title="New folder"
+          type="button"
+        >
           <FolderPlus size={16} />
         </button>
-        <button className="icon-button" onClick={onAddCollection} title="New collection" type="button">
+        <button className="icon-button sidebar__collection" onClick={onAddCollection} title="New collection" type="button">
           <Plus size={16} />
         </button>
         <select

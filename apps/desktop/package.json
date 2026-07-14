@@ -1,6 +1,6 @@
 {
   "name": "@openapi-collection-studio/desktop",
-  "version": "0.2.2",
+  "version": "1.0.0",
   "private": true,
   "description": "Desktop shell for Specfold.",
   "author": "GatewayLabs (https://gatewaylabs.net)",
@@ -10,31 +10,38 @@
   "scripts": {
     "dev": "electron-vite dev",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
     "build": "electron-vite build",
     "package:win:portable": "npm run build && electron-builder --win portable --x64 -p never",
     "package:win:installer": "npm run build && electron-builder --win nsis --x64 -p never",
     "package:win": "npm run build && electron-builder --win nsis portable --x64 -p never",
+    "package:mac": "npm run build && electron-builder --mac dmg zip --x64 --arm64 -p never",
+    "package:linux": "npm run build && electron-builder --linux AppImage deb --x64 -p never",
     "icon": "node build/generate-icon.mjs"
   },
   "devDependencies": {
-    "@openapi-collection-studio/core": "0.2.2",
+    "@openapi-collection-studio/core": "1.0.0",
     "@types/node": "^20.14.10",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "electron": "31.7.7",
-    "electron-builder": "^24.13.3",
-    "electron-vite": "^2.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "43.1.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "typescript": "^5.5.4",
-    "vite": "^5.3.4"
+    "vite": "^7.3.6",
+    "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "undici": "^8.7.0"
   },
   "build": {
     "appId": "net.gatewaylabs.specfold",
     "productName": "Specfold",
-    "electronVersion": "31.7.7",
+    "electronVersion": "43.1.0",
     "npmRebuild": false,
     "directories": {
       "output": "dist"
@@ -42,13 +49,14 @@
     "files": [
       "out/**/*",
       "build/icon.png",
+      "build/icon.icns",
       "package.json"
     ],
     "asar": true,
     "win": {
       "icon": "build/icon.ico",
       "artifactName": "${productName}-${version}-${arch}.${ext}",
-      "signAndEditExecutable": false
+      "forceCodeSigning": false
     },
     "portable": {
       "artifactName": "${productName}-${version}-${arch}-portable.${ext}"
@@ -58,6 +66,42 @@
       "perMachine": false,
       "allowElevation": false,
       "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns",
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
+    },
+    "linux": {
+      "category": "Development",
+      "icon": "build/icon.png",
+      "maintainer": "GatewayLabs <info@gatewaylabs.net>",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-linux-${arch}.${ext}"
+    },
+    "appImage": {
+      "artifactName": "${productName}-${version}-linux-${arch}.${ext}"
+    },
+    "deb": {
+      "artifactName": "${productName}-${version}-linux-${arch}.${ext}"
     }
   }
 }

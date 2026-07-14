@@ -9,6 +9,7 @@ import {
   type Environment,
   type Workspace
 } from "@openapi-collection-studio/core";
+import { fetchWithProxy, ProxyAgentCache } from "./proxy";
 
 interface AppSettings {
   requestTimeoutMs: number;
@@ -47,6 +48,7 @@ interface WorkspaceLoadResult {
 
 const ENCRYPTED_PREFIX = "enc:v1:";
 const MAX_BACKUPS = 5;
+const proxyAgents = new ProxyAgentCache();
 
 const workspacePath = () => join(app.getPath("userData"), "workspace.json");
 const backupsDir = () => join(app.getPath("userData"), "backups");
@@ -213,12 +215,17 @@ async function sendHttpRequest(payload: SendRequestPayload): Promise<SendRequest
   try {
     const prepared = prepareHttpRequest(payload.request, payload.environment);
     const startedAt = performance.now();
-    const response = await fetch(prepared.url, {
-      method: prepared.method,
-      headers: prepared.headers,
-      body: prepared.body,
-      signal: controller.signal
-    });
+    const response = await fetchWithProxy(
+      prepared.url,
+      {
+        method: prepared.method,
+        headers: prepared.headers,
+        body: prepared.body,
+        signal: controller.signal
+      },
+      (url) => session.defaultSession.resolveProxy(url),
+      proxyAgents
+    );
 
     const { bytes, truncated } = await readCappedBody(response, settings.maxResponseBytes);
     const rawBody = new TextDecoder().decode(bytes);
@@ -319,10 +326,15 @@ async function fetchImportUrl(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), settings.requestTimeoutMs);
   try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: { Accept: "application/json, application/yaml, text/yaml, text/plain, */*" }
-    });
+    const response = await fetchWithProxy(
+      url,
+      {
+        signal: controller.signal,
+        headers: { Accept: "application/json, application/yaml, text/yaml, text/plain, */*" }
+      },
+      (targetUrl) => session.defaultSession.resolveProxy(targetUrl),
+      proxyAgents
+    );
     if (!response.ok) {
       return { ok: false, error: `HTTP ${response.status} ${response.statusText}` };
     }
@@ -389,13 +401,10 @@ function createWindow(): void {
     icon: resolveWindowIcon(),
     backgroundColor: "#f6f7f9",
     webPreferences: {
-      preload: join(__dirname, "../preload/index.mjs"),
+      preload: join(__dirname, "../preload/index.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
-      // NOTE: sandbox stays false because the preload is shipped as an ESM
-      // module (index.mjs); Electron only loads sandboxed preloads as CommonJS.
-      // contextIsolation + nodeIntegration:false keep the renderer boundary.
-      sandbox: false
+      sandbox: true
     }
   });
 
@@ -518,5 +527,9 @@ if (!gotSingleInstanceLock) {
     if (process.platform !== "darwin") {
       app.quit();
     }
+  });
+
+  app.on("before-quit", () => {
+    void proxyAgents.closeAll();
   });
 }
