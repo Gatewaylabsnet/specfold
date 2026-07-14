@@ -50,7 +50,51 @@ export function CollectionTree(props: CollectionTreeProps) {
   const [editingId, setEditingId] = useState<string>();
   const [drag, setDrag] = useState<DragState>();
   const [dropHint, setDropHint] = useState<string>();
+  const [expandedCollectionIds, setExpandedCollectionIds] = useState<Set<string>>(() => {
+    const firstExpanded = activeCollectionId ?? collections[0]?.id;
+    return firstExpanded ? new Set([firstExpanded]) : new Set();
+  });
   const query = search.trim().toLowerCase();
+
+  useEffect(() => {
+    if (!activeCollectionId) {
+      return;
+    }
+    setExpandedCollectionIds((current) => {
+      if (current.has(activeCollectionId)) {
+        return current;
+      }
+      const next = new Set(current);
+      next.add(activeCollectionId);
+      return next;
+    });
+  }, [activeCollectionId]);
+
+  useEffect(() => {
+    setExpandedCollectionIds((current) => {
+      const collectionIds = new Set(collections.map((collection) => collection.id));
+      const next = new Set([...current].filter((id) => collectionIds.has(id)));
+      if (next.size === 0) {
+        const firstExpanded = activeCollectionId ?? collections[0]?.id;
+        if (firstExpanded) {
+          next.add(firstExpanded);
+        }
+      }
+      return next;
+    });
+  }, [activeCollectionId, collections]);
+
+  const toggleCollectionExpanded = (collectionId: string) => {
+    setExpandedCollectionIds((current) => {
+      const next = new Set(current);
+      if (next.has(collectionId)) {
+        next.delete(collectionId);
+      } else {
+        next.add(collectionId);
+      }
+      return next;
+    });
+  };
 
   const treeContext: TreeContext = {
     ...props,
@@ -84,8 +128,9 @@ export function CollectionTree(props: CollectionTreeProps) {
           <CollectionNode
             collection={collection}
             context={treeContext}
-            expanded={collection.id === activeCollectionId || query.length > 0}
+            expanded={query.length > 0 || expandedCollectionIds.has(collection.id)}
             key={collection.id}
+            onToggleExpanded={() => toggleCollectionExpanded(collection.id)}
           />
         ))}
         {collections.length === 0 && (
@@ -128,11 +173,13 @@ function folderMatchCount(folder: FolderType, query: string): number {
 function CollectionNode({
   collection,
   context,
-  expanded
+  expanded,
+  onToggleExpanded
 }: {
   collection: Collection;
   context: TreeContext;
   expanded: boolean;
+  onToggleExpanded(): void;
 }) {
   const { query } = context;
   const visibleRootRequests = query
@@ -179,7 +226,10 @@ function CollectionNode({
           context.setDrag(undefined);
           context.setDropHint(undefined);
         }}
-        onSelect={() => context.onSelectCollection(collection.id)}
+        onSelect={() => {
+          context.onSelectCollection(collection.id);
+          onToggleExpanded();
+        }}
         onRename={(name) => context.onRenameCollection(collection.id, name)}
         onDelete={() => context.onDeleteCollection(collection.id)}
       />

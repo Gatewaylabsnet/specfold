@@ -672,8 +672,11 @@ pre {
 }
 
 .tree__item.is-active {
+  position: relative;
   color: #133d75;
   background: #e7f0ff;
+  box-shadow: inset 3px 0 0 #1f6feb;
+  font-weight: 700;
 }
 
 .tree__children {
