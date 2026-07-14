@@ -8,6 +8,8 @@ export type DragKind = "request" | "folder";
 export interface DropTarget {
   /** "before" a sibling request/folder, or "inside" a folder (append). */
   position: "before" | "inside";
+  /** Target collection id. */
+  collectionId: string;
   /** Target request id when reordering requests before it. */
   requestId?: string;
   /** Target/parent folder id (undefined = collection root). */
@@ -163,28 +165,20 @@ function CollectionNode({
         label={collection.name}
         context={context}
         dropClass={isRootDropTarget ? "is-drop-inside" : ""}
-        onDragOver={
-          isActive
-            ? () => {
-                if (context.drag) {
-                  context.setDropHint(`collection:${collection.id}`);
-                }
-              }
-            : undefined
-        }
-        onDrop={
-          isActive
-            ? () => {
-                if (context.drag?.kind === "request") {
-                  context.onMoveRequestTo(context.drag.id, { position: "inside" });
-                } else if (context.drag?.kind === "folder") {
-                  context.onMoveFolderTo(context.drag.id, { position: "inside" });
-                }
-                context.setDrag(undefined);
-                context.setDropHint(undefined);
-              }
-            : undefined
-        }
+        onDragOver={() => {
+          if (context.drag) {
+            context.setDropHint(`collection:${collection.id}`);
+          }
+        }}
+        onDrop={() => {
+          if (context.drag?.kind === "request") {
+            context.onMoveRequestTo(context.drag.id, { position: "inside", collectionId: collection.id });
+          } else if (context.drag?.kind === "folder") {
+            context.onMoveFolderTo(context.drag.id, { position: "inside", collectionId: collection.id });
+          }
+          context.setDrag(undefined);
+          context.setDropHint(undefined);
+        }}
         onSelect={() => context.onSelectCollection(collection.id)}
         onRename={(name) => context.onRenameCollection(collection.id, name)}
         onDelete={() => context.onDeleteCollection(collection.id)}
@@ -192,10 +186,10 @@ function CollectionNode({
       {expanded && (
         <div className="tree__children">
           {visibleRootRequests.map((request) => (
-            <RequestNode context={context} key={request.id} request={request} />
+            <RequestNode collectionId={collection.id} context={context} key={request.id} request={request} />
           ))}
           {visibleFolders.map((folder) => (
-            <FolderNode context={context} folder={folder} key={folder.id} />
+            <FolderNode collectionId={collection.id} context={context} folder={folder} key={folder.id} />
           ))}
         </div>
       )}
@@ -205,10 +199,12 @@ function CollectionNode({
 
 function FolderNode({
   folder,
+  collectionId,
   context,
   depth = 0
 }: {
   folder: FolderType;
+  collectionId: string;
   context: TreeContext;
   depth?: number;
 }) {
@@ -256,9 +252,17 @@ function FolderNode({
         }}
         onDrop={() => {
           if (context.drag?.kind === "request") {
-            context.onMoveRequestTo(context.drag.id, { position: "inside", folderId: folder.id });
+            context.onMoveRequestTo(context.drag.id, {
+              position: "inside",
+              collectionId,
+              folderId: folder.id
+            });
           } else if (context.drag?.kind === "folder" && context.drag.id !== folder.id) {
-            context.onMoveFolderTo(context.drag.id, { position: "inside", folderId: folder.id });
+            context.onMoveFolderTo(context.drag.id, {
+              position: "inside",
+              collectionId,
+              folderId: folder.id
+            });
           }
           context.setDrag(undefined);
           context.setDropHint(undefined);
@@ -271,6 +275,7 @@ function FolderNode({
       <div>
         {visibleRequests.map((request) => (
           <RequestNode
+            collectionId={collectionId}
             containerFolderId={folder.id}
             context={context}
             depth={depth + 1}
@@ -279,7 +284,7 @@ function FolderNode({
           />
         ))}
         {visibleFolders.map((child) => (
-          <FolderNode context={context} depth={depth + 1} folder={child} key={child.id} />
+          <FolderNode collectionId={collectionId} context={context} depth={depth + 1} folder={child} key={child.id} />
         ))}
       </div>
     </div>
@@ -288,11 +293,13 @@ function FolderNode({
 
 function RequestNode({
   request,
+  collectionId,
   context,
   containerFolderId,
   depth = 0
 }: {
   request: ApiRequest;
+  collectionId: string;
   context: TreeContext;
   containerFolderId?: string;
   depth?: number;
@@ -335,6 +342,7 @@ function RequestNode({
         if (context.drag?.kind === "request" && context.drag.id !== request.id) {
           context.onMoveRequestTo(context.drag.id, {
             position: "before",
+            collectionId,
             requestId: request.id,
             folderId: containerFolderId
           });

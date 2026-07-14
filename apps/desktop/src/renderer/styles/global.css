@@ -547,81 +547,97 @@ pre {
 .sidebar__toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
-  min-width: 0;
-}
-
-.sidebar__quick-actions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--control-height) var(--control-height);
   gap: 8px;
   min-width: 0;
 }
 
-.sidebar__new {
-  grid-area: auto;
-  justify-content: center;
-  width: 100%;
-  min-width: 0;
-}
-
-.sidebar__folder {
-  grid-area: auto;
-}
-
-.sidebar__collection {
-  grid-area: auto;
-}
-
-.sidebar__template {
+.sidebar__new-menu {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
-  padding: 9px;
-  border: 1px solid #dde4ee;
+}
+
+.sidebar__new-trigger {
+  width: 100%;
+}
+
+.sidebar__new-panel {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #d8e0ea;
   border-radius: 7px;
   background: #f8fafc;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
 }
 
-.sidebar__template-title {
+.new-menu-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  min-width: 0;
-  color: #4c5d72;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.sidebar__template-title svg {
-  flex: none;
-}
-
-.sidebar__template-controls {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(72px, auto);
   gap: 8px;
-  min-width: 0;
-}
-
-.sidebar__template-create {
-  padding: 0 10px;
-}
-
-.sidebar__template-target {
+  width: 100%;
+  min-height: 32px;
   min-width: 0;
   overflow: hidden;
-  color: #66758a;
-  font-size: 11px;
+  padding: 0 9px;
+  border-radius: 6px;
+  color: #263344;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.toolbar-menu {
-  grid-area: auto;
-  width: 100%;
+.new-menu-item:hover {
+  background: #eaf1fb;
+}
+
+.new-menu-item:disabled:hover {
+  background: transparent;
+}
+
+.new-menu-item svg {
+  flex: none;
+}
+
+.new-menu-item--nested {
+  padding-left: 28px;
+}
+
+.new-menu-section {
+  display: grid;
+  gap: 3px;
   min-width: 0;
-  height: var(--control-height);
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid #e1e7f0;
+}
+
+.new-menu-section__title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 0 9px 2px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.new-menu-section__title svg {
+  flex: none;
+}
+
+.new-menu-target {
+  min-width: 0;
+  overflow: hidden;
+  padding: 4px 9px 0 28px;
+  color: #6f7f92;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tree {

@@ -586,26 +586,77 @@ export function App() {
   };
 
   const moveRequestTo = (requestId: string, target: DropTarget) => {
-    if (!activeCollection) {
-      return;
-    }
-    mutateCollection(activeCollection.id, (collection) => {
-      relocateRequest(
-        collection,
-        requestId,
-        target.folderId ?? null,
-        target.position === "before" ? target.requestId ?? null : null
-      );
+    mutateWorkspace((draft) => {
+      const sourceCollection = draft.collections.find((collection) => findRequest(collection, requestId));
+      const targetCollection = draft.collections.find((collection) => collection.id === target.collectionId);
+      if (!sourceCollection || !targetCollection) {
+        return;
+      }
+      if (sourceCollection.id === targetCollection.id) {
+        relocateRequest(
+          targetCollection,
+          requestId,
+          target.folderId ?? null,
+          target.position === "before" ? target.requestId ?? null : null
+        );
+        return;
+      }
+
+      const targetContainer = target.folderId
+        ? findFolder(targetCollection, target.folderId)?.requests
+        : targetCollection.requests;
+      if (!targetContainer) {
+        return;
+      }
+      const request = removeRequest(sourceCollection, requestId);
+      if (!request) {
+        return;
+      }
+      const beforeIndex =
+        target.position === "before" && target.requestId
+          ? targetContainer.findIndex((candidate) => candidate.id === target.requestId)
+          : -1;
+      if (beforeIndex >= 0) {
+        targetContainer.splice(beforeIndex, 0, request);
+      } else {
+        targetContainer.push(request);
+      }
     });
+    setActiveCollectionId(target.collectionId);
+    setSelectedFolderId(target.folderId);
+    setSelectedRequestId(requestId);
+    setResponse(undefined);
+    setScreen("editor");
   };
 
   const moveFolderTo = (folderId: string, target: DropTarget) => {
-    if (!activeCollection) {
-      return;
-    }
-    mutateCollection(activeCollection.id, (collection) => {
-      relocateFolder(collection, folderId, target.folderId ?? null, null);
+    mutateWorkspace((draft) => {
+      const sourceCollection = draft.collections.find((collection) => findFolder(collection, folderId));
+      const targetCollection = draft.collections.find((collection) => collection.id === target.collectionId);
+      if (!sourceCollection || !targetCollection) {
+        return;
+      }
+      if (sourceCollection.id === targetCollection.id) {
+        relocateFolder(targetCollection, folderId, target.folderId ?? null, null);
+        return;
+      }
+
+      const targetContainer = target.folderId
+        ? findFolder(targetCollection, target.folderId)?.folders
+        : targetCollection.folders;
+      if (!targetContainer) {
+        return;
+      }
+      const folder = removeFolder(sourceCollection, folderId);
+      if (folder) {
+        targetContainer.push(folder);
+      }
     });
+    setActiveCollectionId(target.collectionId);
+    setSelectedFolderId(folderId);
+    setSelectedRequestId(undefined);
+    setResponse(undefined);
+    setScreen("editor");
   };
 
   const openImportFile = async () => {
@@ -1121,7 +1172,7 @@ function CollectionsSidebar({
   onAddJwtRequest(): void;
   onAddApinizerJwtRequest(): void;
 }) {
-  const [templateKind, setTemplateKind] = useState<"" | "jwt" | "apinizer-jwt">("");
+  const [isNewMenuOpen, setIsNewMenuOpen] = useState(false);
   const selectedFolderPath =
     activeCollection && selectedFolderId
       ? flattenFolders(activeCollection)
@@ -1129,16 +1180,10 @@ function CollectionsSidebar({
           ?.path.map((folder) => folder.name)
           .join(" / ")
       : "";
-  const templateTarget = selectedFolderPath || (templateKind ? "Auth folder" : "Collection root");
-  const canCreateTemplate = Boolean(activeCollection && templateKind);
-
-  const createTemplateRequest = () => {
-    if (templateKind === "jwt") {
-      onAddJwtRequest();
-    } else if (templateKind === "apinizer-jwt") {
-      onAddApinizerJwtRequest();
-    }
-    setTemplateKind("");
+  const requestTarget = selectedFolderPath || (activeCollection ? `${activeCollection.name} root` : "Create a collection first");
+  const runNewAction = (action: () => void) => {
+    action();
+    setIsNewMenuOpen(false);
   };
 
   return (
@@ -1181,65 +1226,71 @@ function CollectionsSidebar({
         </NavButton>
       </nav>
       <div className="sidebar__toolbar">
-        <div className="sidebar__quick-actions">
+        <div className="sidebar__new-menu" onKeyDown={(event) => event.key === "Escape" && setIsNewMenuOpen(false)}>
           <button
-            className="secondary-button sidebar__new"
-            disabled={!activeCollection}
-            onClick={onAddRequest}
-            title="New request"
-            type="button"
-          >
-            <FilePlus2 size={16} />
-            New request
-          </button>
-          <button
-            className="icon-button sidebar__folder"
-            disabled={!activeCollection}
-            onClick={onAddFolder}
-            title="New folder"
-            type="button"
-          >
-            <FolderPlus size={16} />
-          </button>
-          <button
-            className="icon-button sidebar__collection"
-            onClick={onAddCollection}
-            title="New collection"
+            aria-expanded={isNewMenuOpen}
+            aria-haspopup="menu"
+            className="primary-button sidebar__new-trigger"
+            onClick={() => setIsNewMenuOpen((open) => !open)}
             type="button"
           >
             <Plus size={16} />
+            New
           </button>
-        </div>
-        <div className="sidebar__template">
-          <div className="sidebar__template-title">
-            <Wand2 size={14} />
-            <span>Request template</span>
-          </div>
-          <div className="sidebar__template-controls">
-            <select
-              aria-label="Request template"
-              className="toolbar-menu"
-              disabled={!activeCollection}
-              onChange={(event) => setTemplateKind(event.target.value as "" | "jwt" | "apinizer-jwt")}
-              title="Request template"
-              value={templateKind}
-            >
-              <option value="">Select template</option>
-              <option value="jwt">JWT token</option>
-              <option value="apinizer-jwt">Apinizer JWT</option>
-            </select>
-            <button
-              className="secondary-button sidebar__template-create"
-              disabled={!canCreateTemplate}
-              onClick={createTemplateRequest}
-              type="button"
-            >
-              Create
-            </button>
-          </div>
-          <div className="sidebar__template-target" title={templateTarget}>
-            Target: {templateTarget}
-          </div>
+          {isNewMenuOpen && (
+            <div className="sidebar__new-panel" role="menu">
+              <button className="new-menu-item" onClick={() => runNewAction(onAddCollection)} role="menuitem" type="button">
+                <Plus size={15} />
+                Collection
+              </button>
+              <button
+                className="new-menu-item"
+                disabled={!activeCollection}
+                onClick={() => runNewAction(onAddFolder)}
+                role="menuitem"
+                type="button"
+              >
+                <FolderPlus size={15} />
+                Folder
+              </button>
+              <div className="new-menu-section">
+                <div className="new-menu-section__title">
+                  <FilePlus2 size={14} />
+                  Request
+                </div>
+                <button
+                  className="new-menu-item new-menu-item--nested"
+                  disabled={!activeCollection}
+                  onClick={() => runNewAction(onAddRequest)}
+                  role="menuitem"
+                  type="button"
+                >
+                  Standard request
+                </button>
+                <button
+                  className="new-menu-item new-menu-item--nested"
+                  disabled={!activeCollection}
+                  onClick={() => runNewAction(onAddJwtRequest)}
+                  role="menuitem"
+                  type="button"
+                >
+                  JWT token request
+                </button>
+                <button
+                  className="new-menu-item new-menu-item--nested"
+                  disabled={!activeCollection}
+                  onClick={() => runNewAction(onAddApinizerJwtRequest)}
+                  role="menuitem"
+                  type="button"
+                >
+                  Apinizer JWT request
+                </button>
+                <div className="new-menu-target" title={requestTarget}>
+                  Target: {requestTarget}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <CollectionTree
