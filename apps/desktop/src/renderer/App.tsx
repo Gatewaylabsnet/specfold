@@ -883,6 +883,34 @@ export function App() {
     });
   };
 
+  const updateEnvironmentBaseUrl = (environmentId: string, value: string): boolean => {
+    const nextValue = value.trim();
+    const collectionsToUpdate = workspace.collections.filter(
+      (collection) => (collection.baseUrl ?? "") !== nextValue
+    );
+    if (collectionsToUpdate.length > 0) {
+      const confirmed = window.confirm(
+        nextValue
+          ? `Collection base URL values override environment base URL. Update all ${workspace.collections.length} collection base URLs to "${nextValue}"?`
+          : `Collection base URL values override environment base URL. Clear base URL from all ${workspace.collections.length} collections?`
+      );
+      if (!confirmed) {
+        return false;
+      }
+    }
+
+    mutateWorkspace((draft) => {
+      const environment = draft.environments.find((candidate) => candidate.id === environmentId);
+      if (environment) {
+        upsertEnvironmentBaseUrl(environment, nextValue);
+      }
+      for (const collection of draft.collections) {
+        collection.baseUrl = nextValue || undefined;
+      }
+    });
+    return true;
+  };
+
   const createNewEnvironment = () => {
     const environment = createEnvironment("Local");
     environment.variables = [
@@ -1117,6 +1145,7 @@ export function App() {
                 draft.activeEnvironmentId = environmentId;
               })
             }
+            onUpdateEnvironmentBaseUrl={updateEnvironmentBaseUrl}
             onUpdateEnvironment={updateEnvironment}
           />
         )}
@@ -2026,6 +2055,7 @@ function EnvironmentScreen({
   onSelectEnvironment,
   onCreateEnvironment,
   onDeleteEnvironment,
+  onUpdateEnvironmentBaseUrl,
   onUpdateEnvironment
 }: {
   environments: Environment[];
@@ -2033,10 +2063,30 @@ function EnvironmentScreen({
   onSelectEnvironment(environmentId: string): void;
   onCreateEnvironment(): void;
   onDeleteEnvironment(environmentId: string): void;
+  onUpdateEnvironmentBaseUrl(environmentId: string, value: string): boolean;
   onUpdateEnvironment(environmentId: string, recipe: (environment: Environment) => void): void;
 }) {
   const active = environments.find((environment) => environment.id === activeEnvironmentId) ?? environments[0];
+  const currentBaseUrl = active ? environmentBaseUrl(active) : "";
+  const [baseUrlDraft, setBaseUrlDraft] = useState(currentBaseUrl);
   const customVariables = active?.variables.filter((variable) => !isBaseUrlVariable(variable)) ?? [];
+  useEffect(() => {
+    setBaseUrlDraft(currentBaseUrl);
+  }, [active?.id, currentBaseUrl]);
+
+  const commitBaseUrl = () => {
+    if (!active) {
+      return;
+    }
+    if (baseUrlDraft.trim() === currentBaseUrl.trim()) {
+      setBaseUrlDraft(currentBaseUrl);
+      return;
+    }
+    const accepted = onUpdateEnvironmentBaseUrl(active.id, baseUrlDraft);
+    if (!accepted) {
+      setBaseUrlDraft(currentBaseUrl);
+    }
+  };
 
   return (
     <section className="environment-layout">
@@ -2080,13 +2130,18 @@ function EnvironmentScreen({
               <span>Environment base URL</span>
               <input
                 aria-label="Environment base URL"
-                onChange={(event) =>
-                  onUpdateEnvironment(active.id, (environment) => {
-                    upsertEnvironmentBaseUrl(environment, event.target.value);
-                  })
-                }
+                onBlur={commitBaseUrl}
+                onChange={(event) => setBaseUrlDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.currentTarget.blur();
+                  }
+                  if (event.key === "Escape") {
+                    setBaseUrlDraft(currentBaseUrl);
+                  }
+                }}
                 placeholder="https://api.example.com"
-                value={environmentBaseUrl(active)}
+                value={baseUrlDraft}
               />
             </label>
             <EnvironmentVariableEditor

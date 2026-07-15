@@ -17,10 +17,6 @@ export function environmentToMap(
   collection?: Pick<Collection, "baseUrl">
 ): Record<string, string> {
   const map: Record<string, string> = {};
-  const collectionBaseUrl = collection?.baseUrl?.trim();
-  if (collectionBaseUrl) {
-    map.baseUrl = collectionBaseUrl;
-  }
   for (const variable of environment?.variables ?? []) {
     const name = variable.name.trim();
     if (variable.enabled && name) {
@@ -29,6 +25,10 @@ export function environmentToMap(
       }
       map[name] = variable.value;
     }
+  }
+  const collectionBaseUrl = collection?.baseUrl?.trim();
+  if (collectionBaseUrl) {
+    map.baseUrl = collectionBaseUrl;
   }
   return map;
 }

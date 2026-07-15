@@ -46,7 +46,7 @@ describe("variable resolver", () => {
     expect(prepared.url).toBe("https://collection.example.com/orders");
   });
 
-  it("lets an environment base URL override the collection base URL", () => {
+  it("lets the collection base URL override the environment base URL", () => {
     const collection = createCollection("Orders API");
     collection.baseUrl = "https://collection.example.com";
     const request = createRequest({ name: "List orders", url: "{{baseUrl}}/orders" });
@@ -57,7 +57,7 @@ describe("variable resolver", () => {
 
     const prepared = prepareHttpRequest(request, environment, collection);
 
-    expect(prepared.url).toBe("https://prod.example.com/orders");
+    expect(prepared.url).toBe("https://collection.example.com/orders");
   });
 
   it("does not let an empty environment base URL hide the collection base URL", () => {
