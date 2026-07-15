@@ -1347,9 +1347,15 @@ function NavButton({
   onClick(): void;
 }) {
   return (
-    <button className={active ? "nav-btn is-active" : "nav-btn"} onClick={onClick} type="button">
+    <button
+      aria-label={children}
+      className={active ? "nav-btn is-active" : "nav-btn"}
+      onClick={onClick}
+      title={children}
+      type="button"
+    >
       {icon}
-      {children}
+      <span className="nav-btn__label">{children}</span>
     </button>
   );
 }
