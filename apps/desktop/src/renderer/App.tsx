@@ -1610,24 +1610,24 @@ function RequestWorkspace({
   return (
     <section className="editor-layout">
       <div className="request-panel">
+        {activeCollection && (
+          <label className="field collection-base-url">
+            <span>Collection base URL</span>
+            <input
+              aria-label="Collection base URL"
+              onChange={(event) =>
+                onUpdateCollection((collection) => {
+                  const value = event.target.value.trim();
+                  collection.baseUrl = value || undefined;
+                })
+              }
+              placeholder="https://api.example.com"
+              value={activeCollection.baseUrl ?? ""}
+            />
+          </label>
+        )}
         {activeRequest ? (
           <>
-            {activeCollection && (
-              <label className="field collection-base-url">
-                <span>Collection base URL</span>
-                <input
-                  aria-label="Collection base URL"
-                  onChange={(event) =>
-                    onUpdateCollection((collection) => {
-                      const value = event.target.value.trim();
-                      collection.baseUrl = value || undefined;
-                    })
-                  }
-                  placeholder="https://api.example.com"
-                  value={activeCollection.baseUrl ?? ""}
-                />
-              </label>
-            )}
             <div className="request-line">
               <select
                 aria-label="Method"
