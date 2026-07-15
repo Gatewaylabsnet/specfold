@@ -835,7 +835,7 @@ export function App() {
     const requestId = activeRequest.id;
     setIsSending(true);
     setResponse(undefined);
-    const result = await window.studio.sendRequest(activeRequest, activeEnvironment);
+    const result = await window.studio.sendRequest(activeRequest, activeEnvironment, activeCollection);
     setResponse(result);
     if (!result.error) {
       setResponseHistory((current) => {
@@ -1072,6 +1072,9 @@ export function App() {
               onRequestTabChange={setRequestTab}
               onSend={sendActiveRequest}
               onCopyCurl={copyActiveRequestAsCurl}
+              onUpdateCollection={(recipe) =>
+                activeCollection && mutateCollection(activeCollection.id, recipe)
+              }
               onUpdateRequest={updateActiveRequest}
               onAssignResponseValue={assignResponseValue}
               environmentVariableNames={activeEnvironment?.variables.map((variable) => variable.name) ?? []}
@@ -1546,6 +1549,7 @@ function RequestWorkspace({
   onAddRequest,
   onAddJwtRequest,
   onUpdateRequest,
+  onUpdateCollection,
   onMoveRequest,
   onRequestTabChange,
   onSend,
@@ -1564,6 +1568,7 @@ function RequestWorkspace({
   onAddRequest(): void;
   onAddJwtRequest(): void;
   onUpdateRequest(recipe: (request: ApiRequest) => void): void;
+  onUpdateCollection(recipe: (collection: Collection) => void): void;
   onMoveRequest(folderId: string): void;
   onRequestTabChange(tab: RequestTab): void;
   onSend(): void;
@@ -1576,6 +1581,22 @@ function RequestWorkspace({
       <div className="request-panel">
         {activeRequest ? (
           <>
+            {activeCollection && (
+              <label className="field collection-base-url">
+                <span>Collection base URL</span>
+                <input
+                  aria-label="Collection base URL"
+                  onChange={(event) =>
+                    onUpdateCollection((collection) => {
+                      const value = event.target.value.trim();
+                      collection.baseUrl = value || undefined;
+                    })
+                  }
+                  placeholder="https://api.example.com"
+                  value={activeCollection.baseUrl ?? ""}
+                />
+              </label>
+            )}
             <div className="request-line">
               <select
                 aria-label="Method"
@@ -2015,6 +2036,7 @@ function EnvironmentScreen({
   onUpdateEnvironment(environmentId: string, recipe: (environment: Environment) => void): void;
 }) {
   const active = environments.find((environment) => environment.id === activeEnvironmentId) ?? environments[0];
+  const customVariables = active?.variables.filter((variable) => !isBaseUrlVariable(variable)) ?? [];
 
   return (
     <section className="environment-layout">
@@ -2054,11 +2076,24 @@ function EnvironmentScreen({
                 Delete
               </button>
             </div>
+            <label className="field environment-base-url">
+              <span>Environment base URL</span>
+              <input
+                aria-label="Environment base URL"
+                onChange={(event) =>
+                  onUpdateEnvironment(active.id, (environment) => {
+                    upsertEnvironmentBaseUrl(environment, event.target.value);
+                  })
+                }
+                placeholder="https://api.example.com"
+                value={environmentBaseUrl(active)}
+              />
+            </label>
             <EnvironmentVariableEditor
-              variables={active.variables}
+              variables={customVariables}
               onChange={(variables) =>
                 onUpdateEnvironment(active.id, (environment) => {
-                  environment.variables = variables;
+                  replaceEnvironmentCustomVariables(environment, variables);
                 })
               }
             />
@@ -2428,6 +2463,39 @@ function activeRequestFolderId(collection: Collection | undefined, requestId: st
     return undefined;
   }
   return findRequest(collection, requestId)?.folder?.id;
+}
+
+function isBaseUrlVariable(variable: Pick<EnvironmentVariable, "name">): boolean {
+  return variable.name.trim() === "baseUrl";
+}
+
+function environmentBaseUrl(environment: Environment): string {
+  return environment.variables.find(isBaseUrlVariable)?.value ?? "";
+}
+
+function upsertEnvironmentBaseUrl(environment: Environment, value: string): void {
+  const nextValue = value.trim();
+  const existing = environment.variables.find(isBaseUrlVariable);
+  const customVariables = environment.variables.filter((variable) => !isBaseUrlVariable(variable));
+  if (!nextValue) {
+    environment.variables = customVariables;
+    return;
+  }
+  const baseUrl = existing ?? createEnvironmentVariable("baseUrl", nextValue);
+  baseUrl.name = "baseUrl";
+  baseUrl.value = nextValue;
+  baseUrl.enabled = true;
+  baseUrl.secret = false;
+  environment.variables = [baseUrl, ...customVariables];
+}
+
+function replaceEnvironmentCustomVariables(
+  environment: Environment,
+  variables: EnvironmentVariable[]
+): void {
+  const baseUrl = environment.variables.find(isBaseUrlVariable) ?? variables.find(isBaseUrlVariable);
+  const customVariables = variables.filter((variable) => !isBaseUrlVariable(variable));
+  environment.variables = baseUrl ? [baseUrl, ...customVariables] : customVariables;
 }
 
 function firstRequestId(collection: Collection): string | undefined {

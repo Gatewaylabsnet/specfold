@@ -1,4 +1,4 @@
-import type { ApiRequest, Environment, KeyValue } from "../model/types";
+import type { ApiRequest, Collection, Environment, KeyValue } from "../model/types";
 
 export interface VariableResolution {
   value: string;
@@ -12,11 +12,22 @@ export interface ResolvedRequest {
 
 const VARIABLE_PATTERN = /\{\{\s*([A-Za-z_][A-Za-z0-9_.-]*)\s*\}\}/g;
 
-export function environmentToMap(environment?: Environment): Record<string, string> {
+export function environmentToMap(
+  environment?: Environment,
+  collection?: Pick<Collection, "baseUrl">
+): Record<string, string> {
   const map: Record<string, string> = {};
+  const collectionBaseUrl = collection?.baseUrl?.trim();
+  if (collectionBaseUrl) {
+    map.baseUrl = collectionBaseUrl;
+  }
   for (const variable of environment?.variables ?? []) {
-    if (variable.enabled && variable.name.trim()) {
-      map[variable.name.trim()] = variable.value;
+    const name = variable.name.trim();
+    if (variable.enabled && name) {
+      if (name === "baseUrl" && !variable.value.trim()) {
+        continue;
+      }
+      map[name] = variable.value;
     }
   }
   return map;
@@ -87,9 +98,10 @@ export function resolveKeyValues(
 
 export function resolveRequestVariables(
   request: ApiRequest,
-  environment?: Environment
+  environment?: Environment,
+  collection?: Pick<Collection, "baseUrl">
 ): ResolvedRequest {
-  const variables = environmentToMap(environment);
+  const variables = environmentToMap(environment, collection);
   const missing = new Set<string>();
   const url = resolveVariablesInText(request.url, variables);
   url.missing.forEach((name) => missing.add(name));

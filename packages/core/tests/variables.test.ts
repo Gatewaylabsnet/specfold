@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  createCollection,
   createEnvironment,
   createKeyValue,
   createRequest,
@@ -34,5 +35,40 @@ describe("variable resolver", () => {
     expect(prepared.url).toBe("https://api.example.com/users/42?expand=posts");
     expect(prepared.headers.Authorization).toBe("Bearer secret");
   });
-});
 
+  it("uses the collection base URL when no environment override exists", () => {
+    const collection = createCollection("Orders API");
+    collection.baseUrl = "https://collection.example.com";
+    const request = createRequest({ name: "List orders", url: "{{baseUrl}}/orders" });
+
+    const prepared = prepareHttpRequest(request, undefined, collection);
+
+    expect(prepared.url).toBe("https://collection.example.com/orders");
+  });
+
+  it("lets an environment base URL override the collection base URL", () => {
+    const collection = createCollection("Orders API");
+    collection.baseUrl = "https://collection.example.com";
+    const request = createRequest({ name: "List orders", url: "{{baseUrl}}/orders" });
+    const environment = createEnvironment("Production");
+    environment.variables = [
+      { id: "var_baseUrl", name: "baseUrl", value: "https://prod.example.com", enabled: true }
+    ];
+
+    const prepared = prepareHttpRequest(request, environment, collection);
+
+    expect(prepared.url).toBe("https://prod.example.com/orders");
+  });
+
+  it("does not let an empty environment base URL hide the collection base URL", () => {
+    const collection = createCollection("Orders API");
+    collection.baseUrl = "https://collection.example.com";
+    const request = createRequest({ name: "List orders", url: "{{baseUrl}}/orders" });
+    const environment = createEnvironment("Local");
+    environment.variables = [{ id: "var_baseUrl", name: "baseUrl", value: "", enabled: true }];
+
+    const prepared = prepareHttpRequest(request, environment, collection);
+
+    expect(prepared.url).toBe("https://collection.example.com/orders");
+  });
+});

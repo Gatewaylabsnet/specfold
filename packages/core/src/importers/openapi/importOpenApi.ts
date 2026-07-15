@@ -54,6 +54,7 @@ export function importOpenApiDocument(
   const collection = createCollection(preview.title);
   collection.version = preview.version;
   collection.description = asString(info.description);
+  collection.baseUrl = readServers(document)[0];
   collection.openApi = {
     sourceFormat: "openapi3",
     documentVersion: parsed.version,
@@ -253,4 +254,3 @@ function cryptoId(prefix: string): string {
       : Math.random().toString(36).slice(2, 12)
   }`;
 }
-

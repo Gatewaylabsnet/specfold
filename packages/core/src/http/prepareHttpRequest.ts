@@ -1,4 +1,4 @@
-import type { ApiRequest, Environment, KeyValue } from "../model/types";
+import type { ApiRequest, Collection, Environment, KeyValue } from "../model/types";
 import { resolveRequestVariables } from "../variables/resolveVariables";
 
 export interface PreparedHttpRequest {
@@ -20,9 +20,10 @@ export class MissingVariablesError extends Error {
 
 export function prepareHttpRequest(
   request: ApiRequest,
-  environment?: Environment
+  environment?: Environment,
+  collection?: Pick<Collection, "baseUrl">
 ): PreparedHttpRequest {
-  const resolved = resolveRequestVariables(request, environment);
+  const resolved = resolveRequestVariables(request, environment, collection);
   if (resolved.missing.length > 0) {
     throw new MissingVariablesError(resolved.missing);
   }

@@ -767,6 +767,15 @@ pre {
   padding: 0 10px;
 }
 
+.collection-base-url {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.environment-base-url {
+  max-width: 620px;
+}
+
 .request-meta {
   display: grid;
   grid-template-columns: minmax(160px, 1fr) minmax(150px, 240px) auto;

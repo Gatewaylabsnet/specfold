@@ -1,4 +1,4 @@
-import type { ApiRequest, Environment, Workspace } from "@openapi-collection-studio/core";
+import type { ApiRequest, Collection, Environment, Workspace } from "@openapi-collection-studio/core";
 
 export interface AppSettings {
   requestTimeoutMs: number;
@@ -29,7 +29,11 @@ export interface StudioApi {
   saveWorkspace(workspace: Workspace): Promise<void>;
   loadSettings(): Promise<AppSettings>;
   saveSettings(settings: AppSettings): Promise<AppSettings>;
-  sendRequest(request: ApiRequest, environment?: Environment): Promise<SendRequestResult>;
+  sendRequest(
+    request: ApiRequest,
+    environment?: Environment,
+    collection?: Pick<Collection, "baseUrl">
+  ): Promise<SendRequestResult>;
   saveExportFile(defaultPath: string, content: string): Promise<{
     canceled: boolean;
     filePath?: string;

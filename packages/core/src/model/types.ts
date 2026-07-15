@@ -86,6 +86,7 @@ export interface Collection {
   id: string;
   name: string;
   version?: string;
+  baseUrl?: string;
   description?: string;
   folders: Folder[];
   requests: ApiRequest[];
@@ -117,4 +118,3 @@ export interface Workspace {
 }
 
 export type GroupingStrategy = "tags" | "firstPathSegment" | "singleFolder";
-

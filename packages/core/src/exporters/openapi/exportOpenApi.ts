@@ -212,7 +212,9 @@ function serverList(
   collection: Collection,
   warnings: ExportWarning[]
 ): Array<{ url: string }> | undefined {
-  const servers = collection.openApi?.servers?.filter(Boolean) ?? [];
+  const servers = [collection.baseUrl, ...(collection.openApi?.servers ?? [])].filter(
+    (url): url is string => Boolean(url)
+  );
   const valid = servers.filter((url) => !url.includes("{{"));
   if (valid.length !== servers.length) {
     warnings.push({

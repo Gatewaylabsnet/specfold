@@ -53,6 +53,7 @@ export function importSwagger2Document(
   const collection = createCollection(preview.title);
   collection.version = preview.version;
   collection.description = asString(info.description);
+  collection.baseUrl = swaggerBaseUrl(document) || undefined;
   collection.openApi = {
     sourceFormat: "swagger2",
     documentVersion: parsed.version,
@@ -244,4 +245,3 @@ function placeRequest(
 
   folder.requests.push(request);
 }
-

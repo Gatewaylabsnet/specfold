@@ -6,6 +6,7 @@ import {
   MissingVariablesError,
   prepareHttpRequest,
   type ApiRequest,
+  type Collection,
   type Environment,
   type Workspace
 } from "@openapi-collection-studio/core";
@@ -26,6 +27,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 interface SendRequestPayload {
   request: ApiRequest;
   environment?: Environment;
+  collection?: Pick<Collection, "baseUrl">;
 }
 
 interface SendRequestResult {
@@ -213,7 +215,7 @@ async function sendHttpRequest(payload: SendRequestPayload): Promise<SendRequest
   }
 
   try {
-    const prepared = prepareHttpRequest(payload.request, payload.environment);
+    const prepared = prepareHttpRequest(payload.request, payload.environment, payload.collection);
     const startedAt = performance.now();
     const response = await fetchWithProxy(
       prepared.url,
