@@ -70,6 +70,11 @@ On Windows PowerShell, compare `Get-FileHash .\Specfold-1.1.0-x64.exe -Algorithm
 
 Unsigned Windows builds may trigger SmartScreen. Unsigned and non-notarized macOS builds may require opening from Finder with **Open** to confirm the Gatekeeper prompt.
 
+See the [Code signing policy](docs/CODE_SIGNING_POLICY.md) for signing scope,
+approval roles, build provenance, privacy, and the current SignPath Foundation
+application status. Release artifacts remain unsigned until that policy
+explicitly states that signing is active.
+
 ## What It Does
 
 - Imports OpenAPI 3.x, Swagger 2.0, Postman Collection v2.0/v2.1 JSON and v3 YAML folders, Insomnia JSON v4/v5, HAR 1.2, `.http`/`.rest`, Specfold Collection JSON, and `curl` commands.
