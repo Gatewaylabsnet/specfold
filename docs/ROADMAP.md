@@ -1,22 +1,25 @@
 # Roadmap
 
-## v1.0
+## v1.0 (Released)
 
-- Import OpenAPI 3.x, Swagger 2.0, Collection JSON, and curl commands.
-- Edit imported and manual requests in a local collection tree.
-- Manage environments and encrypted secret variables.
-- Send variable-resolved requests from the Electron main process.
-- Export a whole collection or selected folders to OpenAPI YAML/JSON or Collection JSON.
-- Preserve imported OpenAPI operation details where possible during export.
-- Guard export against common secret leaks and unused component sprawl.
-- Package Windows, macOS, and Linux release artifacts.
-- Run the renderer with sandbox, context isolation, node integration off, and packaged CSP.
+- Local OpenAPI/Swagger collection editing, environments, request sending, cURL, OpenAPI/Collection export, encrypted secrets, hardened Electron shell, and Windows/macOS/Linux packages.
+- `v1.0.3` remains available for users who need the previous stable release.
 
-## Post-1.0
+## v1.1.0
 
-- Configure production code-signing certificates for Windows release builds.
-- Configure Apple signing and notarization for macOS release builds.
-- Add auto-update.
-- Add advanced proxy configuration UI, including authenticated proxies and SOCKS support.
-- Move heavy import/export work off the renderer thread for very large API documents.
-- Add broader packaged-app smoke tests on real Windows, macOS, and Linux machines.
+- Postman Collection v2.0/v2.1, Postman v3 folders, Insomnia v4/v5, HAR 1.2, and `.http`/`.rest` imports.
+- Operation selection, folder traversal limits, script/symlink skipping, and portable-format warnings.
+- Default renameable `Specfold` environment and final-environment protection.
+- Complete backup export, 100 MB validated restore, pre-restore safety copy, atomic rollback, and full local deletion.
+- No plaintext secret persistence when secure storage is unavailable.
+- Production modules below 500 lines with shared IPC contracts and format-specific import/export modules.
+- React Testing Library coverage and tagless release-package verification with `SHA256SUMS.txt`.
+
+## Later
+
+- Windows code signing.
+- Apple signing and notarization.
+- Auto-update after signed release infrastructure exists.
+- Authenticated/SOCKS proxy UI.
+- Worker-thread parsing for very large documents.
+- Broader packaged-app automation on physical platform runners.

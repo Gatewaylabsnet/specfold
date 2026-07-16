@@ -2,35 +2,52 @@
 
 ## Layers
 
-1. Desktop shell: Electron main process owns local file access, native save dialogs, and HTTP sending.
-2. Renderer UI: React/Vite app owns user workflows and editor state.
-3. Core model: TypeScript domain types for workspace, collections, folders, requests, environments, auth, bodies, examples, and OpenAPI metadata.
-4. Importers: Pure functions parse JSON/YAML and convert OpenAPI 3.x or Swagger 2.0 into the internal model.
-5. Exporters: Pure functions convert collections or selected folders into OpenAPI 3.0.3 or Collection JSON.
-6. Variable resolver: Pure functions resolve `{{variableName}}` tokens and report missing values before sending.
-7. HTTP sender: Electron main process prepares and sends requests with Node `fetch`.
-8. Storage: Isolated workspace persistence behind a simple load/save boundary.
+1. Electron bootstrap configures the single-instance lifecycle, window, CSP, and IPC registration.
+2. Electron services own storage, HTTP, import-source traversal, native dialogs, and proxy handling.
+3. The preload exposes one typed `StudioApi`; its contracts live in `apps/desktop/src/shared/contracts.ts` and are shared by main, preload, and renderer.
+4. React controller hooks own workspace, import, request, export, and data-management workflows.
+5. React screens and tree components render editor, import, environments, export, and settings views.
+6. Core pure functions own the model, importers, exporters, variables, cURL conversion, and HTTP preparation.
+
+Production TypeScript, TSX, and CSS source files are kept below 500 lines. Generated output under `out` and `dist` is excluded.
 
 ## Repository Layout
 
 ```text
-apps/desktop
-  src/main      Electron process, storage, HTTP, dialogs
-  src/preload   Typed bridge exposed to renderer
-  src/renderer  React UI
-packages/core
-  src/model
-  src/importers
-  src/exporters
-  src/variables
-  src/http
-  src/storage
+apps/desktop/src/main
+  index.ts              lifecycle bootstrap
+  ipc.ts                typed IPC registration
+  storage.ts            Electron dialogs and storage adapter
+  storageService.ts     testable atomic persistence, backup, restore, rollback
+  http.ts               request and import-URL HTTP clients
+  importSources.ts      bounded Postman v3 folder traversal
+  window.ts             BrowserWindow and CSP
+apps/desktop/src/shared/contracts.ts
+apps/desktop/src/renderer
+  app/use*Controller.ts controller hooks
+  app/screens            Import, Editor, Environment, Export, Settings
+  components/tree       collection/folder/request rows and drag/drop
+  styles/sections       cascade-ordered style modules
+packages/core/src
+  importers/portable    Postman v2/v3, Insomnia, HAR, HTTP
+  exporters/openapi/export
+  model, variables, curl, http
 ```
 
 ## Data Flow
 
-The renderer calls core import/export and variable-aware request editing functions. Workspace state is saved through the preload bridge to Electron main. Request sending goes through Electron main, where the request is resolved with the active environment and sent with Node `fetch`.
+The renderer calls pure core import/export functions directly. Persistence, native file access, and outgoing HTTP cross the sandboxed preload bridge. IPC payloads use the shared contracts. Workspace mutations are serialized in main, while renderer autosave is debounced.
 
-## Storage Behavior
+## Storage And Restore
 
-Electron main stores `workspace.json` in `app.getPath("userData")`. The portable Windows executable and the future installer build both use this per-user data path. The first release does not write project data beside the executable and does not require administrator permissions for normal storage.
+- `workspace.json` and `app-settings.json` live under Electron `userData`.
+- Workspace schema remains `schemaVersion: 1`; `ensureWorkspaceEnvironment` gives older workspaces an active environment.
+- Writes use same-directory temporary files and atomic rename.
+- Secret variables are encrypted with Electron `safeStorage`. If encryption is unavailable, plaintext secret values are never written and the renderer shows a persistent warning.
+- Complete backups use `specfold.backup.v1`, intentionally contain readable secrets after explicit confirmation, and are written with `0600` permissions where supported.
+- Restore input is capped at 100 MB and validates the root schema, workspace arrays/version, and settings.
+- Restore creates a safety copy, writes workspace then settings serially, and rolls both files back if either write fails.
+
+## Desktop Security Boundary
+
+The renderer uses `sandbox: true`, `contextIsolation: true`, `nodeIntegration: false`, and packaged CSP. It cannot access Node or the filesystem directly. Import scripts are treated as data and are never executed.

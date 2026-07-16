@@ -27,6 +27,8 @@
   },
   "devDependencies": {
     "@openapi-collection-studio/core": "1.0.3",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20.14.10",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
@@ -34,6 +36,7 @@
     "electron": "43.1.0",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
+    "jsdom": "^29.1.1",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

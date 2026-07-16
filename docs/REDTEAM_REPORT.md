@@ -1,51 +1,43 @@
-# Red Team Report - Specfold v1.0
+# Red Team Report - Specfold v1.1
 
-**Date:** 2026-07-14
-**Scope:** `apps/desktop`, `packages/core`, packaging config, and release workflow.
-**Method:** Static review, threat modeling, and release-readiness review. Dynamic fuzzing was not performed.
+**Date:** 2026-07-16
+
+**Scope:** Desktop main/preload/renderer, core import/export, local storage, packaging, and release workflow.
+
+**Method:** Static review, threat modeling, unit/integration tests, renderer tests, and production-build review. Dynamic fuzzing and third-party penetration testing were not performed.
 
 ## Executive Summary
 
-The original pre-v1 review identified four release-blocking classes of risk: silent data loss, export leaks, plaintext secrets, and weak desktop shell hardening. The v1.0 hardening pass closes those blockers and leaves two operational release risks: Windows code signing and macOS notarization.
+v1.1 broadens the untrusted input surface and adds complete backup/restore. The release therefore treats portable imports, secret persistence, restore integrity, and release-asset hygiene as primary risks. The implemented controls close the identified release blockers; unsigned binaries and large-document renderer work remain known operational risks.
 
-Specfold is still a local REST client. It intentionally sends arbitrary user-configured HTTP requests. That behavior is product scope, not a vulnerability by itself.
+## Closed v1.1 Findings
 
-## Closed v1.0 Findings
+- **Plaintext fallback when `safeStorage` is unavailable:** Closed. Secret values are blanked in the persisted copy, never written in plaintext, and a persistent renderer warning reports the condition.
+- **Untrusted backup replacement:** Closed. Restore accepts only `specfold.backup.v1`, validates workspace/settings structure, caps reads at 100 MB, and re-encrypts plaintext secrets before disk writes.
+- **Partial restore corruption:** Closed. A safety copy is created first; workspace/settings writes are serialized and atomic; failure rolls both files back.
+- **Backup disclosure ambiguity:** Closed by explicit consent and documentation. Complete backups intentionally contain readable secrets and use `0600` permissions where supported.
+- **Folder traversal/resource exhaustion:** Closed for configured bounds. Postman v3 traversal skips symlinks and scripts, ignores dependency/VCS directories, caps depth/files/bytes, and never executes imported code.
+- **Importer parent cycles/malformed records:** Closed. Cycles are broken, unsupported records are skipped with warnings, and format-specific tests cover malformed/unsupported inputs.
+- **IPC contract drift:** Closed. Main, preload, and renderer share typed contracts including secure-storage and restore results.
+- **Public release metadata leakage:** Closed. Release artifacts exclude builder debug/updater YAML and blockmaps; only user packages and `SHA256SUMS.txt` enter the release bundle.
 
-- **Workspace data loss:** Closed. Workspace writes are atomic, backups rotate, corrupt workspace files are quarantined, destructive actions require confirmation, and a single-instance lock prevents concurrent writers.
-- **Plaintext secret persistence:** Closed. Secret environment variables are encrypted through Electron `safeStorage`; unavailable encryption causes secret values to load empty instead of being persisted as plaintext.
-- **Export secret leakage:** Closed for default behavior. Literal examples are opt-in, secret-like values produce warnings, and unused components are pruned by default.
-- **Duplicate method/path overwrite:** Closed. Export produces visible warnings rather than silently hiding collisions.
-- **Round-trip fidelity gaps:** Closed for the main v1.0 path. Imported OpenAPI operations retain source details where possible and overlay user edits during export.
-- **HTTP resource exhaustion:** Closed. Requests have configurable timeout and response body caps.
-- **Internal TLS support:** Closed. Insecure TLS is available as an explicit opt-in setting with UI warning.
-- **Corporate HTTP(S) proxy support:** Closed for system and environment proxy paths. The app resolves the Electron system proxy and falls back to `HTTP_PROXY` / `HTTPS_PROXY`; `NO_PROXY` is honored for env proxy fallback.
-- **Electron shell hardening:** Closed. Electron is upgraded to the v43 line, the preload is loaded as CommonJS, renderer sandbox is enabled, context isolation stays on, node integration stays off, and packaged builds set CSP.
-- **Platform release coverage:** Closed. The release workflow builds Windows, macOS, and Linux assets.
+## Existing Controls Retained
+
+Atomic workspace writes, rotating backups, corrupt-file quarantine, single-instance writer protection, export secret warnings, response/time limits, opt-in insecure TLS, system/environment HTTP(S) proxies, sandbox/context isolation/node-integration-off, packaged CSP, and source-operation OpenAPI fidelity remain in place.
 
 ## Remaining Risks
 
-- **Unsigned Windows builds:** Open until a code-signing certificate is configured. The workflow is prepared for signing credentials, but v1.0 artifacts may be unsigned.
-- **Non-notarized macOS builds:** Open until Apple Developer notarization credentials are configured. Users may see Gatekeeper prompts for unsigned/non-notarized builds.
-- **SOCKS proxy support:** Open. HTTP(S) proxies are supported; SOCKS proxies return a clear unsupported-proxy error.
-- **Large-document performance:** Partially open. Size caps and safer parsing reduce risk, but very large imports/exports can still run on the renderer thread.
+- Windows builds are unsigned and may trigger SmartScreen.
+- macOS builds are unsigned and not notarized, so Gatekeeper prompts remain.
+- Complete backups are plaintext by design after explicit approval; users must protect the file.
+- Large imports/exports still execute on the renderer thread within size limits.
+- SOCKS proxies, remote `$ref` fetching, auto-update, and imported script execution are unsupported.
 
-## v1.0 Release Gate
+## v1.1.0 Release Gate
 
-Before tagging `v1.0.0`, all of the following must pass:
-
-- `npm run typecheck`
-- `npm test`
-- `npm run build`
-- `npm run package:win`
-- Release workflow dry run or tag-triggered matrix build for Windows, macOS, and Linux.
-- Manual layout smoke at `1100x720`, `1366x768`, and `1920x1080`, including long collection/folder/request names.
-- Packaged-app smoke for import, create request, send request, export, save/reload, and settings persistence.
-
-## Post-1.0 Priority
-
-1. Configure Windows code signing.
-2. Configure macOS signing and notarization.
-3. Add auto-update.
-4. Add advanced proxy UI, including authenticated and SOCKS proxies.
-5. Move heavy import/export parsing off the renderer thread.
+- `npm run typecheck`, `npm test`, and `npm run build` pass on the final commit.
+- Manual `workflow_dispatch` produces two Windows EXEs, two macOS DMGs, two macOS ZIPs, one AppImage, one DEB, and checksums without updater/debug metadata.
+- Restore round-trip, rollback, secure-storage-unavailable, delete scope, symlink/limit, import-format, base URL, export warning, and renderer interaction tests pass.
+- Desktop/narrow screenshots show no viewport overflow and contain no secrets.
+- Packaged smoke covers imports, collection movement/expansion, request send, base URL precedence, backup/restore, and clean deletion.
+- Only after gates pass: merge to `main`, create annotated `v1.1.0`, inspect draft assets/checksums, complete smoke tests, then publish manually.

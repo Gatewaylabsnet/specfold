@@ -2,24 +2,33 @@
 
 ## Goal
 
-Specfold is a Windows-first desktop REST API client for teams and individual developers who want an offline, account-free way to turn OpenAPI or Swagger definitions into editable API collections.
+Specfold is a simple, local-first desktop REST API collection studio for developers who want to turn common API interchange formats into an editable, account-free request workspace.
 
 ## Core Jobs
 
-- Paste OpenAPI 3.x or Swagger 2.0 text into the UI.
-- Preview document type, format, paths, and operations.
-- Import requests into collections, folders, and nested folders.
-- Manually create collections, folders, requests, and a JWT token request from a template.
-- Edit request method, URL, params, headers, body, and auth.
-- Create environments and use `{{variableName}}` variables.
-- Send requests from Electron main process to avoid browser CORS issues.
-- Export a full collection or selected folders as OpenAPI YAML, OpenAPI JSON, or Collection JSON.
+- Import OpenAPI, Swagger, Postman, Insomnia, HAR, HTTP files, Specfold JSON, and cURL.
+- Preview and select operations before import without executing embedded scripts.
+- Create and organize collections, nested folders, requests, and JWT templates.
+- Manage renameable environments and resolve `{{variableName}}` values with collection base URL precedence.
+- Send requests outside browser CORS restrictions and inspect/capture responses.
+- Export selected content to OpenAPI or native Collection JSON with secret warnings.
+- Export, validate, and restore a complete local backup; delete every local Specfold data file with strong confirmation.
 
-## Non-Goals For MVP
+## Product Principles
 
-- Cloud sync, accounts, collaboration, telemetry, or backend services.
+- Simple defaults: the first launch creates one active `Specfold` environment.
+- Local by default: no account, cloud workspace, telemetry, or hosted sync.
+- Portable but explicit: broad import support, visible fidelity warnings, no script execution.
+- Safe persistence: atomic writes, encryption at rest, restore rollback, and no plaintext fallback for secrets.
+
+## Non-Goals For v1.1
+
 - Auto-update.
-- Administrator permissions for normal app usage.
-- Remote `$ref` fetching.
-- Automatic response-token extraction.
+- Windows code signing or Apple signing/notarization.
+- Cloud sync, collaboration, accounts, or remote `$ref` fetching.
+- Postman/Insomnia script execution or automatic file upload restoration.
+- SOCKS proxy support.
 
+## Success Gate
+
+Typecheck, unit/renderer tests, production build, tagless multi-platform package verification, checksums, layout review, and packaged smoke tests must pass before the draft v1.1.0 release is published.

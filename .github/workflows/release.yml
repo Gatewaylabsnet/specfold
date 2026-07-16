@@ -1,6 +1,7 @@
 name: Release
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*"
@@ -22,8 +23,6 @@ jobs:
             artifact-name: specfold-windows
             artifact-path: |
               apps/desktop/dist/*.exe
-              apps/desktop/dist/*.yml
-              apps/desktop/dist/*.blockmap
           - platform: macos
             runner: macos-latest
             package-command: npm run package:mac --workspace @openapi-collection-studio/desktop
@@ -31,8 +30,6 @@ jobs:
             artifact-path: |
               apps/desktop/dist/*.dmg
               apps/desktop/dist/*.zip
-              apps/desktop/dist/*.yml
-              apps/desktop/dist/*.blockmap
           - platform: linux
             runner: ubuntu-latest
             package-command: npm run package:linux --workspace @openapi-collection-studio/desktop
@@ -40,7 +37,6 @@ jobs:
             artifact-path: |
               apps/desktop/dist/*.AppImage
               apps/desktop/dist/*.deb
-              apps/desktop/dist/*.yml
 
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: false
@@ -92,8 +88,8 @@ jobs:
           path: ${{ matrix.artifact-path }}
           if-no-files-found: error
 
-  publish-release:
-    name: Publish draft release
+  verify-packages:
+    name: Verify release bundle
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -104,6 +100,42 @@ jobs:
 
       - name: List release artifacts
         run: find release-artifacts -maxdepth 2 -type f -print | sort
+
+      - name: Verify public asset set
+        shell: bash
+        run: |
+          test "$(find release-artifacts -type f -name '*.exe' | wc -l)" -eq 2
+          test "$(find release-artifacts -type f -name '*.dmg' | wc -l)" -eq 2
+          test "$(find release-artifacts -type f -name '*.zip' | wc -l)" -eq 2
+          test "$(find release-artifacts -type f -name '*.AppImage' | wc -l)" -eq 1
+          test "$(find release-artifacts -type f -name '*.deb' | wc -l)" -eq 1
+          if find release-artifacts -type f \( -name '*.yml' -o -name '*.yaml' -o -name '*.blockmap' \) | grep -q .; then
+            echo "Internal updater/debug metadata must not be public release assets."
+            exit 1
+          fi
+
+      - name: Generate SHA256 checksums
+        shell: bash
+        working-directory: release-artifacts
+        run: find . -maxdepth 1 -type f ! -name 'SHA256SUMS.txt' -printf '%f\n' | sort | xargs sha256sum > SHA256SUMS.txt
+
+      - name: Upload verified release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: specfold-release-bundle
+          path: release-artifacts/*
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish draft release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: verify-packages
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: specfold-release-bundle
+          path: release-artifacts
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
