@@ -1,6 +1,6 @@
 import type { Collection, GroupingStrategy } from "../model/types";
 
-export type SourceTextFormat = "json" | "yaml";
+export type SourceTextFormat = "json" | "yaml" | "text";
 export type ApiDocumentKind = "openapi3" | "swagger2";
 
 export interface ParsedApiDocument {
@@ -45,4 +45,3 @@ export interface ImportResult {
   preview: ImportPreview;
   warnings: string[];
 }
-

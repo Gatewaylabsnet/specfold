@@ -7,7 +7,7 @@
 <h1 align="center">Specfold</h1>
 
 <p align="center">
-  A local-first desktop API collection studio for OpenAPI, Swagger, cURL, and gateway request workflows.
+  A local-first desktop API collection studio for OpenAPI, Swagger, Postman, Insomnia, HAR, cURL, and gateway request workflows.
 </p>
 
 <p align="center">
@@ -35,7 +35,7 @@
 Specfold helps developers turn API specifications into a practical request workspace:
 
 ```text
-OpenAPI / Swagger / cURL
+OpenAPI / Swagger / Postman / Insomnia / HAR / .http / cURL
         -> editable collections, folders, and requests
         -> local environments and collection-level base URLs
         -> request testing, response inspection, and variable capture
@@ -54,8 +54,8 @@ It is intentionally local-first. There is no account requirement, no cloud works
 | macOS Apple Silicon | ZIP | [Specfold-1.0.3-mac-arm64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.0.3/Specfold-1.0.3-mac-arm64.zip) |
 | macOS Intel | DMG | [Specfold-1.0.3-mac-x64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.0.3/Specfold-1.0.3-mac-x64.dmg) |
 | macOS Intel | ZIP | [Specfold-1.0.3-mac-x64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.0.3/Specfold-1.0.3-mac-x64.zip) |
-| Linux x64 | AppImage | [Specfold-1.0.3-linux-x64.AppImage](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.0.3/Specfold-1.0.3-linux-x64.AppImage) |
-| Linux x64 | Debian package | [Specfold-1.0.3-linux-x64.deb](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.0.3/Specfold-1.0.3-linux-x64.deb) |
+| Linux x64 | AppImage | [Specfold-1.0.3-linux-x86_64.AppImage](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.0.3/Specfold-1.0.3-linux-x86_64.AppImage) |
+| Linux x64 | Debian package | [Specfold-1.0.3-linux-amd64.deb](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.0.3/Specfold-1.0.3-linux-amd64.deb) |
 
 Release page: [github.com/Gatewaylabsnet/specfold/releases/tag/v1.0.3](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.0.3)
 
@@ -63,7 +63,8 @@ Unsigned Windows builds may trigger SmartScreen. Unsigned and non-notarized macO
 
 ## What It Does
 
-- Imports OpenAPI 3.x, Swagger 2.0, Specfold Collection JSON, and `curl` commands.
+- Imports OpenAPI 3.x, Swagger 2.0, Postman Collection v2.0/v2.1 JSON and v3 YAML folders, Insomnia JSON v4/v5, HAR 1.2, `.http`/`.rest`, Specfold Collection JSON, and `curl` commands.
+- Preserves portable collection folders, environment variables, supported auth modes, request bodies, and response examples where the source format provides them.
 - Lets you select exactly which operations to import before creating requests.
 - Groups imported endpoints by tag, first path segment, or a single folder.
 - Organizes APIs into collections, folders, and requests with search, rename, duplicate, delete, and drag-and-drop movement.
@@ -73,12 +74,15 @@ Unsigned Windows builds may trigger SmartScreen. Unsigned and non-notarized macO
 - Copies any request as a `curl` command.
 - Saves JSON response fields directly into environment variables.
 - Exports a whole collection or selected folders back to OpenAPI YAML/JSON.
+- Exports a complete local backup containing collections, environments, settings, and secrets after an explicit security warning.
+- Permanently deletes all local content, settings, and rotating backups through a two-step confirmation.
 - Runs an export structure check before saving generated OpenAPI.
 
 ## Base URLs And Environments
 
 Specfold separates environment defaults from collection-level routing:
 
+- Every workspace starts with an active `Specfold` environment; environments can be renamed, and the final environment cannot be deleted.
 - Environment `baseUrl` is a convenient default for new collections and bulk updates.
 - New collections copy the active environment `baseUrl` as their starting collection base URL.
 - Collection `baseUrl` overrides the environment `baseUrl` when requests resolve `{{baseUrl}}`.
@@ -106,6 +110,7 @@ Specfold includes an Apinizer-focused JWT request template:
 - Rotating workspace backups are kept.
 - Corrupt workspace files are quarantined instead of overwritten.
 - Environment variables marked secret are encrypted at rest with Electron `safeStorage`.
+- Complete backup exports intentionally contain readable secret values and require explicit confirmation.
 - If encryption is unavailable, secret values load back empty instead of being persisted as plaintext.
 - Export warnings flag literal values that look like secrets.
 - Parameter and header values are not emitted as OpenAPI examples unless explicitly enabled.
@@ -137,14 +142,14 @@ Because v1.0.3 is not notarized, macOS may require opening the app from Finder w
 Download the `.AppImage` or `.deb`.
 
 ```bash
-chmod +x Specfold-1.0.3-linux-x64.AppImage
-./Specfold-1.0.3-linux-x64.AppImage
+chmod +x Specfold-1.0.3-linux-x86_64.AppImage
+./Specfold-1.0.3-linux-x86_64.AppImage
 ```
 
 For Debian-based distributions:
 
 ```bash
-sudo dpkg -i Specfold-1.0.3-linux-x64.deb
+sudo dpkg -i Specfold-1.0.3-linux-amd64.deb
 sudo apt-get install -f
 ```
 

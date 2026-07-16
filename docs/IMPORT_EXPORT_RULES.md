@@ -5,6 +5,8 @@
 - JSON parse is attempted first; YAML parse is attempted if JSON parsing fails.
 - OpenAPI 3.0 and 3.1 are accepted.
 - Swagger 2.0 is accepted at a basic level.
+- Postman Collection v2.0/v2.1 JSON and schema v3 multi-file YAML folders are accepted.
+- `.http` and `.rest` files accept request lines, headers, inline query values, bodies, `###` separators, `@name`, and file variables. Executable scripts and file-backed bodies are not run.
 - Local `$ref` values are resolved where practical.
 - Remote `$ref` values are preserved but not fetched.
 - Operations are grouped by tags, first path segment, or a single folder.
@@ -25,4 +27,4 @@
 - Basic and API key auth are represented when present.
 - Imported components are retained in MVP; unused component removal is planned later.
 - Collection JSON preserves the internal collection model.
-
+- Complete backup JSON preserves the workspace and application settings. It includes readable environment secret values only after an explicit warning.

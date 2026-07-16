@@ -208,13 +208,34 @@ export function cloneFolder(folder: Folder, nameSuffix = " copy"): Folder {
 }
 
 export function createEmptyWorkspace(name = "Specfold"): Workspace {
+  const environment = createEnvironment("Specfold");
   return {
     id: createId("workspace"),
     schemaVersion: 1,
     name,
     collections: [],
-    environments: [],
+    environments: [environment],
+    activeEnvironmentId: environment.id,
     updatedAt: new Date().toISOString()
   };
 }
 
+/**
+ * Upgrade older workspaces to the invariant used by the desktop app: a
+ * workspace always has one active environment. The function mutates and
+ * returns the supplied workspace so callers can use it during load without a
+ * second deep copy.
+ */
+export function ensureWorkspaceEnvironment(workspace: Workspace): Workspace {
+  workspace.environments ??= [];
+  if (workspace.environments.length === 0) {
+    const environment = createEnvironment("Specfold");
+    workspace.environments.push(environment);
+    workspace.activeEnvironmentId = environment.id;
+    return workspace;
+  }
+  if (!workspace.environments.some((environment) => environment.id === workspace.activeEnvironmentId)) {
+    workspace.activeEnvironmentId = workspace.environments[0].id;
+  }
+  return workspace;
+}

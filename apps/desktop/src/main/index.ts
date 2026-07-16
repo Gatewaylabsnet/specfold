@@ -1,8 +1,9 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeImage, safeStorage, session } from "electron";
-import { copyFile, mkdir, readdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { copyFile, mkdir, readdir, readFile, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
+import { basename, dirname, join, relative } from "node:path";
 import {
   createEmptyWorkspace,
+  ensureWorkspaceEnvironment,
   MissingVariablesError,
   prepareHttpRequest,
   type ApiRequest,
@@ -51,10 +52,20 @@ interface WorkspaceLoadResult {
 const ENCRYPTED_PREFIX = "enc:v1:";
 const MAX_BACKUPS = 5;
 const proxyAgents = new ProxyAgentCache();
+let storageMutationQueue: Promise<void> = Promise.resolve();
 
 const workspacePath = () => join(app.getPath("userData"), "workspace.json");
 const backupsDir = () => join(app.getPath("userData"), "backups");
 const settingsPath = () => join(app.getPath("userData"), "app-settings.json");
+
+function serializeStorageMutation<T>(operation: () => Promise<T>): Promise<T> {
+  const result = storageMutationQueue.then(operation, operation);
+  storageMutationQueue = result.then(
+    () => undefined,
+    () => undefined
+  );
+  return result;
+}
 
 /**
  * Write a file without ever leaving a half-written target behind: write to a
@@ -171,7 +182,7 @@ async function loadWorkspace(): Promise<WorkspaceLoadResult> {
         message: `The saved workspace uses an unsupported schema version. It was moved to ${target ?? "a backup file"} so it will not be overwritten.`
       };
     }
-    return { workspace: decryptSecrets(parsed), recovered: false };
+    return { workspace: ensureWorkspaceEnvironment(decryptSecrets(parsed)), recovered: false };
   } catch {
     const target = await quarantineCorruptFile();
     return {
@@ -184,7 +195,9 @@ async function loadWorkspace(): Promise<WorkspaceLoadResult> {
 
 async function saveWorkspace(workspace: Workspace): Promise<void> {
   await rotateBackup();
-  const persisted = encryptSecrets({ ...workspace, updatedAt: new Date().toISOString() });
+  const persisted = encryptSecrets(
+    ensureWorkspaceEnvironment({ ...workspace, updatedAt: new Date().toISOString() })
+  );
   await atomicWrite(workspacePath(), JSON.stringify(persisted, null, 2));
 }
 
@@ -310,6 +323,119 @@ async function readCappedBody(
 }
 
 const MAX_IMPORT_BYTES = 20 * 1024 * 1024;
+const MAX_FOLDER_IMPORT_FILES = 2_000;
+
+interface FolderImportFile {
+  path: string;
+  content: string;
+}
+
+async function readPostmanV3Folder(rootPath: string): Promise<{
+  rootName: string;
+  files: FolderImportFile[];
+  skippedScriptCount: number;
+}> {
+  const files: FolderImportFile[] = [];
+  let totalBytes = 0;
+  let discoveredFiles = 0;
+  let skippedScriptCount = 0;
+
+  const visit = async (directory: string, depth: number): Promise<void> => {
+    if (depth > 50) {
+      throw new Error("The selected folder is nested too deeply to import safely.");
+    }
+    const entries = (await readdir(directory, { withFileTypes: true }))
+      .sort((left, right) => left.name.localeCompare(right.name));
+    for (const entry of entries) {
+      if (entry.isSymbolicLink()) {
+        continue;
+      }
+      const fullPath = join(directory, entry.name);
+      const relativePath = relative(rootPath, fullPath).replace(/\\/g, "/");
+      if (entry.isDirectory()) {
+        if ([".git", "node_modules"].includes(entry.name)) {
+          continue;
+        }
+        await visit(fullPath, depth + 1);
+        continue;
+      }
+      if (!entry.isFile()) {
+        continue;
+      }
+      discoveredFiles += 1;
+      if (discoveredFiles > MAX_FOLDER_IMPORT_FILES) {
+        throw new Error(`The selected folder contains more than ${MAX_FOLDER_IMPORT_FILES} files.`);
+      }
+      if (/\.resources\/scripts\//i.test(relativePath)) {
+        skippedScriptCount += 1;
+        continue;
+      }
+      const isRequest = /\.request\.ya?ml$/i.test(relativePath);
+      const isDefinition = /(?:^|\/)definition\.ya?ml$/i.test(relativePath);
+      const isExample = /\.resources\/examples\/.*\.ya?ml$/i.test(relativePath);
+      if (!isRequest && !isDefinition && !isExample) {
+        continue;
+      }
+      const size = (await stat(fullPath)).size;
+      totalBytes += size;
+      if (totalBytes > MAX_IMPORT_BYTES) {
+        throw new Error(
+          `Postman folder content is larger than ${Math.round(MAX_IMPORT_BYTES / (1024 * 1024))} MB.`
+        );
+      }
+      files.push({ path: relativePath, content: await readFile(fullPath, "utf8") });
+    }
+  };
+
+  await visit(rootPath, 0);
+  if (!files.some((file) => /\.request\.ya?ml$/i.test(file.path))) {
+    throw new Error("No *.request.yaml files were found in the selected folder.");
+  }
+  return { rootName: basename(rootPath), files, skippedScriptCount };
+}
+
+async function exportFullBackup(workspace: Workspace): Promise<{
+  canceled: boolean;
+  filePath?: string;
+}> {
+  const result = await dialog.showSaveDialog({
+    title: "Export complete Specfold backup",
+    defaultPath: `specfold-backup-${new Date().toISOString().slice(0, 10)}.json`,
+    filters: [
+      { name: "Specfold backup", extensions: ["json"] },
+      { name: "All files", extensions: ["*"] }
+    ]
+  });
+  if (result.canceled || !result.filePath) {
+    return { canceled: true };
+  }
+  const document = {
+    schema: "specfold.backup.v1",
+    exportedAt: new Date().toISOString(),
+    appVersion: app.getVersion(),
+    secretsIncluded: true,
+    workspace: ensureWorkspaceEnvironment(structuredClone(workspace)),
+    settings: await loadSettings()
+  };
+  await atomicWrite(result.filePath, JSON.stringify(document, null, 2));
+  return { canceled: false, filePath: result.filePath };
+}
+
+async function deleteAllLocalData(): Promise<void> {
+  await Promise.all([
+    unlink(workspacePath()).catch(() => undefined),
+    unlink(settingsPath()).catch(() => undefined),
+    rm(backupsDir(), { recursive: true, force: true })
+  ]);
+
+  const userDataPath = app.getPath("userData");
+  const entries = await readdir(userDataPath).catch(() => [] as string[]);
+  await Promise.all(
+    entries
+      .filter((name) => /^workspace\.(?:corrupt-|json\.tmp-)/i.test(name))
+      .map((name) => unlink(join(userDataPath, name)).catch(() => undefined))
+  );
+}
 
 async function fetchImportUrl(
   url: string
@@ -467,15 +593,19 @@ if (!gotSingleInstanceLock) {
     applyContentSecurityPolicy();
 
     ipcMain.handle("workspace:load", () => loadWorkspace());
-    ipcMain.handle("workspace:save", (_event, workspace: Workspace) => saveWorkspace(workspace));
+    ipcMain.handle("workspace:save", (_event, workspace: Workspace) =>
+      serializeStorageMutation(() => saveWorkspace(workspace))
+    );
     ipcMain.handle("settings:load", () => loadSettings());
-    ipcMain.handle("settings:save", (_event, settings: AppSettings) => saveSettings(settings));
+    ipcMain.handle("settings:save", (_event, settings: AppSettings) =>
+      serializeStorageMutation(() => saveSettings(settings))
+    );
     ipcMain.handle("http:send", (_event, payload: SendRequestPayload) => sendHttpRequest(payload));
     ipcMain.handle("file:openImport", async () => {
       const result = await dialog.showOpenDialog({
         title: "Open API document",
         filters: [
-          { name: "OpenAPI / Swagger / Collection JSON", extensions: ["yaml", "yml", "json"] },
+          { name: "API specifications and collections", extensions: ["yaml", "yml", "json", "har", "http", "rest"] },
           { name: "All files", extensions: ["*"] }
         ],
         properties: ["openFile"]
@@ -493,7 +623,32 @@ if (!gotSingleInstanceLock) {
       }
       return { canceled: false, content, filePath };
     });
+    ipcMain.handle("file:openPostmanFolder", async () => {
+      const result = await dialog.showOpenDialog({
+        title: "Open Postman Collection v3 folder",
+        properties: ["openDirectory"]
+      });
+      if (result.canceled || result.filePaths.length === 0) {
+        return { canceled: true };
+      }
+      const folderPath = result.filePaths[0];
+      try {
+        return {
+          canceled: false,
+          folderPath,
+          source: await readPostmanV3Folder(folderPath)
+        };
+      } catch (error) {
+        return {
+          canceled: false,
+          folderPath,
+          error: error instanceof Error ? error.message : String(error)
+        };
+      }
+    });
     ipcMain.handle("import:fetchUrl", (_event, url: string) => fetchImportUrl(url));
+    ipcMain.handle("file:exportBackup", (_event, workspace: Workspace) => exportFullBackup(workspace));
+    ipcMain.handle("data:deleteAll", () => serializeStorageMutation(deleteAllLocalData));
     ipcMain.handle(
       "file:saveExport",
       async (_event, payload: { defaultPath: string; content: string }) => {

@@ -36,10 +36,11 @@ import {
   findRequest,
   flattenFolders,
   flattenRequests,
-  importApiDocument,
+  importDocument,
+  importPostmanV3Folder,
   listOperations,
-  parseCollectionJson,
-  previewApiDocument,
+  previewImportDocument,
+  previewPostmanV3Folder,
   relocateFolder,
   relocateRequest,
   removeFolder,
@@ -54,6 +55,7 @@ import {
   type GroupingStrategy,
   type ImportOperationSummary,
   type OpenApiCheckResult,
+  type PostmanV3FolderSource,
   type HttpMethod,
   type KeyValue,
   type Workspace
@@ -112,6 +114,8 @@ export function App() {
   const [responseHistory, setResponseHistory] = useState<Record<string, ResponseHistoryEntry[]>>({});
   const [isSending, setIsSending] = useState(false);
   const [importText, setImportText] = useState("");
+  const [postmanFolderSource, setPostmanFolderSource] = useState<PostmanV3FolderSource>();
+  const [postmanFolderPath, setPostmanFolderPath] = useState("");
   const [importUrl, setImportUrl] = useState("");
   const [isFetchingImport, setIsFetchingImport] = useState(false);
   const [importOperations, setImportOperations] = useState<ImportOperationSummary[]>([]);
@@ -128,6 +132,7 @@ export function App() {
   const [pruneUnusedComponents, setPruneUnusedComponents] = useState(true);
   const [preferSourceOperation, setPreferSourceOperation] = useState(true);
   const [savedExportPath, setSavedExportPath] = useState("");
+  const [savedBackupPath, setSavedBackupPath] = useState("");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [notice, setNotice] = useState<string>();
@@ -180,7 +185,7 @@ export function App() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       lastImportIndexRef.current = null;
-      if (!importText.trim() || looksLikeCurl(importText)) {
+      if (postmanFolderSource || !importText.trim() || looksLikeCurl(importText)) {
         setImportOperations([]);
         setSelectedImportKeys(new Set());
         return;
@@ -195,7 +200,7 @@ export function App() {
       }
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [importText]);
+  }, [importText, postmanFolderSource]);
 
   const activeCollection = useMemo(
     () => workspace.collections.find((collection) => collection.id === activeCollectionId),
@@ -293,6 +298,9 @@ export function App() {
     setSelectedRequestId(undefined);
     setResponse(undefined);
     setSavedExportPath("");
+    setSavedBackupPath("");
+    setPostmanFolderSource(undefined);
+    setPostmanFolderPath("");
     setScreen("editor");
   };
 
@@ -317,6 +325,11 @@ export function App() {
   };
 
   const addFolder = () => {
+    if (!activeEnvironment) {
+      setNotice("Create or select an environment before adding folders.");
+      setScreen("environments");
+      return;
+    }
     if (!activeCollection) {
       return;
     }
@@ -341,6 +354,11 @@ export function App() {
       return;
     }
     const isAuthTemplate = kind === "jwt" || kind === "apinizer-jwt";
+    if (isAuthTemplate && !activeEnvironment) {
+      setNotice("Create or select an environment before adding an Auth folder.");
+      setScreen("environments");
+      return;
+    }
     const request =
       kind === "jwt"
         ? createJwtRequest()
@@ -671,9 +689,36 @@ export function App() {
       return;
     }
     if (result.content !== undefined) {
+      setPostmanFolderSource(undefined);
+      setPostmanFolderPath("");
       setImportText(result.content);
       setImportError("");
       setImportSummary(result.filePath ? `Loaded ${result.filePath}` : "File loaded.");
+    }
+  };
+
+  const openPostmanFolder = async () => {
+    const result = await window.studio.openPostmanFolder();
+    if (result.canceled) {
+      return;
+    }
+    if (result.error || !result.source) {
+      setImportSummary("");
+      setImportError(result.error ?? "The selected folder could not be loaded.");
+      return;
+    }
+    try {
+      const preview = previewPostmanV3Folder(result.source);
+      setImportText("");
+      setPostmanFolderSource(result.source);
+      setPostmanFolderPath(result.folderPath ?? result.source.rootName);
+      setImportError("");
+      setImportSummary(
+        `${preview.label} ${preview.version ?? ""} - ${preview.requestCount} requests in ${preview.containerCount} folders`
+      );
+    } catch (error) {
+      setImportSummary("");
+      setImportError(error instanceof Error ? error.message : String(error));
     }
   };
 
@@ -687,6 +732,8 @@ export function App() {
     const result = await window.studio.fetchImportUrl(url);
     setIsFetchingImport(false);
     if (result.ok && result.content !== undefined) {
+      setPostmanFolderSource(undefined);
+      setPostmanFolderPath("");
       setImportText(result.content);
       setImportSummary("Fetched document from URL. Review it, then press Import.");
     } else {
@@ -729,6 +776,18 @@ export function App() {
 
   const handlePreviewImport = () => {
     setImportError("");
+    if (postmanFolderSource) {
+      try {
+        const preview = previewPostmanV3Folder(postmanFolderSource);
+        setImportSummary(
+          `${preview.label} ${preview.version ?? ""} - ${preview.requestCount} requests in ${preview.containerCount} folders`
+        );
+      } catch (error) {
+        setImportSummary("");
+        setImportError(error instanceof Error ? error.message : String(error));
+      }
+      return;
+    }
     if (looksLikeCurl(importText)) {
       try {
         const request = parseCurlCommand(importText);
@@ -740,17 +799,10 @@ export function App() {
       return;
     }
     try {
-      const collection = parseCollectionJson(importText);
-      setImportSummary(`Collection JSON: ${collection.name}`);
-      return;
-    } catch {
-      // Continue with OpenAPI/Swagger detection.
-    }
-
-    try {
-      const preview = previewApiDocument(importText);
+      const preview = previewImportDocument(importText);
+      const version = preview.version ? ` ${preview.version}` : "";
       setImportSummary(
-        `${preview.kind.toUpperCase()} ${preview.version ?? ""} ${preview.format.toUpperCase()} - ${preview.operationCount} operations in ${preview.pathCount} paths`
+        `${preview.label}${version} ${preview.format.toUpperCase()} - ${preview.requestCount} requests in ${preview.containerCount} ${preview.containerLabel}`
       );
     } catch (error) {
       setImportSummary("");
@@ -782,7 +834,11 @@ export function App() {
   const handleImport = () => {
     setImportError("");
     try {
-      if (looksLikeCurl(importText)) {
+      if (!activeEnvironment) {
+        setImportError("Create or select an environment before importing collections and folders.");
+        return;
+      }
+      if (!postmanFolderSource && looksLikeCurl(importText)) {
         importCurl();
         return;
       }
@@ -791,26 +847,40 @@ export function App() {
         return;
       }
 
-      let collection: Collection;
-      try {
-        collection = parseCollectionJson(importText);
-      } catch {
-        collection = importApiDocument(importText, {
-          grouping,
-          operationKeys:
-            importOperations.length > 0 && selectedImportKeys.size < importOperations.length
-              ? [...selectedImportKeys]
-              : undefined
-        }).collection;
+      const imported = postmanFolderSource
+        ? importPostmanV3Folder(postmanFolderSource, { grouping })
+        : importDocument(importText, {
+            grouping,
+            operationKeys:
+              importOperations.length > 0 && selectedImportKeys.size < importOperations.length
+                ? [...selectedImportKeys]
+                : undefined
+          });
+      const collection = imported.collections[0];
+      if (!collection) {
+        throw new Error("The document did not contain an importable collection.");
       }
 
       mutateWorkspace((draft) => {
-        draft.collections.push(collection);
+        draft.collections.push(...imported.collections);
+        draft.environments.push(...imported.environments);
+        if (imported.environments[0]) {
+          draft.activeEnvironmentId = imported.environments[0].id;
+        }
       });
       setActiveCollectionId(collection.id);
       setSelectedFolderId(undefined);
       setSelectedRequestId(firstRequestId(collection));
-      setImportSummary(`Imported ${collection.name}`);
+      setImportSummary(
+        imported.collections.length === 1
+          ? `Imported ${collection.name}`
+          : `Imported ${imported.collections.length} collections`
+      );
+      if (imported.warnings.length > 0) {
+        const visibleWarnings = imported.warnings.slice(0, 3).join(" ");
+        const remainder = imported.warnings.length - 3;
+        setNotice(`${visibleWarnings}${remainder > 0 ? ` (+${remainder} more)` : ""}`);
+      }
       setScreen("editor");
     } catch (error) {
       setImportError(error instanceof Error ? error.message : String(error));
@@ -914,11 +984,8 @@ export function App() {
   };
 
   const createNewEnvironment = () => {
-    const environment = createEnvironment("Local");
-    environment.variables = [
-      createEnvironmentVariable("baseUrl", "https://api.example.com"),
-      createEnvironmentVariable("accessToken", "")
-    ];
+    const environment = createEnvironment(`Environment ${workspace.environments.length + 1}`);
+    environment.variables = [createEnvironmentVariable("baseUrl", "")];
     mutateWorkspace((draft) => {
       draft.environments.push(environment);
       draft.activeEnvironmentId = environment.id;
@@ -975,6 +1042,64 @@ export function App() {
     setSavedExportPath(result.canceled ? "" : result.filePath ?? "");
   };
 
+  const exportFullBackup = async () => {
+    const confirmed = window.confirm(
+      "Export all collections, environments, settings, and secret values? Secret values will be readable in the backup file. Store it somewhere secure."
+    );
+    if (!confirmed) {
+      return;
+    }
+    try {
+      const result = await window.studio.exportBackup(workspace);
+      setSavedBackupPath(result.canceled ? "" : result.filePath ?? "");
+      if (!result.canceled && result.filePath) {
+        setNotice(`Complete backup saved to ${result.filePath}`);
+      }
+    } catch (error) {
+      setNotice(`Backup could not be saved: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
+  const deleteAllData = async () => {
+    if (
+      !window.confirm(
+        "Permanently delete every collection, request, environment, secret, setting, and local backup? Export a complete backup first if you may need this data later."
+      )
+    ) {
+      return;
+    }
+    const answer = window.prompt('Type "DELETE ALL" to confirm permanent deletion.');
+    if (answer !== "DELETE ALL") {
+      setNotice("Deletion canceled. The confirmation text did not match.");
+      return;
+    }
+
+    window.clearTimeout(saveTimer.current);
+    try {
+      await window.studio.deleteAllData();
+    } catch (error) {
+      setNotice(`Local data could not be deleted: ${error instanceof Error ? error.message : String(error)}`);
+      return;
+    }
+    const nextWorkspace = createEmptyWorkspace();
+    setWorkspace(nextWorkspace);
+    setSettings(DEFAULT_SETTINGS);
+    setActiveCollectionId(undefined);
+    setSelectedFolderId(undefined);
+    setSelectedRequestId(undefined);
+    setResponse(undefined);
+    setResponseHistory({});
+    setImportText("");
+    setImportUrl("");
+    setPostmanFolderSource(undefined);
+    setPostmanFolderPath("");
+    setSavedExportPath("");
+    setSavedBackupPath("");
+    setSaveStatus("dirty");
+    setScreen("editor");
+    setNotice("All local data was deleted. A fresh Specfold environment was created.");
+  };
+
   const treeActions: TreeActions = {
     onSelectCollection: (collectionId) => {
       selectCollection(collectionId);
@@ -1023,7 +1148,6 @@ export function App() {
               }
               value={workspace.activeEnvironmentId ?? ""}
             >
-              <option value="">No environment</option>
               {workspace.environments.map((environment) => (
                 <option key={environment.id} value={environment.id}>
                   {environment.name}
@@ -1083,8 +1207,14 @@ export function App() {
             onImport={handleImport}
             onImportUrlChange={setImportUrl}
             onOpenFile={openImportFile}
+            onOpenPostmanFolder={openPostmanFolder}
             onPreview={handlePreviewImport}
-            onTextChange={setImportText}
+            onTextChange={(value) => {
+              setPostmanFolderSource(undefined);
+              setPostmanFolderPath("");
+              setImportText(value);
+            }}
+            postmanFolderPath={postmanFolderPath}
           />
         )}
         {screen === "editor" &&
@@ -1124,6 +1254,9 @@ export function App() {
               })
             }
             onNewWorkspace={createNewWorkspace}
+            onExportBackup={exportFullBackup}
+            onDeleteAllData={deleteAllData}
+            savedBackupPath={savedBackupPath}
           />
         )}
         {screen === "environments" && (
@@ -1132,6 +1265,10 @@ export function App() {
             environments={workspace.environments}
             onCreateEnvironment={createNewEnvironment}
             onDeleteEnvironment={(environmentId) => {
+              if (workspace.environments.length <= 1) {
+                setNotice("At least one environment is required. Rename this environment instead.");
+                return;
+              }
               if (!window.confirm("Delete this environment and its variables? This cannot be undone.")) {
                 return;
               }
@@ -1409,9 +1546,11 @@ function ImportScreen({
   onImportUrlChange,
   onFetchUrl,
   onOpenFile,
+  onOpenPostmanFolder,
   onGroupingChange,
   onPreview,
-  onImport
+  onImport,
+  postmanFolderPath
 }: {
   importText: string;
   importUrl: string;
@@ -1427,12 +1566,15 @@ function ImportScreen({
   onImportUrlChange(value: string): void;
   onFetchUrl(): void;
   onOpenFile(): void;
+  onOpenPostmanFolder(): void;
   onGroupingChange(value: GroupingStrategy): void;
   onPreview(): void;
   onImport(): void;
+  postmanFolderPath: string;
 }) {
   const importDisabled =
-    !importText.trim() || (operations.length > 0 && selectedOperationKeys.size === 0);
+    (!importText.trim() && !postmanFolderPath) ||
+    (operations.length > 0 && selectedOperationKeys.size === 0);
 
   return (
     <section className="import-layout">
@@ -1443,6 +1585,10 @@ function ImportScreen({
             <button className="secondary-button" onClick={onOpenFile} type="button">
               <FolderPlus size={16} />
               Open file
+            </button>
+            <button className="secondary-button" onClick={onOpenPostmanFolder} type="button">
+              <FolderPlus size={16} />
+              Postman v3 folder
             </button>
             <button className="secondary-button" onClick={onPreview} type="button">
               <Play size={16} />
@@ -1477,10 +1623,15 @@ function ImportScreen({
             {isFetchingUrl ? "Fetching..." : "Fetch"}
           </button>
         </div>
+        {postmanFolderPath && (
+          <div className="status-box import-folder-status">
+            Postman v3 folder: {postmanFolderPath}
+          </div>
+        )}
         <textarea
           className="source-textarea"
           onChange={(event) => onTextChange(event.target.value)}
-          placeholder="Paste OpenAPI 3.x, Swagger 2.0, Collection JSON, or a curl command — or load it from a file or URL above"
+          placeholder="Paste OpenAPI 3.x, Swagger 2.0, Postman v2, Insomnia JSON, HAR, .http/.rest, Specfold Collection JSON, or a curl command — or load a file, URL, or Postman v3 folder above"
           spellCheck={false}
           value={importText}
         />
@@ -2117,6 +2268,11 @@ function EnvironmentScreen({
               <input
                 aria-label="Environment name"
                 className="title-input"
+                onBlur={() =>
+                  onUpdateEnvironment(active.id, (environment) => {
+                    environment.name = environment.name.trim() || "Environment";
+                  })
+                }
                 onChange={(event) =>
                   onUpdateEnvironment(active.id, (environment) => {
                     environment.name = event.target.value;
@@ -2124,7 +2280,13 @@ function EnvironmentScreen({
                 }
                 value={active.name}
               />
-              <button className="secondary-button" onClick={() => onDeleteEnvironment(active.id)} type="button">
+              <button
+                className="secondary-button"
+                disabled={environments.length <= 1}
+                onClick={() => onDeleteEnvironment(active.id)}
+                title={environments.length <= 1 ? "At least one environment is required" : "Delete environment"}
+                type="button"
+              >
                 Delete
               </button>
             </div>
@@ -2412,13 +2574,19 @@ function SettingsScreen({
   onChange,
   workspaceName,
   onWorkspaceNameChange,
-  onNewWorkspace
+  onNewWorkspace,
+  onExportBackup,
+  onDeleteAllData,
+  savedBackupPath
 }: {
   settings: AppSettings;
   onChange(patch: Partial<AppSettings>): void;
   workspaceName: string;
   onWorkspaceNameChange(name: string): void;
   onNewWorkspace(): void;
+  onExportBackup(): void;
+  onDeleteAllData(): void;
+  savedBackupPath: string;
 }) {
   return (
     <section className="settings-layout">
@@ -2435,6 +2603,11 @@ function SettingsScreen({
           <Plus size={16} />
           New workspace
         </button>
+        <button className="secondary-button" onClick={onExportBackup} type="button">
+          <Download size={16} />
+          Export complete backup
+        </button>
+        {savedBackupPath && <div className="status-box">Saved to {savedBackupPath}</div>}
         <h3>Requests</h3>
         <label className="field">
           <span>Request timeout (ms)</span>
@@ -2473,6 +2646,15 @@ function SettingsScreen({
             TLS certificate verification is disabled for outgoing requests. Only enable this on trusted internal networks.
           </div>
         )}
+        <div className="danger-zone">
+          <h3>Delete local data</h3>
+          <p>
+            Permanently removes collections, requests, environments, secrets, settings, and local backups from this device.
+          </p>
+          <button className="danger-button" onClick={onDeleteAllData} type="button">
+            Delete all local data
+          </button>
+        </div>
       </div>
     </section>
   );

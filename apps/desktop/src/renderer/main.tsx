@@ -43,6 +43,11 @@ if (import.meta.env.DEV && typeof window.studio === "undefined") {
     },
     saveExportFile: async () => ({ canceled: true }),
     openImportFile: async () => ({ canceled: true }),
+    openPostmanFolder: async () => ({ canceled: true }),
+    exportBackup: async () => ({ canceled: true }),
+    deleteAllData: async () => {
+      workspace = createEmptyWorkspace("Browser Preview");
+    },
     fetchImportUrl: async () => ({
       ok: false,
       error: "Fetching URLs requires the desktop app (browser preview mode)."

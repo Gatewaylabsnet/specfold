@@ -12,5 +12,8 @@ contextBridge.exposeInMainWorld("studio", {
   saveExportFile: (defaultPath: string, content: string) =>
     ipcRenderer.invoke("file:saveExport", { defaultPath, content }),
   openImportFile: () => ipcRenderer.invoke("file:openImport"),
+  openPostmanFolder: () => ipcRenderer.invoke("file:openPostmanFolder"),
+  exportBackup: (workspace: Workspace) => ipcRenderer.invoke("file:exportBackup", workspace),
+  deleteAllData: () => ipcRenderer.invoke("data:deleteAll"),
   fetchImportUrl: (url: string) => ipcRenderer.invoke("import:fetchUrl", url)
 });

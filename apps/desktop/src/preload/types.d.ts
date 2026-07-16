@@ -1,4 +1,10 @@
-import type { ApiRequest, Collection, Environment, Workspace } from "@openapi-collection-studio/core";
+import type {
+  ApiRequest,
+  Collection,
+  Environment,
+  PostmanV3FolderSource,
+  Workspace
+} from "@openapi-collection-studio/core";
 
 export interface AppSettings {
   requestTimeoutMs: number;
@@ -44,6 +50,17 @@ export interface StudioApi {
     filePath?: string;
     error?: string;
   }>;
+  openPostmanFolder(): Promise<{
+    canceled: boolean;
+    folderPath?: string;
+    source?: PostmanV3FolderSource;
+    error?: string;
+  }>;
+  exportBackup(workspace: Workspace): Promise<{
+    canceled: boolean;
+    filePath?: string;
+  }>;
+  deleteAllData(): Promise<void>;
   fetchImportUrl(url: string): Promise<{
     ok: boolean;
     content?: string;
