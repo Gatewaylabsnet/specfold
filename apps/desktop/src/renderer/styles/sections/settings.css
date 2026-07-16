@@ -10,6 +10,13 @@
   margin-bottom: 16px;
 }
 
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
 .danger-zone {
   margin-top: 24px;
   padding: 16px;
@@ -47,4 +54,3 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-

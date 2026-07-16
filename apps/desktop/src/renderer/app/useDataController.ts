@@ -10,7 +10,7 @@ import {
   type ImportOperationSummary, type OpenApiCheckResult, type PostmanV3FolderSource, type Workspace
 } from "@openapi-collection-studio/core";
 import type { TreeActions } from "../components/CollectionTree";
-import { slug } from "./helpers";
+import { firstRequestId, slug } from "./helpers";
 import { DEFAULT_SETTINGS } from "./types";
 import type { StudioState } from "./useStudioState";
 import type { WorkspaceController } from "./useWorkspaceController";
@@ -30,7 +30,7 @@ export function useDataController(state: StudioState, workspaceController: Works
     setSavedExportPath, savedBackupPath, setSavedBackupPath, saveStatus, setSaveStatus,
     settings, setSettings, notice, setNotice, activeCollection, activeRequestLocation,
     activeRequest, activeEnvironment, exportResult, exportContent, mutateWorkspace, saveWorkspaceNow,
-    saveTimer } = state;
+    saveTimer, secureStorageAvailable, setSecureStorageAvailable } = state;
   const {
     selectCollection, renameCollection, deleteCollection, renameFolder, deleteFolder,
     duplicateFolder, renameRequest, deleteRequest, duplicateRequest, moveRequestTo, moveFolderTo
@@ -64,6 +64,36 @@ export function useDataController(state: StudioState, workspaceController: Works
     } catch (error) {
       setNotice(`Backup could not be saved: ${error instanceof Error ? error.message : String(error)}`);
     }
+  };
+
+  const restoreFullBackup = async () => {
+    if (!window.confirm(
+      "Restore a complete backup? Your current workspace and settings will be replaced after a safety backup is created."
+    )) {
+      return;
+    }
+    window.clearTimeout(saveTimer.current);
+    const result = await window.studio.restoreBackup();
+    setSecureStorageAvailable(result.secureStorageAvailable);
+    if (result.canceled) return;
+    if (!result.restored || !result.workspace || !result.settings) {
+      setNotice(`Backup could not be restored: ${result.error ?? "Unknown restore error"}`);
+      return;
+    }
+    const firstCollection = result.workspace.collections[0];
+    setWorkspace(result.workspace);
+    setSettings(result.settings);
+    setActiveCollectionId(firstCollection?.id);
+    setSelectedFolderId(undefined);
+    setSelectedRequestId(firstCollection ? firstRequestId(firstCollection) : undefined);
+    setResponse(undefined);
+    setResponseHistory({});
+    setSavedBackupPath("");
+    setSaveStatus("saved");
+    setScreen("editor");
+    setNotice(result.safetyBackupPath
+      ? `Backup restored. Previous workspace safety copy: ${result.safetyBackupPath}`
+      : "Backup restored successfully.");
   };
 
   const deleteAllData = async () => {
@@ -129,5 +159,5 @@ export function useDataController(state: StudioState, workspaceController: Works
     onMoveFolderTo: moveFolderTo
   };
 
-  return { saveExport, exportFullBackup, deleteAllData, treeActions };
+  return { saveExport, exportFullBackup, restoreFullBackup, deleteAllData, treeActions };
 }

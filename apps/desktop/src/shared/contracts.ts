@@ -33,7 +33,18 @@ export interface SendRequestResult {
 export interface WorkspaceLoadResult {
   workspace: Workspace;
   recovered: boolean;
+  secureStorageAvailable: boolean;
   message?: string;
+}
+
+export interface RestoreBackupResult {
+  canceled: boolean;
+  restored: boolean;
+  secureStorageAvailable: boolean;
+  workspace?: Workspace;
+  settings?: AppSettings;
+  safetyBackupPath?: string;
+  error?: string;
 }
 
 export interface FileActionResult {
@@ -73,6 +84,7 @@ export interface StudioApi {
   openImportFile(): Promise<OpenImportResult>;
   openPostmanFolder(): Promise<OpenPostmanFolderResult>;
   exportBackup(workspace: Workspace): Promise<FileActionResult>;
+  restoreBackup(): Promise<RestoreBackupResult>;
   deleteAllData(): Promise<void>;
   fetchImportUrl(url: string): Promise<FetchImportUrlResult>;
 }

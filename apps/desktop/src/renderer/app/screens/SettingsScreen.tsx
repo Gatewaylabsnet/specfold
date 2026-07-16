@@ -1,5 +1,5 @@
 import type { AppSettings } from "../types";
-import { Download, Plus } from "lucide-react";
+import { Download, Plus, Upload } from "lucide-react";
 
 export function SettingsScreen({
   settings,
@@ -8,6 +8,7 @@ export function SettingsScreen({
   onWorkspaceNameChange,
   onNewWorkspace,
   onExportBackup,
+  onRestoreBackup,
   onDeleteAllData,
   savedBackupPath
 }: {
@@ -17,6 +18,7 @@ export function SettingsScreen({
   onWorkspaceNameChange(name: string): void;
   onNewWorkspace(): void;
   onExportBackup(): void;
+  onRestoreBackup(): void;
   onDeleteAllData(): void;
   savedBackupPath: string;
 }) {
@@ -35,11 +37,25 @@ export function SettingsScreen({
           <Plus size={16} />
           New workspace
         </button>
-        <button className="secondary-button" onClick={onExportBackup} type="button">
-          <Download size={16} />
-          Export complete backup
-        </button>
+        <h3>Data management</h3>
+        <p>Backups include collections, environments, settings, and secret values. Store exported files securely.</p>
+        <div className="settings-actions">
+          <button className="secondary-button" onClick={onExportBackup} type="button">
+            <Download size={16} />
+            Export backup
+          </button>
+          <button className="secondary-button" onClick={onRestoreBackup} type="button">
+            <Upload size={16} />
+            Restore backup
+          </button>
+          <button className="danger-button" onClick={onDeleteAllData} type="button">
+            Delete all data
+          </button>
+        </div>
         {savedBackupPath && <div className="status-box">Saved to {savedBackupPath}</div>}
+        <div className="status-box status-box--warning">
+          Restoring replaces the current workspace after creating a local safety copy. Deleting data is permanent.
+        </div>
         <h3>Requests</h3>
         <label className="field">
           <span>Request timeout (ms)</span>
@@ -78,15 +94,6 @@ export function SettingsScreen({
             TLS certificate verification is disabled for outgoing requests. Only enable this on trusted internal networks.
           </div>
         )}
-        <div className="danger-zone">
-          <h3>Delete local data</h3>
-          <p>
-            Permanently removes collections, requests, environments, secrets, settings, and local backups from this device.
-          </p>
-          <button className="danger-button" onClick={onDeleteAllData} type="button">
-            Delete all local data
-          </button>
-        </div>
       </div>
     </section>
   );

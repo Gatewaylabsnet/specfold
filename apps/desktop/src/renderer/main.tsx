@@ -11,7 +11,7 @@ import "./styles/global.css";
 if (import.meta.env.DEV && typeof window.studio === "undefined") {
   let workspace = createEmptyWorkspace("Browser Preview");
   window.studio = {
-    loadWorkspace: async () => ({ workspace, recovered: false }),
+    loadWorkspace: async () => ({ workspace, recovered: false, secureStorageAvailable: true }),
     saveWorkspace: async (next) => {
       workspace = next;
     },
@@ -45,6 +45,11 @@ if (import.meta.env.DEV && typeof window.studio === "undefined") {
     openImportFile: async () => ({ canceled: true }),
     openPostmanFolder: async () => ({ canceled: true }),
     exportBackup: async () => ({ canceled: true }),
+    restoreBackup: async () => ({
+      canceled: true,
+      restored: false,
+      secureStorageAvailable: true
+    }),
     deleteAllData: async () => {
       workspace = createEmptyWorkspace("Browser Preview");
     },

@@ -48,6 +48,7 @@ export function useStudioState() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [notice, setNotice] = useState<string>();
+  const [secureStorageAvailable, setSecureStorageAvailable] = useState(true);
   const saveTimer = useRef<number>();
 
   // Auto-dismiss transient banners (copied cURL, saved variable, etc.) so they
@@ -63,6 +64,7 @@ export function useStudioState() {
   useEffect(() => {
     window.studio.loadWorkspace().then((result) => {
       setWorkspace(result.workspace);
+      setSecureStorageAvailable(result.secureStorageAvailable);
       if (result.recovered && result.message) {
         setNotice(result.message);
       }
@@ -207,7 +209,7 @@ export function useStudioState() {
     setSavedExportPath, savedBackupPath, setSavedBackupPath, saveStatus, setSaveStatus,
     settings, setSettings, notice, setNotice, activeCollection, activeRequestLocation,
     activeRequest, activeEnvironment, exportResult, exportContent, mutateWorkspace, saveWorkspaceNow,
-    saveTimer };
+    saveTimer, secureStorageAvailable, setSecureStorageAvailable };
 }
 
 export type StudioState = ReturnType<typeof useStudioState>;

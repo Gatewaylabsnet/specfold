@@ -24,11 +24,12 @@ export function App() {
     setSavedExportPath, savedBackupPath, setSavedBackupPath, saveStatus, setSaveStatus,
     settings, setSettings, notice, setNotice, activeCollection, activeRequestLocation,
     activeRequest, activeEnvironment, exportResult, exportContent, mutateWorkspace, saveWorkspaceNow,
+    secureStorageAvailable,
     createNewWorkspace, addCollection, addFolder, addRequest, updateActiveRequest, moveActiveRequest,
     mutateCollection, openImportFile, openPostmanFolder, fetchImportUrl,
     toggleImportOperation, handlePreviewImport, handleImport, copyActiveRequestAsCurl,
     sendActiveRequest, updateEnvironment, updateEnvironmentBaseUrl, createNewEnvironment,
-    updateSettings, assignResponseValue, saveExport, exportFullBackup, deleteAllData, treeActions
+    updateSettings, assignResponseValue, saveExport, exportFullBackup, restoreFullBackup, deleteAllData, treeActions
   } = useStudioController();
   if (!loaded) {
     return <div className="loading">Loading workspace...</div>;
@@ -71,6 +72,12 @@ export function App() {
           <button className="icon-button" onClick={() => setNotice(undefined)} type="button">
             x
           </button>
+        </div>
+      )}
+
+      {!secureStorageAvailable && (
+        <div className="notice-banner notice-banner--security" role="alert">
+          Secure storage is unavailable. Secret values remain usable for this session but are never saved to disk.
         </div>
       )}
 
@@ -161,6 +168,7 @@ export function App() {
             }
             onNewWorkspace={createNewWorkspace}
             onExportBackup={exportFullBackup}
+            onRestoreBackup={restoreFullBackup}
             onDeleteAllData={deleteAllData}
             savedBackupPath={savedBackupPath}
           />

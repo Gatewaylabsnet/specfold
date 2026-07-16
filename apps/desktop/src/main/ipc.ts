@@ -5,7 +5,7 @@ import type { AppSettings, SendRequestPayload } from "../shared/contracts";
 import { MAX_IMPORT_BYTES } from "./constants";
 import { fetchImportUrl, sendHttpRequest } from "./http";
 import { readPostmanV3Folder } from "./importSources";
-import { atomicWrite, deleteAllLocalData, exportFullBackup, loadSettings, loadWorkspace, saveSettings, saveWorkspace, serializeStorageMutation } from "./storage";
+import { atomicWrite, deleteAllLocalData, exportFullBackup, loadSettings, loadWorkspace, restoreBackup, saveSettings, saveWorkspace, serializeStorageMutation } from "./storage";
 
 export function registerIpcHandlers(): void {
   ipcMain.handle("workspace:load", () => loadWorkspace());
@@ -49,6 +49,7 @@ export function registerIpcHandlers(): void {
   });
   ipcMain.handle("import:fetchUrl", (_event, url: string) => fetchImportUrl(url));
   ipcMain.handle("file:exportBackup", (_event, workspace: Workspace) => exportFullBackup(workspace));
+  ipcMain.handle("file:restoreBackup", () => serializeStorageMutation(restoreBackup));
   ipcMain.handle("data:deleteAll", () => serializeStorageMutation(deleteAllLocalData));
   ipcMain.handle("file:saveExport", async (_event, payload: { defaultPath: string; content: string }) => {
     const result = await dialog.showSaveDialog({
