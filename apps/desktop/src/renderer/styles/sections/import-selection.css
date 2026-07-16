@@ -1,0 +1,58 @@
+/* Import: per-operation selection */
+.ops-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.ops-header h3 {
+  margin: 0;
+}
+
+.ops-count {
+  font-size: 12px;
+  color: #607086;
+  white-space: nowrap;
+}
+
+.ops-actions {
+  margin: 8px 0;
+}
+
+.ops-actions .secondary-button {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.ops-list {
+  max-height: calc(100vh - 520px);
+  min-height: 120px;
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 4px 8px;
+  background: #fbfcfe;
+}
+
+.ops-row {
+  grid-template-columns: 18px 48px 1fr;
+  margin: 6px 0;
+  cursor: pointer;
+}
+
+.ops-row .method {
+  font-size: 9px;
+  min-width: 44px;
+}
+
+.ops-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+}
+

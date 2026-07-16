@@ -1,0 +1,79 @@
+/* Brand mark in the topbar */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.brand > div {
+  min-width: 0;
+}
+
+.brand h1,
+.brand p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brand__mark {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 9px;
+}
+
+.ops-hint {
+  margin: 0 0 8px;
+  color: #8494a7;
+  font-size: 11px;
+}
+
+/* UX polish: clickable home rows, empty state */
+.workspace-table__row--button {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid #e5e9ef;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  transition: background-color 0.12s ease;
+}
+
+.workspace-table__row--button:hover {
+  background: #f2f6fb;
+}
+
+.home-empty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 44px 24px;
+  border: 1px dashed #cdd6e2;
+  border-radius: 12px;
+  background: #fbfcfe;
+  color: #52627a;
+  text-align: center;
+}
+
+.home-empty h2 {
+  margin: 4px 0 0;
+  font-size: 18px;
+  color: #26364d;
+}
+
+.home-empty p {
+  margin: 0;
+  max-width: 460px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.home-empty .button-row {
+  margin-top: 6px;
+  justify-content: center;
+}
+

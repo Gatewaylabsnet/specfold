@@ -1,0 +1,24 @@
+/* Import from URL */
+.import-url-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.import-url-row input {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  border: 1px solid #d5dce4;
+  border-radius: 7px;
+  padding: 0 10px;
+  font-size: 13px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.import-url-row input:focus {
+  outline: none;
+  border-color: #7ba7dd;
+  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.12);
+}
+

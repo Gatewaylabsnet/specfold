@@ -1,0 +1,78 @@
+import type { ApiRequest, Collection, Environment, PostmanV3FolderSource, Workspace } from "@openapi-collection-studio/core";
+
+export interface AppSettings {
+  requestTimeoutMs: number;
+  maxResponseBytes: number;
+  allowInsecureTls: boolean;
+}
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  requestTimeoutMs: 30_000,
+  maxResponseBytes: 10 * 1024 * 1024,
+  allowInsecureTls: false
+};
+
+export interface SendRequestPayload {
+  request: ApiRequest;
+  environment?: Environment;
+  collection?: Pick<Collection, "baseUrl">;
+}
+
+export interface SendRequestResult {
+  status: number;
+  statusText: string;
+  durationMs: number;
+  sizeBytes: number;
+  headers: Record<string, string>;
+  body: string;
+  rawBody: string;
+  truncated?: boolean;
+  error?: string;
+}
+
+export interface WorkspaceLoadResult {
+  workspace: Workspace;
+  recovered: boolean;
+  message?: string;
+}
+
+export interface FileActionResult {
+  canceled: boolean;
+  filePath?: string;
+}
+
+export interface OpenImportResult extends FileActionResult {
+  content?: string;
+  error?: string;
+}
+
+export interface OpenPostmanFolderResult {
+  canceled: boolean;
+  folderPath?: string;
+  source?: PostmanV3FolderSource;
+  error?: string;
+}
+
+export interface FetchImportUrlResult {
+  ok: boolean;
+  content?: string;
+  error?: string;
+}
+
+export interface StudioApi {
+  loadWorkspace(): Promise<WorkspaceLoadResult>;
+  saveWorkspace(workspace: Workspace): Promise<void>;
+  loadSettings(): Promise<AppSettings>;
+  saveSettings(settings: AppSettings): Promise<AppSettings>;
+  sendRequest(
+    request: ApiRequest,
+    environment?: Environment,
+    collection?: Pick<Collection, "baseUrl">
+  ): Promise<SendRequestResult>;
+  saveExportFile(defaultPath: string, content: string): Promise<FileActionResult>;
+  openImportFile(): Promise<OpenImportResult>;
+  openPostmanFolder(): Promise<OpenPostmanFolderResult>;
+  exportBackup(workspace: Workspace): Promise<FileActionResult>;
+  deleteAllData(): Promise<void>;
+  fetchImportUrl(url: string): Promise<FetchImportUrlResult>;
+}
