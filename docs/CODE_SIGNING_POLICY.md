@@ -2,10 +2,10 @@
 
 ## Status
 
-Specfold is preparing an application for free code signing provided by
-SignPath.io, certificate by SignPath Foundation. Release artifacts must be
-treated as unsigned until this status explicitly states that SignPath signing
-is active and the artifact's signature has been verified.
+Specfold has applied for free code signing provided by SignPath.io, certificate
+by SignPath Foundation. Release artifacts must be treated as unsigned until
+this status explicitly states that SignPath signing is active and the
+artifact's signature has been verified.
 
 ## Scope
 
