@@ -1,0 +1,28 @@
+@media (max-width: 1180px) {
+  .workspace {
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  }
+
+  .editor-layout {
+    grid-template-columns: minmax(360px, 1fr) 320px;
+  }
+
+  .request-line {
+    grid-template-columns: 104px minmax(0, 1fr) auto;
+  }
+
+  .request-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .kv-editor__head,
+  .kv-editor__row {
+    grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1fr) 34px;
+  }
+
+  .env-table__head,
+  .env-table__row {
+    grid-template-columns: 68px minmax(0, 1fr) minmax(0, 1fr) 62px 34px;
+  }
+}
+

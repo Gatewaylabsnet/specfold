@@ -5,6 +5,7 @@ import {
   countFolderRequests,
   createApinizerJwtRequest,
   createCollection,
+  createEmptyWorkspace,
   createFolder,
   createKeyValue,
   createRequest,
@@ -13,6 +14,14 @@ import {
 } from "../src";
 
 describe("model helpers", () => {
+  it("starts every workspace with an active, renameable Specfold environment", () => {
+    const workspace = createEmptyWorkspace();
+
+    expect(workspace.environments).toHaveLength(1);
+    expect(workspace.environments[0].name).toBe("Specfold");
+    expect(workspace.activeEnvironmentId).toBe(workspace.environments[0].id);
+  });
+
   it("clones a request with fresh ids everywhere", () => {
     const request = createRequest({ name: "Original", method: "POST", url: "{{baseUrl}}/x" });
     request.headers.push(createKeyValue("X-Test", "1"));

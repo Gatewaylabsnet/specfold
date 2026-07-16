@@ -1,0 +1,159 @@
+.import-layout,
+.environment-layout,
+.export-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 0;
+  height: 100%;
+}
+
+.environment-layout {
+  grid-template-columns: 300px minmax(0, 1fr);
+}
+
+.export-layout {
+  grid-template-columns: 330px minmax(0, 1fr);
+}
+
+.pane,
+.side-panel,
+.sidebar,
+.request-panel,
+.response-panel {
+  min-height: 0;
+  overflow: auto;
+  background: #fff;
+}
+
+.pane,
+.request-panel {
+  padding: 18px;
+}
+
+.side-panel,
+.sidebar,
+.response-panel {
+  border-left: 1px solid #dce1e8;
+}
+
+.environment-layout .side-panel,
+.sidebar {
+  border-right: 1px solid #dce1e8;
+  border-left: 0;
+}
+
+.side-panel {
+  padding: 16px;
+}
+
+.pane__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.pane__header h2,
+.side-panel h2,
+.response-panel h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.side-panel h3,
+.tab-panel h3,
+.response-panel h3 {
+  margin: 16px 0 8px;
+  color: #4f5d70;
+  font-size: 12px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.source-textarea,
+.body-editor,
+.export-preview {
+  width: 100%;
+  min-height: 0;
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.source-textarea {
+  height: calc(100vh - 225px);
+  padding: 14px;
+  resize: none;
+}
+
+.body-editor {
+  height: calc(100vh - 355px);
+  min-height: 260px;
+  padding: 12px;
+  resize: vertical;
+}
+
+.export-preview {
+  height: calc(100vh - 205px);
+  padding: 14px;
+  border: 1px solid #dce1e8;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.radio-row,
+.check-row,
+.field {
+  display: grid;
+  gap: 7px;
+  color: #3c4858;
+  font-size: 13px;
+}
+
+.radio-row,
+.check-row {
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.field {
+  margin: 12px 0;
+}
+
+.field span {
+  color: #5d6878;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.field input,
+.field select,
+.title-input {
+  min-height: 36px;
+  padding: 0 10px;
+}
+
+.title-input {
+  width: min(440px, 100%);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.status-box {
+  margin-top: 14px;
+  padding: 11px;
+  border: 1px solid #c9d8e9;
+  border-radius: 8px;
+  color: #31445d;
+  background: #f3f8ff;
+  font-size: 13px;
+}
+
+.status-box--error {
+  border-color: #f2b8b5;
+  color: #8c1d18;
+  background: #fff5f5;
+}
+

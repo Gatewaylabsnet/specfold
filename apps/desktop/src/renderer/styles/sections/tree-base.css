@@ -1,0 +1,81 @@
+.tree {
+  overflow: auto;
+  min-height: 0;
+}
+
+.tree__item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 32px;
+  padding: 0 8px;
+  overflow: hidden;
+  border-radius: 6px;
+  color: #314050;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.tree__item span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree__item:hover,
+.tree__item.is-selected {
+  background: #eef3f8;
+}
+
+.tree__item.is-active {
+  position: relative;
+  color: #133d75;
+  background: #e7f0ff;
+  box-shadow: inset 3px 0 0 #1f6feb;
+  font-weight: 700;
+}
+
+.tree__children {
+  margin: 4px 0 8px;
+}
+
+.tree__request {
+  font-size: 13px;
+}
+
+.method {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 19px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.method--get {
+  background: #118a5b;
+}
+
+.method--post {
+  background: #1f6feb;
+}
+
+.method--put,
+.method--patch {
+  background: #a85d00;
+}
+
+.method--delete {
+  background: #c2410c;
+}
+
+.method--options,
+.method--head {
+  background: #6d4aff;
+}
+

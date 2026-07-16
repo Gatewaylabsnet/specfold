@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { createEmptyWorkspace } from "@openapi-collection-studio/core";
+import { createCollection, createEmptyWorkspace, createKeyValue, createRequest } from "@openapi-collection-studio/core";
 import { App } from "./App";
 import "./styles/global.css";
 
@@ -8,10 +8,25 @@ import "./styles/global.css";
 // Electron preload), install an in-memory mock of window.studio so the UI can
 // be developed and reviewed without launching Electron. In the packaged app
 // the preload always defines window.studio first, so this never runs there.
-if (import.meta.env.DEV && typeof window.studio === "undefined") {
+const browserPreview = import.meta.env.DEV || new URLSearchParams(window.location.search).has("browser-preview");
+if (browserPreview && typeof window.studio === "undefined") {
   let workspace = createEmptyWorkspace("Browser Preview");
+  workspace.environments[0].variables.push({
+    id: "envvar-preview-base-url",
+    name: "baseUrl",
+    value: "https://api.example.test",
+    enabled: true,
+    secret: false
+  });
+  const previewCollection = createCollection("Store API");
+  previewCollection.baseUrl = "https://api.example.test";
+  const previewRequest = createRequest({ name: "List products", method: "GET", url: "{{baseUrl}}/products" });
+  previewRequest.queryParams.push(createKeyValue("limit", "20"));
+  previewRequest.headers.push(createKeyValue("Accept", "application/json"));
+  previewCollection.requests.push(previewRequest);
+  workspace.collections.push(previewCollection);
   window.studio = {
-    loadWorkspace: async () => ({ workspace, recovered: false }),
+    loadWorkspace: async () => ({ workspace, recovered: false, secureStorageAvailable: true }),
     saveWorkspace: async (next) => {
       workspace = next;
     },
@@ -43,6 +58,16 @@ if (import.meta.env.DEV && typeof window.studio === "undefined") {
     },
     saveExportFile: async () => ({ canceled: true }),
     openImportFile: async () => ({ canceled: true }),
+    openPostmanFolder: async () => ({ canceled: true }),
+    exportBackup: async () => ({ canceled: true }),
+    restoreBackup: async () => ({
+      canceled: true,
+      restored: false,
+      secureStorageAvailable: true
+    }),
+    deleteAllData: async () => {
+      workspace = createEmptyWorkspace("Browser Preview");
+    },
     fetchImportUrl: async () => ({
       ok: false,
       error: "Fetching URLs requires the desktop app (browser preview mode)."

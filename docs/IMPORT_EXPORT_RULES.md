@@ -1,28 +1,40 @@
 # Import And Export Rules
 
-## Import
+## Supported Imports
 
-- JSON parse is attempted first; YAML parse is attempted if JSON parsing fails.
-- OpenAPI 3.0 and 3.1 are accepted.
-- Swagger 2.0 is accepted at a basic level.
-- Local `$ref` values are resolved where practical.
-- Remote `$ref` values are preserved but not fetched.
-- Operations are grouped by tags, first path segment, or a single folder.
-- Imported request URLs use `{{baseUrl}}` plus the OpenAPI path.
-- Query, path, and header parameters become editable key/value rows.
-- JSON request bodies use examples when present, otherwise a simple schema-derived example.
-- Simple bearer, basic, and API key auth are mapped to internal auth settings.
+| Format | Input | Preserved |
+| --- | --- | --- |
+| OpenAPI 3.0/3.1 | JSON or YAML | Paths, operations, parameters, bodies, responses, auth, components, servers |
+| Swagger 2.0 | JSON or YAML | Paths, parameters, bodies, responses, security, host/basePath |
+| Postman 2.0/2.1 | Collection JSON | Hierarchy, variables, auth, bodies, response examples |
+| Postman 3 | Multi-file YAML folder | Definitions, hierarchy, requests, examples; scripts skipped |
+| Insomnia 4/5 | Export JSON | Workspaces, folders, environments, auth, bodies, responses |
+| HAR 1.2 | JSON | Requests, query/form values, headers, captured responses |
+| HTTP files | `.http` / `.rest` | Variables, request lines, headers, inline bodies, named sections |
+| Specfold | Collection JSON | Native collection model |
+| cURL | Command text | Method, URL, headers, body, supported auth |
 
-## Export
+JSON detection runs before YAML/OpenAPI parsing. Unsupported JSON gets a format-specific message. Folder parent cycles are broken safely. Unknown HTTP methods, malformed entries, orphan examples, scripts, and file-backed bodies are skipped or warned about rather than executed.
 
-- OpenAPI exports target version `3.0.3`.
-- Folder names become tags when the UI option is enabled.
-- Selected folders are exported recursively.
-- Query, path, and header rows become OpenAPI parameters.
-- JSON bodies become `requestBody` content.
-- Response examples are included when enabled.
-- Bearer auth becomes `components.securitySchemes.BearerAuth`.
-- Basic and API key auth are represented when present.
-- Imported components are retained in MVP; unused component removal is planned later.
-- Collection JSON preserves the internal collection model.
+Local `$ref` values are resolved where practical. Remote `$ref` values are retained but never fetched. Operations can be selected before import and grouped by tags, first path segment, or one folder.
 
+## URL And Environment Rules
+
+- Every workspace has at least one environment; the final environment cannot be deleted.
+- New collections copy the active environment `baseUrl`.
+- A collection `baseUrl` overrides the active environment value during request preparation.
+- Imported OpenAPI servers and portable variables populate the relevant collection/environment fields.
+
+## OpenAPI Export
+
+- Public functions `exportCollectionToOpenApi`, `exportCollectionToOpenApiResult`, and `exportCollectionToOpenApiDocument` remain stable.
+- Imported OpenAPI 3 operations prefer source-operation fidelity and overlay editable fields.
+- Selected folders export recursively; folder names can become tags.
+- Parameters, request bodies, responses, and supported security schemes are mapped back to OpenAPI.
+- Literal examples are opt-in and secret-like values produce warnings.
+- Unused component schemas are pruned by default for scoped exports.
+- Duplicate method/path mappings and invalid variable paths/servers produce visible warnings.
+
+## Complete Backup
+
+Backup is separate from collection/OpenAPI export. `specfold.backup.v1` contains workspace and settings, including readable secret values after an explicit warning. Restore accepts only that schema, caps input at 100 MB, validates structure, re-encrypts secrets before persistence, and rolls back on failure.

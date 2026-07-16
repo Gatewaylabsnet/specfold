@@ -1,0 +1,287 @@
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
+.workspace-main {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 34px;
+  overflow: hidden;
+  padding: 0 13px;
+  border-radius: 7px;
+  color: #4e5c6d;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.13s ease, color 0.13s ease;
+}
+
+.nav-btn:hover {
+  background: #eef2f7;
+}
+
+.nav-btn.is-active {
+  color: #133d75;
+  background: #e7f0ff;
+}
+
+.nav-btn__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.welcome-main {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 24px;
+}
+
+.welcome-main .home-empty {
+  max-width: 560px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-width: 0;
+  padding: 16px 22px 12px;
+  border-bottom: 1px solid #dce1e8;
+  background: #fff;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 720;
+}
+
+.topbar p {
+  margin: 4px 0 0;
+  color: #657184;
+  font-size: 13px;
+}
+
+.topbar__environment {
+  display: grid;
+  gap: 5px;
+  width: min(260px, 36vw);
+  min-width: 0;
+  color: #536072;
+  font-size: 12px;
+}
+
+.topbar__actions {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.save-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: #37506c;
+  background: #edf3f9;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.save-status--dirty {
+  color: #7c4a03;
+  background: #fff4d6;
+}
+
+.save-status--saving {
+  color: #164e63;
+  background: #dff7ff;
+}
+
+.save-status--error {
+  color: #8c1d18;
+  background: #fff0ef;
+}
+
+.screen-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 9px 18px;
+  border-bottom: 1px solid #dce1e8;
+  background: #f9fafb;
+}
+
+.screen-tab,
+.tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 6px;
+  color: #4e5c6d;
+  background: transparent;
+  cursor: pointer;
+}
+
+.screen-tab.is-active,
+.tab.is-active {
+  color: #111827;
+  background: #e9edf3;
+}
+
+.content {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.primary-button,
+.secondary-button,
+.icon-button,
+.danger-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 34px;
+  overflow: hidden;
+  border-radius: 6px;
+  cursor: pointer;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.primary-button {
+  padding: 0 13px;
+  color: #fff;
+  background: #1f6feb;
+}
+
+.primary-button:hover {
+  background: #185fc9;
+}
+
+.secondary-button {
+  padding: 0 12px;
+  color: #263344;
+  border: 1px solid #cfd6df;
+  background: #fff;
+}
+
+.secondary-button:hover {
+  background: #f0f3f7;
+}
+
+.icon-button {
+  flex: none;
+  width: 34px;
+  color: #334155;
+  border: 1px solid #cfd6df;
+  background: #fff;
+}
+
+.icon-button:hover {
+  background: #eef2f7;
+}
+
+.button-row,
+.action-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+}
+
+.home-grid {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  overflow: auto;
+}
+
+.workspace-header {
+  display: grid;
+  grid-template-columns: minmax(240px, 460px) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.workspace-header .field {
+  margin: 0;
+}
+
+.summary-band {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(140px, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid #dce1e8;
+  border-radius: 8px;
+  background: #dce1e8;
+}
+
+.summary-band > div {
+  display: grid;
+  gap: 3px;
+  padding: 18px;
+  background: #fff;
+}
+
+.metric {
+  font-size: 28px;
+  font-weight: 760;
+}
+
+.workspace-table {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid #dce1e8;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.workspace-table__head,
+.workspace-table__row {
+  display: grid;
+  grid-template-columns: 1fr 140px 120px;
+  gap: 12px;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.workspace-table__head {
+  color: #607086;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #f2f4f7;
+}
+
+.workspace-table__row {
+  border-top: 1px solid #e5e9ef;
+}
+

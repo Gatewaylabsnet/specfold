@@ -43,7 +43,14 @@ export interface ResponseExample {
 }
 
 export interface OpenApiMetadata {
-  sourceFormat?: "openapi3" | "swagger2" | "collection-json";
+  sourceFormat?:
+    | "openapi3"
+    | "swagger2"
+    | "collection-json"
+    | "postman"
+    | "insomnia"
+    | "har"
+    | "http-file";
   documentVersion?: string;
   title?: string;
   version?: string;

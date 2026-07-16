@@ -1,0 +1,56 @@
+.settings-layout {
+  display: grid;
+  grid-template-columns: minmax(420px, 640px);
+  padding: 18px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.settings-layout .field {
+  margin-bottom: 16px;
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.danger-zone {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  background: #fff7f7;
+}
+
+.danger-zone h3 {
+  margin: 0 0 6px;
+  color: #991b1b;
+}
+
+.danger-zone p {
+  margin: 0 0 12px;
+  color: #7f1d1d;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.danger-button {
+  padding: 0 12px;
+  color: #fff;
+  border: 1px solid #b91c1c;
+  background: #b91c1c;
+}
+
+.danger-button:hover {
+  background: #991b1b;
+}
+
+.import-folder-status {
+  margin: 0 0 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
