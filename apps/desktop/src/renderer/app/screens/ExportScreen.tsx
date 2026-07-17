@@ -1,4 +1,4 @@
-import { Download, FileJson, Save } from "lucide-react";
+import { Copy, Save } from "lucide-react";
 import { flattenFolders } from "@openapi-collection-studio/core";
 import type { Collection, ExportWarning, OpenApiCheckResult } from "@openapi-collection-studio/core";
 import type { ExportFormat } from "../types";
@@ -21,6 +21,7 @@ export function ExportScreen({
   onIncludeExamplesChange,
   onPruneUnusedComponentsChange,
   onPreferSourceOperationChange,
+  onCopy,
   onSave
 }: {
   activeCollection?: Collection;
@@ -40,6 +41,7 @@ export function ExportScreen({
   onIncludeExamplesChange(value: boolean): void;
   onPruneUnusedComponentsChange(value: boolean): void;
   onPreferSourceOperationChange(value: boolean): void;
+  onCopy(): void;
   onSave(): void;
 }) {
   const folders = activeCollection ? flattenFolders(activeCollection) : [];
@@ -141,6 +143,15 @@ export function ExportScreen({
               </span>
             )}
             <span>{activeCollection?.name ?? "No collection selected"}</span>
+            <button
+              className="secondary-button"
+              disabled={!exportContent}
+              onClick={onCopy}
+              type="button"
+            >
+              <Copy size={15} />
+              Copy to clipboard
+            </button>
           </div>
         </div>
         {exportCheck && !exportCheck.ok && (

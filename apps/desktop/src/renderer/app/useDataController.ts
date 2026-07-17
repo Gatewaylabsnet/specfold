@@ -48,6 +48,18 @@ export function useDataController(state: StudioState, workspaceController: Works
     setSavedExportPath(result.canceled ? "" : result.filePath ?? "");
   };
 
+  const copyExportToClipboard = async () => {
+    if (!exportContent) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(exportContent);
+      setNotice("Copied export content to the clipboard.");
+    } catch {
+      setNotice("Export content could not be copied to the clipboard.");
+    }
+  };
+
   const exportFullBackup = async () => {
     const confirmed = window.confirm(
       "Export all collections, environments, settings, and secret values? Secret values will be readable in the backup file. Store it somewhere secure."
@@ -159,5 +171,12 @@ export function useDataController(state: StudioState, workspaceController: Works
     onMoveFolderTo: moveFolderTo
   };
 
-  return { saveExport, exportFullBackup, restoreFullBackup, deleteAllData, treeActions };
+  return {
+    saveExport,
+    copyExportToClipboard,
+    exportFullBackup,
+    restoreFullBackup,
+    deleteAllData,
+    treeActions
+  };
 }

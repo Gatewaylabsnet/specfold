@@ -139,7 +139,7 @@ export function useStudioState() {
     warnings: ExportWarning[];
     check?: OpenApiCheckResult;
   }>(() => {
-    if (!activeCollection) {
+    if (screen !== "export" || !activeCollection) {
       return { content: "", warnings: [] };
     }
     if (exportFormat === "collection-json") {
@@ -169,7 +169,8 @@ export function useStudioState() {
     includeAllComponents,
     includeExamples,
     preferSourceOperation,
-    pruneUnusedComponents
+    pruneUnusedComponents,
+    screen
   ]);
 
   const exportContent = exportResult.content;

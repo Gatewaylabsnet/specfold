@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createCollection,
   createEmptyWorkspace,
+  createFolder,
   createRequest,
   type Workspace
 } from "@openapi-collection-studio/core";
@@ -92,6 +93,44 @@ describe("renderer workflows", () => {
     await user.click(screen.getByRole("button", { name: "Environments" }));
     const deleteButton = screen.getByTitle("At least one environment is required") as HTMLButtonElement;
     expect(deleteButton.disabled).toBe(true);
+  });
+
+  it("keeps request name editing responsive across multiple folders and commits on blur", async () => {
+    const workspace = createEmptyWorkspace("Multi-folder workspace");
+    const collection = createCollection("Demo API");
+    const firstFolder = createFolder("Accounts");
+    const secondFolder = createFolder("Orders");
+    firstFolder.requests.push(
+      createRequest({ name: "Find account", method: "GET", url: "/accounts/{id}" })
+    );
+    secondFolder.requests.push(
+      createRequest({ name: "Find order", method: "GET", url: "/orders/{id}" })
+    );
+    collection.folders.push(firstFolder, secondFolder);
+    workspace.collections.push(collection);
+
+    const { user } = await renderApp(studioMock(workspace));
+    const nameInput = screen.getByRole("textbox", { name: "Request name" });
+    await user.clear(nameInput);
+    await user.type(nameInput, "Get account details");
+
+    expect((nameInput as HTMLInputElement).value).toBe("Get account details");
+    expect(screen.getByText("Find account")).toBeTruthy();
+
+    await user.tab();
+    await screen.findByText("Get account details");
+  });
+
+  it("copies the generated export preview to the clipboard", async () => {
+    const { user } = await renderApp();
+    const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+
+    await user.click(screen.getByRole("button", { name: "Export" }));
+    await user.click(screen.getByRole("button", { name: "Copy to clipboard" }));
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(writeText.mock.calls[0]?.[0]).toContain("/users");
+    expect(await screen.findByText("Copied export content to the clipboard.")).toBeTruthy();
   });
 });
 

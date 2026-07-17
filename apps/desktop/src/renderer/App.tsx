@@ -29,7 +29,8 @@ export function App() {
     mutateCollection, openImportFile, openPostmanFolder, fetchImportUrl,
     toggleImportOperation, handlePreviewImport, handleImport, copyActiveRequestAsCurl,
     sendActiveRequest, updateEnvironment, updateEnvironmentBaseUrl, createNewEnvironment,
-    updateSettings, assignResponseValue, saveExport, exportFullBackup, restoreFullBackup, deleteAllData, treeActions
+    updateSettings, assignResponseValue, saveExport, copyExportToClipboard, exportFullBackup,
+    restoreFullBackup, deleteAllData, treeActions
   } = useStudioController();
   if (!loaded) {
     return <div className="loading">Loading workspace...</div>;
@@ -220,6 +221,7 @@ export function App() {
             onIncludeExamplesChange={setIncludeExamples}
             onPruneUnusedComponentsChange={setPruneUnusedComponents}
             onPreferSourceOperationChange={setPreferSourceOperation}
+            onCopy={copyExportToClipboard}
             onSave={saveExport}
             savedExportPath={savedExportPath}
           />

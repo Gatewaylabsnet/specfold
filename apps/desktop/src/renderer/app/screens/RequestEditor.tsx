@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { FilePlus2, Play, Plus, Send, Terminal, Wand2 } from "lucide-react";
 import { flattenFolders, type ApiRequest, type AuthConfig, type Collection, type Folder, type HttpMethod, type KeyValue } from "@openapi-collection-studio/core";
 import { KeyValueEditor } from "../../components/KeyValueEditor";
@@ -95,14 +96,14 @@ export function RequestWorkspace({
               </button>
             </div>
             <div className="request-meta">
-              <input
-                aria-label="Request name"
-                onChange={(event) =>
+              <RequestNameInput
+                key={activeRequest.id}
+                name={activeRequest.name}
+                onCommit={(name) =>
                   onUpdateRequest((request) => {
-                    request.name = event.target.value;
+                    request.name = name;
                   })
                 }
-                value={activeRequest.name}
               />
               <select
                 aria-label="Move request"
@@ -162,6 +163,35 @@ export function RequestWorkspace({
         environmentVariableNames={environmentVariableNames}
       />
     </section>
+  );
+}
+
+function RequestNameInput({ name, onCommit }: { name: string; onCommit(name: string): void }) {
+  const [draft, setDraft] = useState(name);
+
+  useEffect(() => {
+    setDraft(name);
+  }, [name]);
+
+  const commit = () => {
+    if (draft !== name) {
+      onCommit(draft);
+    }
+  };
+
+  return (
+    <input
+      aria-label="Request name"
+      onBlur={commit}
+      onChange={(event) => setDraft(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.currentTarget.blur();
+        }
+      }}
+      value={draft}
+    />
   );
 }
 
