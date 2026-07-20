@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { FilePlus2, Play, Plus, Send, Terminal, Wand2 } from "lucide-react";
-import { flattenFolders, folderBaseUrl, type ApiRequest, type AuthConfig, type Collection, type Folder, type HttpMethod, type KeyValue } from "@openapi-collection-studio/core";
+import { Plus, Send, Terminal, Wand2 } from "lucide-react";
+import { flattenFolders, folderBaseUrl, type ApiRequest, type AuthConfig, type Collection, type Folder, type HttpMethod } from "@openapi-collection-studio/core";
 import { KeyValueEditor } from "../../components/KeyValueEditor";
 import { methods } from "../types";
 import { activeRequestFolderId, authForType, tabLabel } from "../helpers";
 import type { RequestTab, ResponseHistoryEntry, ResponseState } from "../types";
+import { RequestBodyEditor } from "./RequestBodyEditor";
 import { ResponsePanel } from "./ResponsePanel";
 
 export function RequestWorkspace({
@@ -387,54 +388,14 @@ export function RequestTabPanel({
   }
 
   return (
-    <div className="tab-panel">
-      <div className="segmented">
-        {(["none", "json", "raw", "form"] as const).map((mode) => (
-          <button
-            className={activeRequest.body.mode === mode ? "is-active" : ""}
-            key={mode}
-            onClick={() =>
-              onUpdateRequest((request) => {
-                request.body.mode = mode;
-                if (mode === "json") {
-                  request.body.contentType = request.body.contentType ?? "application/json";
-                  request.body.raw = request.body.raw ?? "{}";
-                }
-                if (mode === "form") {
-                  request.body.contentType = "application/x-www-form-urlencoded";
-                  request.body.form = request.body.form ?? [];
-                }
-              })
-            }
-            type="button"
-          >
-            {mode === "form" ? "form-urlencoded" : mode}
-          </button>
-        ))}
-      </div>
-      {activeRequest.body.mode === "form" ? (
-        <KeyValueEditor
-          onChange={(values) =>
-            onUpdateRequest((request) => {
-              request.body.form = values;
-            })
-          }
-          values={activeRequest.body.form ?? []}
-        />
-      ) : (
-        <textarea
-          className="body-editor"
-          disabled={activeRequest.body.mode === "none"}
-          onChange={(event) =>
-            onUpdateRequest((request) => {
-              request.body.raw = event.target.value;
-            })
-          }
-          spellCheck={false}
-          value={activeRequest.body.raw ?? ""}
-        />
-      )}
-    </div>
+    <RequestBodyEditor
+      body={activeRequest.body}
+      onChange={(body) =>
+        onUpdateRequest((request) => {
+          request.body = body;
+        })
+      }
+    />
   );
 }
 

@@ -4,10 +4,14 @@ import { fetchWithProxy, ProxyAgentCache } from "./proxy";
 import { MAX_IMPORT_BYTES } from "./constants";
 import { loadSettings } from "./storage";
 import type { SendRequestPayload, SendRequestResult } from "../shared/contracts";
+import { createMultipartFormData, stripMultipartTransportHeaders } from "./uploadFiles";
 
 const proxyAgents = new ProxyAgentCache();
 
-export async function sendHttpRequest(payload: SendRequestPayload): Promise<SendRequestResult> {
+export async function sendHttpRequest(
+  payload: SendRequestPayload,
+  uploadOwnerId = -1
+): Promise<SendRequestResult> {
   const settings = await loadSettings();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), settings.requestTimeoutMs);
@@ -24,13 +28,23 @@ export async function sendHttpRequest(payload: SendRequestPayload): Promise<Send
       payload.collection,
       payload.folderPath
     );
+    let requestHeaders = prepared.headers;
+    let requestBody: RequestInit["body"] = prepared.body;
+    if (prepared.multipart) {
+      const multipart = await createMultipartFormData(prepared.multipart, uploadOwnerId);
+      requestBody = multipart.formData;
+      // Undici must generate both Content-Type and its matching boundary. A
+      // caller-supplied length is also unsafe because the encoded form adds
+      // framing bytes around every part.
+      requestHeaders = stripMultipartTransportHeaders(requestHeaders);
+    }
     const startedAt = performance.now();
     const response = await fetchWithProxy(
       prepared.url,
       {
         method: prepared.method,
-        headers: prepared.headers,
-        body: prepared.body,
+        headers: requestHeaders,
+        body: requestBody,
         signal: controller.signal
       },
       (url) => session.defaultSession.resolveProxy(url),
@@ -40,9 +54,9 @@ export async function sendHttpRequest(payload: SendRequestPayload): Promise<Send
     const { bytes, truncated } = await readCappedBody(response, settings.maxResponseBytes);
     const rawBody = new TextDecoder().decode(bytes);
     const body = formatBody(rawBody, response.headers.get("content-type"));
-    const headers: Record<string, string> = {};
+    const responseHeaders: Record<string, string> = {};
     response.headers.forEach((value, key) => {
-      headers[key] = value;
+      responseHeaders[key] = value;
     });
 
     return {
@@ -50,7 +64,7 @@ export async function sendHttpRequest(payload: SendRequestPayload): Promise<Send
       statusText: response.statusText,
       durationMs: Math.round(performance.now() - startedAt),
       sizeBytes: bytes.byteLength,
-      headers,
+      headers: responseHeaders,
       body,
       rawBody,
       truncated

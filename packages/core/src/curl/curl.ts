@@ -1,5 +1,5 @@
-import { createId, createKeyValue } from "../model/factory";
-import type { ApiRequest, HttpMethod, KeyValue } from "../model/types";
+import { createId, createKeyValue, createMultipartField } from "../model/factory";
+import type { ApiRequest, HttpMethod, KeyValue, MultipartField } from "../model/types";
 
 const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"];
 
@@ -16,6 +16,13 @@ export function requestToCurl(request: ApiRequest): string {
   const headers = new Map<string, string>();
   for (const header of request.headers) {
     if (header.enabled && header.key.trim()) {
+      const normalizedHeader = header.key.toLowerCase();
+      if (
+        request.body.mode === "multipart" &&
+        (normalizedHeader === "content-type" || normalizedHeader === "content-length")
+      ) {
+        continue;
+      }
       headers.set(header.key, header.value);
     }
   }
@@ -32,7 +39,15 @@ export function requestToCurl(request: ApiRequest): string {
     lines.push(`  -H ${shellQuote(`${key}: ${value}`)}`);
   }
 
-  if (request.body.mode !== "none" && request.body.raw && method !== "GET") {
+  if (request.body.mode === "multipart" && method !== "GET" && method !== "HEAD") {
+    for (const field of request.body.multipart ?? []) {
+      if (!field.enabled || !field.key.trim()) {
+        continue;
+      }
+      const flag = field.type === "text" ? "--form-string" : "--form";
+      lines.push(`  ${flag} ${shellQuote(curlFormValue(field))}`);
+    }
+  } else if (request.body.mode !== "none" && request.body.raw && method !== "GET") {
     lines.push(`  --data ${shellQuote(request.body.raw)}`);
   }
 
@@ -79,6 +94,7 @@ export function parseCurlCommand(input: string): ApiRequest {
   let method: string | undefined;
   const headers: KeyValue[] = [];
   const dataParts: string[] = [];
+  const multipartParts: MultipartField[] = [];
   let user: string | undefined;
   let bodyIsForm = false;
 
@@ -105,9 +121,11 @@ export function parseCurlCommand(input: string): ApiRequest {
       user = next();
     } else if (token === "--url") {
       url = next();
-    } else if (token === "-F" || token === "--form") {
-      dataParts.push(next() ?? "");
-      bodyIsForm = true;
+    } else if (token === "-F" || token === "--form" || token === "--form-string") {
+      const field = parseCurlMultipartField(next() ?? "", token === "--form-string");
+      if (field) {
+        multipartParts.push(field);
+      }
     } else if (token === "-G" || token === "--get") {
       method = method ?? "GET";
     } else if (token.startsWith("-")) {
@@ -129,14 +147,20 @@ export function parseCurlCommand(input: string): ApiRequest {
   // how the rest of the app models requests (avoids duplicating params on a
   // curl round trip).
   const { path, queryParams } = splitUrl(url);
-  const body = dataParts.length > 0
+  const body = multipartParts.length > 0
     ? {
+        mode: "multipart" as const,
+        contentType: "multipart/form-data",
+        multipart: multipartParts
+      }
+    : dataParts.length > 0
+      ? {
         mode: "raw" as const,
         contentType: contentTypeFromHeaders(headers) ?? (bodyIsForm ? "application/x-www-form-urlencoded" : "application/json"),
         raw: dataParts.join("&")
       }
-    : { mode: "none" as const };
-  const resolvedMethod = (method ?? (dataParts.length > 0 ? "POST" : "GET")).toUpperCase();
+      : { mode: "none" as const };
+  const resolvedMethod = (method ?? (dataParts.length > 0 || multipartParts.length > 0 ? "POST" : "GET")).toUpperCase();
 
   return {
     id: createId("req"),
@@ -150,6 +174,48 @@ export function parseCurlCommand(input: string): ApiRequest {
     auth,
     responseExamples: []
   };
+}
+
+function parseCurlMultipartField(input: string, forceText: boolean): MultipartField | undefined {
+  const separator = input.indexOf("=");
+  if (separator <= 0) {
+    return undefined;
+  }
+  const key = input.slice(0, separator);
+  const specification = input.slice(separator + 1);
+  const isFile = !forceText && (specification.startsWith("@") || specification.startsWith("<"));
+  if (!isFile) {
+    return createMultipartField("text", key, specification);
+  }
+
+  const [source = "", ...attributes] = specification.slice(1).split(";");
+  const fileNameAttribute = attributes
+    .map((attribute) => attribute.split("=", 2))
+    .find(([name]) => name.toLowerCase() === "filename")?.[1];
+  const contentType = attributes
+    .map((attribute) => attribute.split("=", 2))
+    .find(([name]) => name.toLowerCase() === "type")?.[1];
+  const field = createMultipartField("file", key, "");
+  field.enabled = false;
+  field.fileName = safeFileName(fileNameAttribute ?? source) || undefined;
+  field.contentType = contentType || undefined;
+  field.description = "File field imported without a local path or contents; select the file manually before sending.";
+  return field;
+}
+
+function curlFormValue(field: MultipartField): string {
+  if (field.type === "text") {
+    return `${field.key}=${field.value}`;
+  }
+  const fileName = safeFileName(field.fileName ?? "");
+  const fileNameOption = fileName ? `;filename=${fileName}` : "";
+  const contentTypeOption = field.contentType ? `;type=${field.contentType}` : "";
+  return `${field.key}=@<select-file>${fileNameOption}${contentTypeOption}`;
+}
+
+function safeFileName(value: string): string {
+  const name = value.split(/[\\/]/).filter(Boolean).at(-1) ?? "";
+  return name.replace(/[\r\n";]/g, "_");
 }
 
 function buildAuth(headers: KeyValue[], user?: string): ApiRequest["auth"] {

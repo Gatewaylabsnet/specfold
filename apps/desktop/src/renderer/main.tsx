@@ -58,6 +58,11 @@ if (browserPreview && typeof window.studio === "undefined") {
     },
     saveExportFile: async () => ({ canceled: true }),
     openImportFile: async () => ({ canceled: true }),
+    openUploadFile: async () => ({
+      canceled: false,
+      error: "Choosing upload files requires the desktop app."
+    }),
+    releaseUploadFile: async () => undefined,
     openPostmanFolder: async () => ({ canceled: true }),
     exportBackup: async () => ({ canceled: true }),
     restoreBackup: async () => ({

@@ -6,6 +6,8 @@ import type {
   Folder,
   HttpMethod,
   KeyValue,
+  MultipartField,
+  MultipartFieldType,
   RequestBody,
   Workspace
 } from "./types";
@@ -154,6 +156,20 @@ export function createApinizerJwtRequest(): ApiRequest {
   };
 }
 
+export function createMultipartField(
+  type: MultipartFieldType = "text",
+  key = "",
+  value = ""
+): MultipartField {
+  return {
+    id: createId("part"),
+    key,
+    enabled: true,
+    type,
+    value
+  };
+}
+
 /**
  * Convert an API URL such as https://api.example.com/products/v1 into the
  * gateway origin used by Apinizer's conventional /auth/jwt endpoint.
@@ -205,6 +221,12 @@ export function cloneRequest(request: ApiRequest, nameSuffix = " copy"): ApiRequ
   copy.queryParams = copy.queryParams.map((item) => ({ ...item, id: createId("kv") }));
   copy.pathParams = copy.pathParams.map((item) => ({ ...item, id: createId("kv") }));
   copy.headers = copy.headers.map((item) => ({ ...item, id: createId("kv") }));
+  copy.body.form = copy.body.form?.map((item) => ({ ...item, id: createId("kv") }));
+  copy.body.multipart = copy.body.multipart?.map((item) => ({
+    ...item,
+    id: createId("part"),
+    uploadId: undefined
+  }));
   copy.responseExamples = copy.responseExamples.map((example) => ({
     ...example,
     id: createId("res"),

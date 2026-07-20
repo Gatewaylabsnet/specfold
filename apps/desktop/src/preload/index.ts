@@ -17,6 +17,8 @@ const studioApi: StudioApi = {
   saveExportFile: (defaultPath: string, content: string) =>
     ipcRenderer.invoke("file:saveExport", { defaultPath, content }),
   openImportFile: () => ipcRenderer.invoke("file:openImport"),
+  openUploadFile: () => ipcRenderer.invoke("file:openUpload"),
+  releaseUploadFile: (uploadId: string) => ipcRenderer.invoke("file:releaseUpload", uploadId),
   openPostmanFolder: () => ipcRenderer.invoke("file:openPostmanFolder"),
   exportBackup: (workspace: Workspace) => ipcRenderer.invoke("file:exportBackup", workspace),
   restoreBackup: () => ipcRenderer.invoke("file:restoreBackup"),

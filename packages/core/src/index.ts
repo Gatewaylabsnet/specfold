@@ -1,6 +1,7 @@
 export * from "./model/types";
 export * from "./model/factory";
 export * from "./model/traversal";
+export * from "./model/sanitizeUploads";
 export * from "./importers";
 export * from "./importers/document";
 export * from "./exporters/openapi/exportOpenApi";

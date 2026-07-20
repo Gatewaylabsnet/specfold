@@ -1,7 +1,7 @@
 import { createCollection, createFolder, createId, createKeyValue, createRequest } from "../../model/factory";
 import type { ApiRequest, AuthConfig, Collection, EnvironmentVariable, Folder, KeyValue, RequestBody, ResponseExample } from "../../model/types";
 import { asArray, asRecord, asString, isRecord, type AnyRecord } from "../shared";
-import { contentTypeForLanguage, contentTypeFromHeaders, descriptionText, environmentFromVariables, keyValues, looksSecret, numberValue, parseJsonValue, portableFormFields, previewCollections, rawBody, scalarText, splitUrl, supportedMethod } from "./shared";
+import { contentTypeForLanguage, contentTypeFromHeaders, descriptionText, environmentFromVariables, keyValues, looksSecret, numberValue, parseJsonValue, portableMultipartFields, previewCollections, rawBody, scalarText, splitUrl, supportedMethod } from "./shared";
 import type { ImportDocumentResult } from "./types";
 
 export function isPostmanCollection(document: AnyRecord): boolean {
@@ -190,15 +190,17 @@ export function postmanBody(
     };
   }
   if (mode === "formdata") {
-    const fields = portableFormFields(body.formdata, "key", "value");
-    const hasFiles = asArray(body.formdata).some((entry) => asRecord(entry).type === "file");
-    warnings.push(
-      `${requestName}: multipart form-data was imported as editable form fields${hasFiles ? "; file entries require manual review" : ""}.`
-    );
+    const fields = portableMultipartFields(body.formdata, "key", "value");
+    const hasFiles = fields.some((field) => field.type === "file");
+    if (hasFiles) {
+      warnings.push(
+        `${requestName}: multipart file fields were imported without local paths or contents; select each file manually before sending.`
+      );
+    }
     return {
-      mode: "form",
-      contentType: "application/x-www-form-urlencoded",
-      form: fields
+      mode: "multipart",
+      contentType: "multipart/form-data",
+      multipart: fields
     };
   }
   if (mode === "graphql") {

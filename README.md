@@ -12,9 +12,9 @@
 
 <p align="center">
   <a href="https://gatewaylabs.net/specfold">gatewaylabs.net/specfold</a>
-  ·
-  <a href="https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.2.1">Download v1.2.1</a>
-  ·
+  /
+  <a href="https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.3.0">Download v1.3.0</a>
+  /
   <a href="docs/REDTEAM_REPORT.md">Security review</a>
 </p>
 
@@ -30,7 +30,7 @@
   </a>
 </p>
 
-![Specfold v1.2.1 showing independent collection and folder collapse controls, a focused folder base URL editor, the effective routing source, and a request editor](docs/assets/specfold-main.png)
+![Specfold v1.3.0 showing independent collection and folder collapse controls, a focused folder base URL editor, the effective routing source, and a request editor](docs/assets/specfold-main.png)
 
 Specfold helps developers turn API specifications into a practical request workspace:
 
@@ -44,21 +44,21 @@ OpenAPI / Swagger / Postman / Insomnia / HAR / .http / cURL
 
 It is intentionally local-first. There is no account requirement, no cloud workspace, and no hosted sync layer. Your workspace, environments, request history, and secrets stay on the machine running the desktop app.
 
-## Download v1.2.1
+## Download v1.3.0
 
 | Platform | Package | Download |
 | --- | --- | --- |
-| Windows x64 | Installer | [Specfold-1.2.1-x64.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.2.1/Specfold-1.2.1-x64.exe) |
-| Windows x64 | Portable app | [Specfold-1.2.1-x64-portable.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.2.1/Specfold-1.2.1-x64-portable.exe) |
-| macOS Apple Silicon | DMG | [Specfold-1.2.1-mac-arm64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.2.1/Specfold-1.2.1-mac-arm64.dmg) |
-| macOS Apple Silicon | ZIP | [Specfold-1.2.1-mac-arm64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.2.1/Specfold-1.2.1-mac-arm64.zip) |
-| macOS Intel | DMG | [Specfold-1.2.1-mac-x64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.2.1/Specfold-1.2.1-mac-x64.dmg) |
-| macOS Intel | ZIP | [Specfold-1.2.1-mac-x64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.2.1/Specfold-1.2.1-mac-x64.zip) |
-| Linux x64 | AppImage | [Specfold-1.2.1-linux-x86_64.AppImage](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.2.1/Specfold-1.2.1-linux-x86_64.AppImage) |
-| Linux x64 | Debian package | [Specfold-1.2.1-linux-amd64.deb](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.2.1/Specfold-1.2.1-linux-amd64.deb) |
-| All platforms | SHA-256 checksums | [SHA256SUMS.txt](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.2.1/SHA256SUMS.txt) |
+| Windows x64 | Installer | [Specfold-1.3.0-x64.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.3.0/Specfold-1.3.0-x64.exe) |
+| Windows x64 | Portable app | [Specfold-1.3.0-x64-portable.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.3.0/Specfold-1.3.0-x64-portable.exe) |
+| macOS Apple Silicon | DMG | [Specfold-1.3.0-mac-arm64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.3.0/Specfold-1.3.0-mac-arm64.dmg) |
+| macOS Apple Silicon | ZIP | [Specfold-1.3.0-mac-arm64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.3.0/Specfold-1.3.0-mac-arm64.zip) |
+| macOS Intel | DMG | [Specfold-1.3.0-mac-x64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.3.0/Specfold-1.3.0-mac-x64.dmg) |
+| macOS Intel | ZIP | [Specfold-1.3.0-mac-x64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.3.0/Specfold-1.3.0-mac-x64.zip) |
+| Linux x64 | AppImage | [Specfold-1.3.0-linux-x86_64.AppImage](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.3.0/Specfold-1.3.0-linux-x86_64.AppImage) |
+| Linux x64 | Debian package | [Specfold-1.3.0-linux-amd64.deb](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.3.0/Specfold-1.3.0-linux-amd64.deb) |
+| All platforms | SHA-256 checksums | [SHA256SUMS.txt](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.3.0/SHA256SUMS.txt) |
 
-Release page: [github.com/Gatewaylabsnet/specfold/releases/tag/v1.2.1](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.2.1). The previous [v1.2.0 release](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.2.0) remains available.
+Release page: [github.com/Gatewaylabsnet/specfold/releases/tag/v1.3.0](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.3.0). The previous [v1.2.1 release](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.2.1) remains available.
 
 Verify a downloaded package against the published checksums:
 
@@ -66,7 +66,7 @@ Verify a downloaded package against the published checksums:
 sha256sum -c SHA256SUMS.txt --ignore-missing
 ```
 
-On Windows PowerShell, compare `Get-FileHash .\Specfold-1.2.1-x64.exe -Algorithm SHA256` with the matching line in `SHA256SUMS.txt`.
+On Windows PowerShell, compare `Get-FileHash .\Specfold-1.3.0-x64.exe -Algorithm SHA256` with the matching line in `SHA256SUMS.txt`.
 
 Unsigned Windows builds may trigger SmartScreen. Unsigned and non-notarized macOS builds may require opening from Finder with **Open** to confirm the Gatekeeper prompt.
 
@@ -75,12 +75,12 @@ approval roles, build provenance, privacy, and the current SignPath Foundation
 application status. Release artifacts remain unsigned until that policy
 explicitly states that signing is active.
 
-### v1.2.1 Highlights
+### v1.3.0 Highlights
 
-- Collection and folder rows now use dedicated chevrons, so expanding or collapsing the tree does not change the current selection.
-- Nested folders preserve their expanded state, and search can reveal matches without discarding that state.
-- The request workspace shows one base URL editor for the selected environment, collection, or folder instead of showing every scope at once.
-- An effective Base URL summary explains the resolved URL and whether it came from the environment, collection, or nearest folder.
+- `multipart/form-data` request bodies now support text rows, file rows, repeated field names, native file selection, and automatic boundary generation.
+- OpenAPI, Swagger, Postman, Insomnia, HAR, and cURL imports create safe file placeholders without trusting local source paths.
+- Upload files are session-only and are never written into workspaces, backups, Collection JSON, OpenAPI exports, or copied cURL commands.
+- OpenAPI import now prefers multipart file content over JSON alternatives when an operation offers both.
 
 ## What It Does
 
@@ -92,6 +92,7 @@ explicitly states that signing is active.
 - Collapses collections and nested folders independently while keeping search matches visible without losing the previous expanded state.
 - Shows only the selected routing scope for base URL editing, alongside the effective URL and its environment, collection, or folder source.
 - Edits request method, URL, query params, path params, headers, body, and auth.
+- Builds `multipart/form-data` bodies with text and file rows, repeated field names, native file selection, and an automatically generated boundary.
 - Supports bearer token, basic auth, API key auth, and no-auth request modes.
 - Sends HTTP requests from the desktop app and shows status, timing, size, headers, body, raw response, and per-request history.
 - Copies any request as a `curl` command.
@@ -106,15 +107,15 @@ explicitly states that signing is active.
 
 | Format | Accepted input | Notes |
 | --- | --- | --- |
-| OpenAPI 3.0/3.1 | JSON, YAML | Local references and source-operation fidelity |
-| Swagger 2.0 | JSON, YAML | Converted to the internal request model |
-| Postman 2.0/2.1 | Collection JSON | Folders, variables, auth, bodies, examples |
+| OpenAPI 3.0/3.1 | JSON, YAML | Local references, multipart schemas, and source-operation fidelity |
+| Swagger 2.0 | JSON, YAML | Request model conversion, including multipart `formData` |
+| Postman 2.0/2.1 | Collection JSON | Folders, variables, auth, bodies, multipart placeholders, examples |
 | Postman 3 | Multi-file YAML folder | Scripts and symlinks are skipped |
-| Insomnia 4/5 | Export JSON | Workspaces, folders, environments, responses |
-| HAR 1.2 | JSON | Captured requests and response examples |
+| Insomnia 4/5 | Export JSON | Workspaces, folders, environments, multipart placeholders, responses |
+| HAR 1.2 | JSON | Captured requests, multipart placeholders, and response examples |
 | HTTP files | `.http`, `.rest` | Declarative requests only; scripts are not executed |
 | Specfold | Collection JSON | Native portable collection |
-| cURL | Command text | Common method/header/body/auth flags |
+| cURL | Command text | Common method/header/body/auth flags and `-F`/`--form` fields |
 
 Malformed or unsupported records are reported without executing imported scripts. Folder imports are bounded by depth, file count, and total bytes.
 
@@ -149,6 +150,17 @@ Specfold includes an Apinizer-focused JWT request template:
 7. Use bearer auth with `{{accessToken}}` on other requests.
 8. Export the selected folder or collection as OpenAPI YAML/JSON.
 
+## Form Data And File Uploads
+
+Choose **Body -> Form data** for endpoints that accept `multipart/form-data`:
+
+1. Add a text field or file field.
+2. Enter the field name expected by the API. Duplicate names are allowed for multi-file endpoints.
+3. For a file field, choose the file through the native picker. The optional media type defaults from the file extension.
+4. Send the request. Specfold generates the multipart boundary and `Content-Type` header automatically.
+
+Imported OpenAPI, Swagger, Postman, Insomnia, HAR, and cURL file fields are safe placeholders: their local source paths are not trusted or read. Choose each file again before sending. Files are referenced for the current app session only and are not embedded in exports or backups.
+
 ## Data And Security
 
 - Workspaces are saved locally using atomic writes.
@@ -162,6 +174,8 @@ Specfold includes an Apinizer-focused JWT request template:
 - Parameter and header values are not emitted as OpenAPI examples unless explicitly enabled.
 - Unused component schemas are pruned from folder-scoped exports by default.
 - HTTP requests use configurable timeouts and capped response bodies.
+- Upload files are granted only after an explicit native file-picker selection. Specfold keeps an opaque, session-only reference in memory; local paths and file bytes are never written to the workspace, backup, Collection JSON, or OpenAPI export.
+- Multipart requests allow at most 200 parts, including at most 50 files, and 100 MB of file and text content per send. Files must be selected again after restarting the app, restoring a backup, or importing a collection.
 - Insecure TLS is opt-in.
 - System proxy rules are used, with `HTTP_PROXY` / `HTTPS_PROXY` fallback.
 - The desktop renderer runs with `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, and a packaged Content Security Policy.
@@ -191,21 +205,21 @@ Download the `.dmg` or `.zip` for your architecture:
 - Apple Silicon: `arm64`
 - Intel: `x64`
 
-Because v1.2.1 is not notarized, macOS may require opening the app from Finder with **Open**.
+Because v1.3.0 is not notarized, macOS may require opening the app from Finder with **Open**.
 
 ### Linux
 
 Download the `.AppImage` or `.deb`.
 
 ```bash
-chmod +x Specfold-1.2.1-linux-x86_64.AppImage
-./Specfold-1.2.1-linux-x86_64.AppImage
+chmod +x Specfold-1.3.0-linux-x86_64.AppImage
+./Specfold-1.3.0-linux-x86_64.AppImage
 ```
 
 For Debian-based distributions:
 
 ```bash
-sudo dpkg -i Specfold-1.2.1-linux-amd64.deb
+sudo dpkg -i Specfold-1.3.0-linux-amd64.deb
 sudo apt-get install -f
 ```
 
@@ -249,9 +263,9 @@ Artifacts are written to `apps/desktop/dist`.
 Run the release workflow manually first. `workflow_dispatch` builds and verifies every package plus `SHA256SUMS.txt` without creating a tag or release. Tag pushes run the same package gate and create a draft GitHub Release.
 
 ```bash
-git tag -a v1.2.1 -m "Specfold v1.2.1"
+git tag -a v1.3.0 -m "Specfold v1.3.0"
 git push origin main
-git push origin v1.2.1
+git push origin v1.3.0
 ```
 
 Public release assets are only the two Windows packages, four macOS packages, Linux AppImage/DEB, and `SHA256SUMS.txt`. Builder debug YAML, updater YAML, and blockmaps are excluded. The generated release stays draft until manual smoke tests pass.
@@ -262,8 +276,9 @@ Public release assets are only the two Windows packages, four macOS packages, Li
 - macOS builds are not notarized yet.
 - Complete backups are plaintext by design and may contain secrets.
 - Very large imports/exports can still use the renderer thread, within configured size limits.
-- Auto-update is not implemented in v1.2.1.
+- Auto-update is not implemented in v1.3.0.
 - SOCKS proxies are not supported; configure an HTTP(S) proxy for Specfold.
+- Multipart uploads are capped at 200 parts, 50 files, and 100 MB of file and text content per request; selected files must be chosen again after an app restart.
 
 ## License
 

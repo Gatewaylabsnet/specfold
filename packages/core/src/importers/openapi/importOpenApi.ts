@@ -10,14 +10,17 @@ import {
   firstPathSegment,
   getRecord,
   HTTP_METHODS,
+  isRecord,
   parameterToKeyValue,
   parseApiText,
   resolveLocalRef,
+  schemaToExample,
   selectJsonLikeContent,
   exampleFromMedia,
+  stringifyPrimitive,
   type AnyRecord
 } from "../shared";
-import { createCollection, createFolder, createKeyValue } from "../../model/factory";
+import { createCollection, createFolder, createKeyValue, createMultipartField } from "../../model/factory";
 import type {
   ApiRequest,
   Collection,
@@ -88,7 +91,8 @@ export function importOpenApiDocument(
         method,
         operation,
         pathItem,
-        securitySchemes
+        securitySchemes,
+        warnings
       });
       placeRequest(collection, folderMap, request, options.grouping, path, request.openApi?.tags ?? []);
     }
@@ -110,10 +114,15 @@ function operationToRequest(input: {
   operation: AnyRecord;
   pathItem: AnyRecord;
   securitySchemes: AnyRecord;
+  warnings: string[];
 }): ApiRequest {
-  const { document, path, method, operation, pathItem, securitySchemes } = input;
+  const { document, path, method, operation, pathItem, securitySchemes, warnings } = input;
   const tags = asStringArray(operation.tags);
-  const requestBody = requestBodyFromOperation(document, operation);
+  const name =
+    asString(operation.summary) ??
+    asString(operation.operationId) ??
+    `${method.toUpperCase()} ${path}`;
+  const requestBody = requestBodyFromOperation(document, operation, warnings, name);
   const headers = [...requestBody.headers];
   const queryParams = [];
   const pathParams = [];
@@ -140,11 +149,6 @@ function operationToRequest(input: {
   }
 
   const responseExamples = responseExamplesFromOperation(document, operation);
-  const name =
-    asString(operation.summary) ??
-    asString(operation.operationId) ??
-    `${method.toUpperCase()} ${path}`;
-
   return {
     id: cryptoId("req"),
     name,
@@ -174,18 +178,35 @@ function operationToRequest(input: {
 
 function requestBodyFromOperation(
   document: AnyRecord,
-  operation: AnyRecord
+  operation: AnyRecord,
+  warnings: string[],
+  requestName: string
 ): { body: RequestBody; headers: ReturnType<typeof createKeyValue>[] } {
   const requestBody = asRecord(resolveLocalRef(document, operation.requestBody));
-  const { contentType, media } = selectJsonLikeContent(requestBody.content);
+  const { contentType, media } = selectRequestBodyContent(document, requestBody.content);
   if (!contentType || Object.keys(media).length === 0) {
     return { body: { mode: "none" }, headers: [] };
+  }
+
+  if (contentType.toLowerCase().startsWith("multipart/form-data")) {
+    const body = multipartBodyFromMedia(document, media, requestBody.required === true);
+    if (body.multipart?.some((field) => field.type === "file")) {
+      warnings.push(
+        `${requestName}: multipart file fields were imported without local paths or contents; select each file manually before sending.`
+      );
+    }
+    return {
+      body,
+      // FormData/fetch must generate the boundary-bearing Content-Type header.
+      headers: []
+    };
   }
 
   const bodyValue = exampleFromMedia(media);
   const body: RequestBody = {
     mode: contentType.includes("json") ? "json" : "raw",
     contentType,
+    required: requestBody.required === true,
     raw:
       typeof bodyValue === "string"
         ? bodyValue
@@ -197,6 +218,98 @@ function requestBodyFromOperation(
     body,
     headers: [createKeyValue("Content-Type", contentType)]
   };
+}
+
+function selectRequestBodyContent(
+  document: AnyRecord,
+  contentInput: unknown
+): { contentType?: string; media: AnyRecord } {
+  const content = asRecord(contentInput);
+  for (const [contentType, mediaInput] of Object.entries(content)) {
+    if (!contentType.toLowerCase().startsWith("multipart/form-data") || !isRecord(mediaInput)) {
+      continue;
+    }
+    const media = asRecord(mediaInput);
+    if (multipartMediaContainsFile(document, media)) {
+      return { contentType, media };
+    }
+  }
+  return selectJsonLikeContent(contentInput);
+}
+
+function multipartMediaContainsFile(document: AnyRecord, media: AnyRecord): boolean {
+  const schema = asRecord(resolveLocalRef(document, media.schema));
+  if (isBinarySchema(document, schema)) {
+    return true;
+  }
+  return Object.values(asRecord(schema.properties)).some((property) =>
+    isBinarySchema(document, asRecord(property))
+  );
+}
+
+function multipartBodyFromMedia(
+  document: AnyRecord,
+  media: AnyRecord,
+  bodyRequired: boolean
+): RequestBody {
+  const schema = asRecord(resolveLocalRef(document, media.schema));
+  const properties = asRecord(schema.properties);
+  const example = asRecord(exampleFromMedia(media));
+  const encoding = asRecord(media.encoding);
+  const requiredProperties = new Set(asStringArray(schema.required));
+  const names = new Set([...Object.keys(properties), ...Object.keys(example)]);
+  const fields = [...names].flatMap((key) => {
+    const property = asRecord(resolveLocalRef(document, properties[key]));
+    const isArray = asString(property.type) === "array" || Array.isArray(example[key]);
+    const isFile = isBinarySchema(document, property);
+    const fallbackValue = Object.prototype.hasOwnProperty.call(example, key)
+      ? example[key]
+      : Object.prototype.hasOwnProperty.call(property, "example")
+        ? property.example
+        : Object.prototype.hasOwnProperty.call(property, "default")
+          ? property.default
+          : schemaToExample(property);
+    const fieldEncoding = asRecord(encoding[key]);
+    const contentType = asString(fieldEncoding.contentType) ?? asString(property.contentMediaType);
+    const values = !isFile && isArray && Array.isArray(fallbackValue)
+      ? (fallbackValue.length > 0 ? fallbackValue : [undefined])
+      : [fallbackValue];
+    return values.map((value) => {
+      const field = createMultipartField(
+        isFile ? "file" : "text",
+        key,
+        isFile ? "" : stringifyPrimitive(value)
+      );
+      field.enabled = !isFile;
+      field.description = asString(property.description);
+      field.isArray = isArray;
+      field.required = requiredProperties.has(key);
+      if (contentType) {
+        field.contentType = contentType;
+      }
+      return field;
+    });
+  });
+
+  return {
+    mode: "multipart",
+    contentType: "multipart/form-data",
+    required: bodyRequired,
+    multipart: fields,
+    schema: media.schema
+  };
+}
+
+function isBinarySchema(document: AnyRecord, schemaInput: AnyRecord): boolean {
+  const schema = asRecord(resolveLocalRef(document, schemaInput));
+  if (asString(schema.type) === "string" && asString(schema.format) === "binary") {
+    return true;
+  }
+  if (asString(schema.type) === "array") {
+    const items = asRecord(resolveLocalRef(document, schema.items));
+    return asString(items.type) === "string" && asString(items.format) === "binary";
+  }
+  return false;
 }
 
 function responseExamplesFromOperation(document: AnyRecord, operation: AnyRecord) {

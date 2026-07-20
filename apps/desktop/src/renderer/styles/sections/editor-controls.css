@@ -140,7 +140,9 @@
 
 .segmented {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 4px;
+  max-width: 100%;
   margin-bottom: 10px;
   padding: 4px;
   border: 1px solid #d4dae3;
@@ -161,6 +163,175 @@
   color: #162235;
   background: #fff;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+.multipart-editor,
+.multipart-editor__fields {
+  display: grid;
+  gap: 10px;
+}
+
+.multipart-editor__help,
+.multipart-editor__empty {
+  display: grid;
+  gap: 3px;
+  padding: 11px 12px;
+  border: 1px solid #d8e2ef;
+  border-radius: 8px;
+  color: #536276;
+  background: #f7faff;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.multipart-editor__help strong,
+.multipart-editor__empty strong {
+  color: #26364b;
+  font-size: 13px;
+}
+
+.multipart-editor__empty {
+  border-style: dashed;
+  background: #fafbfd;
+}
+
+.multipart-field {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid #dce2ea;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.multipart-field.is-disabled {
+  background: #f8fafc;
+}
+
+.multipart-field__header {
+  display: grid;
+  grid-template-columns: auto minmax(130px, 1fr) minmax(96px, 128px) 34px;
+  gap: 9px;
+  align-items: end;
+  min-width: 0;
+}
+
+.multipart-field__enabled,
+.multipart-field__name,
+.multipart-field__type,
+.multipart-field__value,
+.multipart-field__media-type {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: #5b6879;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.multipart-field__enabled {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  gap: 6px;
+  min-height: 34px;
+  padding-right: 2px;
+}
+
+.multipart-field__enabled span {
+  display: none;
+}
+
+.multipart-field input:not([type="checkbox"]),
+.multipart-field select {
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 9px;
+}
+
+.multipart-field__remove {
+  align-self: end;
+  min-width: 34px;
+  min-height: 34px;
+}
+
+.multipart-field__file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #e1e6ed;
+  border-radius: 7px;
+  background: #fafbfd;
+}
+
+.multipart-field__file-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.multipart-field__file-copy > span {
+  color: #697789;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.multipart-field__file-copy strong {
+  overflow: hidden;
+  color: #26364b;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multipart-field__file-copy small {
+  overflow: hidden;
+  color: #697789;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multipart-field__file-actions,
+.multipart-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.multipart-field__file-actions {
+  flex: none;
+}
+
+.multipart-field__media-type {
+  max-width: 420px;
+}
+
+.multipart-field__file-actions .secondary-button,
+.multipart-editor__actions .secondary-button,
+.multipart-field__file-actions .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.multipart-field__error {
+  margin: -2px 0 0;
+  color: #b42318;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.multipart-field.is-disabled .multipart-field__value,
+.multipart-field.is-disabled .multipart-field__media-type,
+.multipart-field.is-disabled .multipart-field__file {
+  opacity: 0.62;
 }
 
 .response-panel {

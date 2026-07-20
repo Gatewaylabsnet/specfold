@@ -9,6 +9,7 @@ import {
   createEmptyWorkspace,
   createFolder,
   createKeyValue,
+  createMultipartField,
   createRequest,
   findFolder,
   removeFolder
@@ -26,6 +27,14 @@ describe("model helpers", () => {
   it("clones a request with fresh ids everywhere", () => {
     const request = createRequest({ name: "Original", method: "POST", url: "{{baseUrl}}/x" });
     request.headers.push(createKeyValue("X-Test", "1"));
+    request.body = {
+      mode: "multipart",
+      multipart: [{
+        ...createMultipartField("file", "document"),
+        uploadId: "session-only",
+        fileName: "report.pdf"
+      }]
+    };
 
     const copy = cloneRequest(request);
 
@@ -33,6 +42,9 @@ describe("model helpers", () => {
     expect(copy.name).toBe("Original copy");
     expect(copy.headers[0].id).not.toBe(request.headers[0].id);
     expect(copy.headers[0].key).toBe("X-Test");
+    expect(copy.body.multipart?.[0].id).not.toBe(request.body.multipart?.[0].id);
+    expect(copy.body.multipart?.[0].uploadId).toBeUndefined();
+    expect(copy.body.multipart?.[0].fileName).toBe("report.pdf");
   });
 
   it("clones a folder subtree with fresh ids", () => {

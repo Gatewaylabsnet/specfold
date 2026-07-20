@@ -1,4 +1,11 @@
-import type { ApiRequest, Collection, Environment, Folder, KeyValue } from "../model/types";
+import type {
+  ApiRequest,
+  Collection,
+  Environment,
+  Folder,
+  KeyValue,
+  MultipartField
+} from "../model/types";
 import { folderBaseUrl } from "../model/traversal";
 
 export interface VariableResolution {
@@ -102,6 +109,23 @@ export function resolveKeyValues(
   };
 }
 
+export function resolveMultipartFields(
+  fields: MultipartField[],
+  variables: Record<string, string>
+): { fields: MultipartField[]; missing: string[] } {
+  const missing = new Set<string>();
+  const resolved = fields.map((field) => {
+    const key = resolveVariablesInText(field.key, variables);
+    const value = field.type === "text"
+      ? resolveVariablesInText(field.value, variables)
+      : { value: field.value, missing: [] as string[] };
+    key.missing.forEach((name) => missing.add(name));
+    value.missing.forEach((name) => missing.add(name));
+    return { ...field, key: key.value, value: value.value };
+  });
+  return { fields: resolved, missing: [...missing] };
+}
+
 export function resolveRequestVariables(
   request: ApiRequest,
   environment?: Environment,
@@ -130,6 +154,11 @@ export function resolveRequestVariables(
     ? resolveKeyValues(request.body.form, variables)
     : undefined;
   formBody?.missing.forEach((name) => missing.add(name));
+
+  const multipartBody = request.body.multipart
+    ? resolveMultipartFields(request.body.multipart, variables)
+    : undefined;
+  multipartBody?.missing.forEach((name) => missing.add(name));
 
   const auth = { ...request.auth };
   if (auth.type === "bearer") {
@@ -164,7 +193,8 @@ export function resolveRequestVariables(
       body: {
         ...request.body,
         raw: rawBody.value,
-        form: formBody ? formBody.values : request.body.form
+        form: formBody ? formBody.values : request.body.form,
+        multipart: multipartBody ? multipartBody.fields : request.body.multipart
       },
       auth
     },

@@ -7,7 +7,7 @@ export type HttpMethod =
   | "OPTIONS"
   | "HEAD";
 
-export type BodyMode = "none" | "json" | "raw" | "form";
+export type BodyMode = "none" | "json" | "raw" | "form" | "multipart";
 
 export interface KeyValue {
   id: string;
@@ -17,12 +17,39 @@ export interface KeyValue {
   description?: string;
 }
 
+export type MultipartFieldType = "text" | "file";
+
+/**
+ * One multipart/form-data part. File bytes never live in the workspace: the
+ * desktop process issues an opaque, session-only uploadId after an explicit
+ * file-picker selection.
+ */
+export interface MultipartField {
+  id: string;
+  key: string;
+  enabled: boolean;
+  type: MultipartFieldType;
+  value: string;
+  uploadId?: string;
+  fileName?: string;
+  contentType?: string;
+  sizeBytes?: number;
+  description?: string;
+  /** Preserve an imported array schema even when only one editable row exists. */
+  isArray?: boolean;
+  required?: boolean;
+}
+
 export interface RequestBody {
   mode: BodyMode;
   contentType?: string;
   raw?: string;
   /** Field pairs for mode "form" (application/x-www-form-urlencoded). */
   form?: KeyValue[];
+  /** Text and file parts for mode "multipart" (multipart/form-data). */
+  multipart?: MultipartField[];
+  /** OpenAPI requestBody required state; undefined keeps legacy export behavior. */
+  required?: boolean;
   json?: unknown;
   schema?: unknown;
 }

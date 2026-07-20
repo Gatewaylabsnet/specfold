@@ -16,7 +16,7 @@ import {
   schemaToExample,
   type AnyRecord
 } from "../shared";
-import { createCollection, createFolder, createId, createKeyValue } from "../../model/factory";
+import { createCollection, createFolder, createId, createKeyValue, createMultipartField } from "../../model/factory";
 import type {
   ApiRequest,
   Collection,
@@ -73,6 +73,7 @@ export function importSwagger2Document(
   const paths = getRecord(document, "paths");
   const securitySchemes = collectSecuritySchemes(document);
   const selectedKeys = options.operationKeys ? new Set(options.operationKeys) : undefined;
+  const warnings: string[] = [];
 
   for (const [path, pathItemInput] of Object.entries(paths)) {
     const pathItem = asRecord(pathItemInput);
@@ -91,13 +92,14 @@ export function importSwagger2Document(
         method,
         operation,
         pathItem,
-        securitySchemes
+        securitySchemes,
+        warnings
       });
       placeRequest(collection, folderMap, request, options.grouping, path, request.openApi?.tags ?? []);
     }
   }
 
-  return { collection, preview, warnings: [] };
+  return { collection, preview, warnings };
 }
 
 function swaggerBaseUrl(document: AnyRecord): string {
@@ -114,13 +116,15 @@ function swaggerOperationToRequest(input: {
   operation: AnyRecord;
   pathItem: AnyRecord;
   securitySchemes: AnyRecord;
+  warnings: string[];
 }): ApiRequest {
-  const { document, path, method, operation, pathItem, securitySchemes } = input;
+  const { document, path, method, operation, pathItem, securitySchemes, warnings } = input;
   const tags = asStringArray(operation.tags);
   const headers = [];
   const queryParams = [];
   const pathParams = [];
   let body: RequestBody = { mode: "none" };
+  const formParameters: AnyRecord[] = [];
 
   const parameters = [
     ...asArray(pathItem.parameters),
@@ -142,13 +146,66 @@ function swaggerOperationToRequest(input: {
     if (location === "header") {
       headers.push(parameterToKeyValue(parameter));
     }
+    if (location === "formData") {
+      formParameters.push(parameter);
+    }
     if (location === "body") {
       const example = schemaToExample(parameter.schema);
       body = {
         mode: "json",
         contentType: firstJsonConsumeType(document, operation),
+        required: parameter.required === true,
         raw: JSON.stringify(example, null, 2),
         schema: parameter.schema
+      };
+    }
+  }
+
+  if (formParameters.length > 0) {
+    const operationConsumes = asStringArray(operation.consumes);
+    const consumes = (
+      operationConsumes.length > 0 ? operationConsumes : asStringArray(document.consumes)
+    ).map((value) => value.toLowerCase());
+    const hasFile = formParameters.some((parameter) => asString(parameter.type) === "file");
+    const isMultipart = hasFile || consumes.some((value) => value.includes("multipart/form-data"));
+    if (isMultipart) {
+      const multipart = formParameters.map((parameter) => {
+        const name = asString(parameter.name) ?? "";
+        const isFile = asString(parameter.type) === "file";
+        const field = createMultipartField(
+          isFile ? "file" : "text",
+          name,
+          isFile ? "" : parameterToKeyValue(parameter).value
+        );
+        field.enabled = !isFile;
+        field.description = asString(parameter.description);
+        field.isArray = asString(parameter.type) === "array";
+        field.required = parameter.required === true;
+        if (isFile) {
+          field.description = field.description
+            ? `${field.description} File contents require manual selection.`
+            : "File field imported without a local path or contents; select the file manually before sending.";
+        }
+        return field;
+      });
+      body = {
+        mode: "multipart",
+        contentType: "multipart/form-data",
+        required: formParameters.some((parameter) => parameter.required === true),
+        multipart
+      };
+      if (hasFile) {
+        const requestName = asString(operation.summary) ?? asString(operation.operationId) ?? `${method.toUpperCase()} ${path}`;
+        warnings.push(
+          `${requestName}: multipart file fields were imported without local paths or contents; select each file manually before sending.`
+        );
+      }
+    } else {
+      body = {
+        mode: "form",
+        contentType: "application/x-www-form-urlencoded",
+        required: formParameters.some((parameter) => parameter.required === true),
+        form: formParameters.map((parameter) => parameterToKeyValue(parameter))
       };
     }
   }

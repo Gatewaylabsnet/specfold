@@ -1,4 +1,11 @@
-import type { ApiRequest, Collection, Environment, Folder, KeyValue } from "../model/types";
+import type {
+  ApiRequest,
+  Collection,
+  Environment,
+  Folder,
+  KeyValue,
+  MultipartField
+} from "../model/types";
 import {
   environmentToMap,
   resolveRequestVariables,
@@ -10,6 +17,7 @@ export interface PreparedHttpRequest {
   method: string;
   headers: Record<string, string>;
   body?: string;
+  multipart?: MultipartField[];
 }
 
 export class MissingVariablesError extends Error {
@@ -54,6 +62,7 @@ export function prepareHttpRequest(
   }
 
   let body = requestWithPathParams.body.raw;
+  let multipart: MultipartField[] | undefined;
   if (requestWithPathParams.body.mode === "form") {
     const pairs = (requestWithPathParams.body.form ?? []).filter((item) => item.enabled && item.key);
     body = pairs
@@ -64,8 +73,20 @@ export function prepareHttpRequest(
       requestWithPathParams.body.contentType ??
       "application/x-www-form-urlencoded";
   }
-  if (requestWithPathParams.body.mode === "none" || requestWithPathParams.method === "GET") {
+  if (requestWithPathParams.body.mode === "multipart") {
+    multipart = (requestWithPathParams.body.multipart ?? []).filter(
+      (field) => field.enabled && field.key.trim()
+    );
     body = undefined;
+    deleteHeader(headers, "content-type");
+  }
+  if (
+    requestWithPathParams.body.mode === "none" ||
+    requestWithPathParams.method === "GET" ||
+    requestWithPathParams.method === "HEAD"
+  ) {
+    body = undefined;
+    multipart = undefined;
   }
   if (requestWithPathParams.body.mode === "json" && requestWithPathParams.body.contentType) {
     headers["Content-Type"] = headers["Content-Type"] ?? requestWithPathParams.body.contentType;
@@ -75,7 +96,8 @@ export function prepareHttpRequest(
     url: appendApiKeyQuery(url, requestWithPathParams),
     method: requestWithPathParams.method,
     headers,
-    body
+    body,
+    multipart
   };
 }
 
@@ -162,6 +184,14 @@ function keyValuesToHeaders(values: KeyValue[]): Record<string, string> {
     }
   }
   return headers;
+}
+
+function deleteHeader(headers: Record<string, string>, name: string): void {
+  for (const key of Object.keys(headers)) {
+    if (key.toLowerCase() === name.toLowerCase()) {
+      delete headers[key];
+    }
+  }
 }
 
 function encodeBase64(value: string): string {

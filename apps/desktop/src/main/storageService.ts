@@ -14,6 +14,7 @@ import { dirname, join } from "node:path";
 import {
   createEmptyWorkspace,
   ensureWorkspaceEnvironment,
+  stripTransientUploadData,
   type Workspace
 } from "@openapi-collection-studio/core";
 import {
@@ -167,7 +168,10 @@ export function createStorageService(options: StorageServiceOptions) {
       };
     }
     try {
-      const parsed = validateWorkspace(JSON.parse(raw));
+      const parsed = stripTransientUploadData(validateWorkspace(JSON.parse(raw)), {
+        disableFileFields: true,
+        rootKind: "workspace"
+      });
       return {
         workspace: ensureWorkspaceEnvironment(decryptSecrets(parsed)),
         recovered: false,
@@ -186,7 +190,10 @@ export function createStorageService(options: StorageServiceOptions) {
 
   const saveWorkspace = async (workspace: Workspace): Promise<void> => {
     await rotateBackup();
-    const normalized = ensureWorkspaceEnvironment({ ...workspace, updatedAt: now().toISOString() });
+    const normalized = ensureWorkspaceEnvironment(stripTransientUploadData({
+      ...workspace,
+      updatedAt: now().toISOString()
+    }, { rootKind: "workspace" }));
     await atomicWrite(paths.workspace, JSON.stringify(encryptSecrets(normalized), null, 2));
   };
 
@@ -209,7 +216,9 @@ export function createStorageService(options: StorageServiceOptions) {
     exportedAt: now().toISOString(),
     appVersion,
     secretsIncluded: true,
-    workspace: ensureWorkspaceEnvironment(structuredClone(workspace)),
+    workspace: ensureWorkspaceEnvironment(stripTransientUploadData(workspace, {
+      rootKind: "workspace"
+    })),
     settings: await loadSettings()
   });
 
@@ -245,7 +254,12 @@ export function createStorageService(options: StorageServiceOptions) {
     const safetyBackupPath = await createRestoreSafetyBackup();
     const beforeWorkspace = await readOptional(paths.workspace);
     const beforeSettings = await readOptional(paths.settings);
-    const persistedWorkspace = encryptSecrets(ensureWorkspaceEnvironment(document.workspace));
+    const persistedWorkspace = encryptSecrets(
+      ensureWorkspaceEnvironment(stripTransientUploadData(document.workspace, {
+        disableFileFields: true,
+        rootKind: "workspace"
+      }))
+    );
     try {
       await atomicWrite(paths.workspace, JSON.stringify(persistedWorkspace, null, 2));
       await atomicWrite(paths.settings, JSON.stringify(document.settings, null, 2));

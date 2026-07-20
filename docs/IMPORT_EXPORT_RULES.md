@@ -4,19 +4,21 @@
 
 | Format | Input | Preserved |
 | --- | --- | --- |
-| OpenAPI 3.0/3.1 | JSON or YAML | Paths, operations, parameters, bodies, responses, auth, components, servers |
-| Swagger 2.0 | JSON or YAML | Paths, parameters, bodies, responses, security, host/basePath |
-| Postman 2.0/2.1 | Collection JSON | Hierarchy, variables, auth, bodies, response examples |
+| OpenAPI 3.0/3.1 | JSON or YAML | Paths, operations, parameters, multipart bodies, responses, auth, components, servers |
+| Swagger 2.0 | JSON or YAML | Paths, parameters, multipart `formData`, bodies, responses, security, host/basePath |
+| Postman 2.0/2.1 | Collection JSON | Hierarchy, variables, auth, bodies, multipart placeholders, response examples |
 | Postman 3 | Multi-file YAML folder | Definitions, hierarchy, requests, examples; scripts skipped |
-| Insomnia 4/5 | Export JSON | Workspaces, folders, environments, auth, bodies, responses |
-| HAR 1.2 | JSON | Requests, query/form values, headers, captured responses |
+| Insomnia 4/5 | Export JSON | Workspaces, folders, environments, auth, bodies, multipart placeholders, responses |
+| HAR 1.2 | JSON | Requests, query/form values, multipart placeholders, headers, captured responses |
 | HTTP files | `.http` / `.rest` | Variables, request lines, headers, inline bodies, named sections |
 | Specfold | Collection JSON | Native collection model |
-| cURL | Command text | Method, URL, headers, body, supported auth |
+| cURL | Command text | Method, URL, headers, body, `-F/--form` fields, supported auth |
 
 JSON detection runs before YAML/OpenAPI parsing. Unsupported JSON gets a format-specific message. Folder parent cycles are broken safely. Unknown HTTP methods, malformed entries, orphan examples, scripts, and file-backed bodies are skipped or warned about rather than executed.
 
 Local `$ref` values are resolved where practical. Remote `$ref` values are retained but never fetched. Operations can be selected before import and grouped by tags, first path segment, or one folder.
+
+Multipart text values remain editable. File paths from imported OpenAPI/Swagger/Postman/Insomnia/HAR/cURL content are untrusted: only the base filename is retained as a disabled placeholder and the user must choose the file again through the native picker. Upload IDs, absolute paths, and file bytes are excluded from Collection JSON, OpenAPI, workspace persistence, and complete backups.
 
 ## URL And Environment Rules
 
@@ -33,6 +35,7 @@ Local `$ref` values are resolved where practical. Remote `$ref` values are retai
 - Selected folders export recursively; folder names can become tags.
 - Folder base URLs are emitted as OpenAPI operation-level `servers` when they differ from the collection server.
 - Parameters, request bodies, responses, and supported security schemes are mapped back to OpenAPI.
+- Multipart file fields export as `type: string, format: binary`; text fields export as string properties. Repeated/array fields and OpenAPI body/property required flags survive round trips. No local file reference or byte content is emitted.
 - Literal examples are opt-in and secret-like values produce warnings.
 - Unused component schemas are pruned by default for scoped exports.
 - Duplicate method/path mappings and invalid variable paths/servers produce visible warnings.

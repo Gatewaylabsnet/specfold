@@ -1,7 +1,7 @@
 import { createCollection, createId, createKeyValue, createRequest } from "../../model/factory";
 import type { KeyValue, RequestBody, ResponseExample } from "../../model/types";
 import { asArray, asRecord, asString, type AnyRecord } from "../shared";
-import { authFromHeaders, contentTypeFromHeaders, decodeBase64, harRequestName, keyValues, numberValue, previewCollections, rawBody, splitUrl, supportedMethod } from "./shared";
+import { authFromHeaders, contentTypeFromHeaders, decodeBase64, harRequestName, keyValues, numberValue, portableMultipartFields, previewCollections, rawBody, splitUrl, supportedMethod } from "./shared";
 import type { ImportDocumentResult } from "./types";
 
 export function isHarDocument(document: AnyRecord): boolean {
@@ -47,7 +47,7 @@ export function importHarDocument(document: AnyRecord): ImportDocumentResult {
     request.queryParams = explicitQuery.length > 0 ? explicitQuery : split.queryParams;
     request.headers = headers;
     request.auth = authFromHeaders(headers);
-    request.body = harBody(requestInput.postData, headers);
+    request.body = harBody(requestInput.postData, headers, warnings, request.name);
     request.responseExamples = [responseFromHar(entry.response, warnings, request.name)];
     request.openApi = { sourceFormat: "har", method, path: split.url };
     collection.requests.push(request);
@@ -62,13 +62,27 @@ export function importHarDocument(document: AnyRecord): ImportDocumentResult {
   };
 }
 
-export function harBody(input: unknown, headers: KeyValue[]): RequestBody {
+export function harBody(
+  input: unknown,
+  headers: KeyValue[],
+  warnings: string[] = [],
+  requestName = "HAR request"
+): RequestBody {
   const postData = asRecord(input);
   if (Object.keys(postData).length === 0) {
     return { mode: "none" };
   }
   const mimeType = asString(postData.mimeType) ?? contentTypeFromHeaders(headers);
   const params = keyValues(postData.params, "name", "value");
+  if (params.length > 0 && mimeType?.toLowerCase().includes("multipart/form-data")) {
+    const fields = portableMultipartFields(postData.params, "name", "value");
+    if (fields.some((field) => field.type === "file")) {
+      warnings.push(
+        `${requestName}: multipart file fields were imported without local paths or contents; select each file manually before sending.`
+      );
+    }
+    return { mode: "multipart", contentType: "multipart/form-data", multipart: fields };
+  }
   if (params.length > 0 && mimeType?.includes("application/x-www-form-urlencoded")) {
     return { mode: "form", contentType: mimeType, form: params };
   }

@@ -117,6 +117,57 @@ describe("storage service", () => {
     expect(loaded.workspace.environments[0].variables[0].value).toBe("");
   });
 
+  it("never persists or backs up session-only multipart upload ids", async () => {
+    const userData = await testDirectory();
+    const paths = storagePaths(userData);
+    const service = createStorageService({ paths, secureStorage: secureStorage(), appVersion: "1.2.1" });
+    const workspace = createEmptyWorkspace("Uploads");
+    workspace.collections = [{
+      id: "collection",
+      name: "Files",
+      folders: [],
+      requests: [{
+        id: "request",
+        name: "Upload",
+        method: "POST",
+        url: "https://example.test/upload",
+        queryParams: [],
+        pathParams: [],
+        headers: [],
+        auth: { type: "none" },
+        responseExamples: [],
+        body: {
+          mode: "multipart",
+          multipart: [{
+            id: "part",
+            key: "file",
+            type: "file",
+            value: "",
+            enabled: true,
+            uploadId: "must-not-reach-disk",
+            fileName: "report.pdf"
+          }]
+        }
+      }]
+    }];
+
+    await service.saveWorkspace(workspace);
+    const backup = await service.createBackupDocument(workspace);
+    const persisted = await readFile(paths.workspace, "utf8");
+    const loaded = await service.loadWorkspace();
+
+    expect(persisted).not.toContain("must-not-reach-disk");
+    expect(JSON.stringify(backup)).not.toContain("must-not-reach-disk");
+    expect(loaded.workspace.collections[0].requests[0].body.multipart?.[0]).toMatchObject({
+      enabled: false,
+      fileName: "report.pdf"
+    });
+    expect(loaded.workspace.collections[0].requests[0].body.multipart?.[0].uploadId).toBeUndefined();
+    expect(workspace.collections[0].requests[0].body.multipart?.[0].uploadId).toBe(
+      "must-not-reach-disk"
+    );
+  });
+
   it("rejects unsupported, malformed, and oversized backups", async () => {
     const userData = await testDirectory();
     const paths = storagePaths(userData);

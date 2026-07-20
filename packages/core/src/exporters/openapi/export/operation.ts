@@ -74,6 +74,11 @@ export function operationForRequest(
 
   if (request.body.mode === "none") {
     delete operation.requestBody;
+  } else if (request.body.mode === "multipart") {
+    const generated = requestBodyForRequest(request, options);
+    operation.requestBody = generated
+      ? { ...asRecord(operation.requestBody), ...generated }
+      : generated;
   } else if (!isRecordValue(operation.requestBody)) {
     operation.requestBody = requestBodyForRequest(request, options);
   } else if (options.includeRequestExamples && request.body.raw) {
@@ -256,11 +261,72 @@ export function requestBodyForRequest(
       }
     }
     return {
-      required: true,
+      required: request.body.required ?? true,
       content: {
         "application/x-www-form-urlencoded": {
           schema: { type: "object", properties },
           example: options.includeRequestExamples ? example : undefined
+        }
+      }
+    };
+  }
+
+  if (request.body.mode === "multipart") {
+    const fields = (request.body.multipart ?? []).filter(
+      (field) => field.key.trim() && (field.enabled || field.type === "file")
+    );
+    const properties = Object.create(null) as AnyRecord;
+    const example = Object.create(null) as AnyRecord;
+    const encoding = Object.create(null) as AnyRecord;
+    const requiredProperties: string[] = [];
+    const fieldsByKey = new Map<string, typeof fields>();
+    for (const field of fields) {
+      const group = fieldsByKey.get(field.key) ?? [];
+      group.push(field);
+      fieldsByKey.set(field.key, group);
+    }
+    for (const [key, group] of fieldsByKey) {
+      const description = group.find((field) => field.description)?.description;
+      const itemSchemas = [...new Set(group.map((field) => field.type))].map((type) =>
+        type === "file"
+          ? { type: "string", format: "binary" }
+          : { type: "string" }
+      );
+      const itemSchema = itemSchemas.length === 1
+        ? itemSchemas[0]
+        : { oneOf: itemSchemas };
+      const isArray = group.length > 1 || group.some((field) => field.isArray);
+      properties[key] = !isArray
+        ? { ...itemSchema, description }
+        : { type: "array", items: itemSchema, description };
+      if (group.some((field) => field.required)) {
+        requiredProperties.push(key);
+      }
+
+      const contentTypes = [...new Set(group.map((field) => field.contentType).filter(Boolean))];
+      if (contentTypes.length > 0) {
+        encoding[key] = { contentType: contentTypes.join(", ") };
+      }
+      const textExamples = group
+        .filter((field) => field.type === "text" && field.enabled)
+        .map((field) => field.value);
+      if (options.includeRequestExamples && textExamples.length > 0) {
+        example[key] = isArray ? textExamples : textExamples[0];
+      }
+    }
+    return {
+      required: request.body.required ?? true,
+      content: {
+        "multipart/form-data": {
+          schema: {
+            type: "object",
+            properties,
+            required: requiredProperties.length > 0 ? requiredProperties : undefined
+          },
+          encoding: Object.keys(encoding).length > 0 ? encoding : undefined,
+          example: options.includeRequestExamples && Object.keys(example).length > 0
+            ? example
+            : undefined
         }
       }
     };
@@ -275,7 +341,7 @@ export function requestBodyForRequest(
   }
 
   return {
-    required: true,
+    required: request.body.required ?? true,
     content: {
       [contentType]: media
     }

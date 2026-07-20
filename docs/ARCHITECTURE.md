@@ -20,6 +20,7 @@ apps/desktop/src/main
   storage.ts            Electron dialogs and storage adapter
   storageService.ts     testable atomic persistence, backup, restore, rollback
   http.ts               request and import-URL HTTP clients
+  uploadFiles.ts        session-only upload grants and bounded FormData assembly
   importSources.ts      bounded Postman v3 folder traversal
   window.ts             BrowserWindow and CSP
 apps/desktop/src/shared/contracts.ts
@@ -38,6 +39,8 @@ packages/core/src
 
 The renderer calls pure core import/export functions directly. Persistence, native file access, and outgoing HTTP cross the sandboxed preload bridge. IPC payloads use the shared contracts. Workspace mutations are serialized in main, while renderer autosave is debounced.
 
+Multipart file bytes remain in the main-process boundary. A native picker registers a canonical local file under a random, session-only upload ID; the renderer receives only that ID plus display metadata. `Send` resolves approved IDs, revalidates the file, applies upload limits, and creates `FormData`. Imported or persisted IDs are not trusted, and multipart `Content-Type` is left to the fetch implementation so its boundary always matches the encoded body.
+
 ## Storage And Restore
 
 - `workspace.json` and `app-settings.json` live under Electron `userData`.
@@ -47,6 +50,7 @@ The renderer calls pure core import/export functions directly. Persistence, nati
 - Complete backups use `specfold.backup.v1`, intentionally contain readable secrets after explicit confirmation, and are written with `0600` permissions where supported.
 - Restore input is capped at 100 MB and validates the root schema, workspace arrays/version, and settings.
 - Restore creates a safety copy, writes workspace then settings serially, and rolls both files back if either write fails.
+- Multipart upload IDs are transient and stripped from workspace, collection, and backup serialization. File contents and local paths are never persisted.
 
 ## Desktop Security Boundary
 

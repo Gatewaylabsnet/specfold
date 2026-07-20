@@ -1,5 +1,5 @@
-import { createEnvironment, createKeyValue } from "../../model/factory";
-import type { AuthConfig, Collection, Environment, EnvironmentVariable, Folder, HttpMethod, KeyValue, RequestBody } from "../../model/types";
+import { createEnvironment, createKeyValue, createMultipartField } from "../../model/factory";
+import type { AuthConfig, Collection, Environment, EnvironmentVariable, Folder, HttpMethod, KeyValue, MultipartField, RequestBody } from "../../model/types";
 import { asArray, asRecord, asString } from "../shared";
 import type { SourceTextFormat } from "../types";
 import type { ImportDocumentKind, ImportDocumentPreview } from "./types";
@@ -130,8 +130,55 @@ export function portableFormFields(
   });
 }
 
+/**
+ * Convert portable multipart records without ever retaining a local path or
+ * file content from the source document. Imported file parts are deliberately
+ * disabled until the user explicitly selects a file in Specfold.
+ */
+export function portableMultipartFields(
+  input: unknown,
+  keyName: string,
+  valueName: string,
+  normalize: (value: string) => string = (value) => value
+): MultipartField[] {
+  return asArray(input).flatMap((itemInput) => {
+    const item = asRecord(itemInput);
+    const key = asString(item[keyName]) ?? asString(item.key) ?? asString(item.name);
+    if (!key) {
+      return [];
+    }
+
+    const contentType = asString(item.contentType) ?? asString(item.mimeType);
+    const sourceNames = Array.isArray(item.src)
+      ? item.src.map((source) => asString(source) ?? "")
+      : [asString(item.fileName) ?? asString(item.src) ?? ""];
+    const isFile = item.type === "file" || sourceNames.some(Boolean);
+    if (isFile) {
+      // Postman can attach several files to one field. Keep one placeholder per
+      // source, with the same key and order, while discarding every path.
+      const names = sourceNames.length > 0 ? sourceNames : [""];
+      return names.map((sourceName) => {
+        const field = createMultipartField("file", normalize(key), "");
+        field.enabled = false;
+        field.fileName = fileNameOnly(sourceName) || undefined;
+        field.contentType = contentType;
+        field.description =
+          "File field imported without file contents; select the file manually before sending.";
+        return field;
+      });
+    }
+
+    const field = createMultipartField("text", normalize(key), normalize(scalarText(item[valueName])));
+    field.enabled = item.disabled !== true;
+    field.description = descriptionText(item.description);
+    field.contentType = contentType;
+    return [field];
+  });
+}
+
 export function fileNameOnly(value: string): string {
-  return value.split(/[\\/]/).filter(Boolean).at(-1) ?? "";
+  const baseName = value.split(/[\\/]/).filter(Boolean).at(-1) ?? "";
+  return baseName.replace(/[\0\r\n]/g, "_").slice(0, 255);
 }
 
 export function supportedMethod(input: unknown, warnings: string[], name?: string): HttpMethod | undefined {

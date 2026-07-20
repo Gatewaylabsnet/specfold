@@ -24,5 +24,33 @@
   .env-table__row {
     grid-template-columns: 68px minmax(0, 1fr) minmax(0, 1fr) 62px 34px;
   }
+
+  .multipart-field__header {
+    grid-template-columns: auto minmax(0, 1fr) minmax(88px, 112px) 34px;
+  }
+
+  .multipart-field__file {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .multipart-field__file-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .multipart-field__header {
+    grid-template-columns: auto minmax(0, 1fr) 34px;
+  }
+
+  .multipart-field__type {
+    grid-column: 2 / 3;
+  }
+
+  .multipart-field__remove {
+    grid-column: 3;
+    grid-row: 1;
+  }
 }
 

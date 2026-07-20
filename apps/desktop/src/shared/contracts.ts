@@ -58,6 +58,19 @@ export interface OpenImportResult extends FileActionResult {
   error?: string;
 }
 
+export interface UploadFileInfo {
+  uploadId: string;
+  fileName: string;
+  sizeBytes: number;
+  contentType: string;
+}
+
+export interface OpenUploadFileResult {
+  canceled: boolean;
+  error?: string;
+  file?: UploadFileInfo;
+}
+
 export interface OpenPostmanFolderResult {
   canceled: boolean;
   folderPath?: string;
@@ -84,6 +97,8 @@ export interface StudioApi {
   ): Promise<SendRequestResult>;
   saveExportFile(defaultPath: string, content: string): Promise<FileActionResult>;
   openImportFile(): Promise<OpenImportResult>;
+  openUploadFile(): Promise<OpenUploadFileResult>;
+  releaseUploadFile(uploadId: string): Promise<void>;
   openPostmanFolder(): Promise<OpenPostmanFolderResult>;
   exportBackup(workspace: Workspace): Promise<FileActionResult>;
   restoreBackup(): Promise<RestoreBackupResult>;

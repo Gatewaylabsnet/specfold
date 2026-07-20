@@ -49,6 +49,8 @@ function studioMock(workspace = sampleWorkspace()): StudioApi {
     saveExportFile: vi.fn(async () => ({ canceled: true })),
     openImportFile: vi.fn(async () => ({ canceled: true })),
     openPostmanFolder: vi.fn(async () => ({ canceled: true })),
+    openUploadFile: vi.fn(async () => ({ canceled: true })),
+    releaseUploadFile: vi.fn(async () => undefined),
     exportBackup: vi.fn(async () => ({ canceled: true })),
     restoreBackup: vi.fn(async () => ({ canceled: true, restored: false, secureStorageAvailable: true })),
     deleteAllData: vi.fn(async () => undefined),
@@ -119,6 +121,101 @@ describe("renderer workflows", () => {
 
     await user.tab();
     await screen.findByText("Get account details");
+  });
+
+  it("builds multipart text and file fields with an accessible file picker", async () => {
+    const workspace = createEmptyWorkspace("Upload workspace");
+    const collection = createCollection("Documents API");
+    collection.requests.push(
+      createRequest({ name: "Upload document", method: "POST", url: "/documents" })
+    );
+    workspace.collections.push(collection);
+    const api = studioMock(workspace);
+    api.openUploadFile = vi.fn(async () => ({
+      canceled: false,
+      file: {
+        uploadId: "upload-session-1",
+        fileName: "report.pdf",
+        sizeBytes: 2048,
+        contentType: "application/pdf"
+      }
+    }));
+
+    const { user } = await renderApp(api);
+    await user.click(screen.getByRole("button", { name: "Body" }));
+    await user.click(screen.getByRole("button", { name: "Form data" }));
+
+    expect(screen.getByRole("note", { name: "Multipart boundary information" }).textContent)
+      .toMatch(/boundary.*automatically/i);
+    await user.click(screen.getByRole("button", { name: "Add text field" }));
+    await user.type(screen.getByRole("textbox", { name: "Field 1 name" }), "title");
+    await user.type(screen.getByRole("textbox", { name: "Field 1 value" }), "Quarterly report");
+
+    await user.click(screen.getByRole("button", { name: "Add file" }));
+    await user.type(screen.getByRole("textbox", { name: "Field 2 name" }), "document");
+    expect(screen.getByRole("alert").textContent).toMatch(/choose a file/i);
+    await user.click(screen.getByRole("button", { name: "Choose file for field 2" }));
+
+    expect(await screen.findByText("report.pdf")).toBeTruthy();
+    expect(screen.getByText("2.0 KB / application/pdf")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Replace file for field 2" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Clear file for field 2" })).toBeTruthy();
+    const mediaType = screen.getByRole("textbox", { name: "Field 2 media type" });
+    expect((mediaType as HTMLInputElement).value).toBe("application/pdf");
+    await user.clear(mediaType);
+    await user.type(mediaType, "application/vnd.gateway.document");
+
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(api.sendRequest).toHaveBeenCalledTimes(1));
+    expect(api.sendRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({
+          mode: "multipart",
+          contentType: "multipart/form-data",
+          multipart: expect.arrayContaining([
+            expect.objectContaining({ key: "title", type: "text", value: "Quarterly report" }),
+            expect.objectContaining({
+              key: "document",
+              type: "file",
+              uploadId: "upload-session-1",
+              fileName: "report.pdf",
+              contentType: "application/vnd.gateway.document"
+            })
+          ])
+        })
+      }),
+      expect.anything(),
+      expect.anything(),
+      []
+    );
+
+    await user.click(screen.getByRole("button", { name: "Clear file for field 2" }));
+    expect(screen.getByRole("alert").textContent).toMatch(/choose a file/i);
+    expect(api.releaseUploadFile).toHaveBeenCalledWith("upload-session-1");
+  });
+
+  it("shows file-picker failures inline without removing the multipart row", async () => {
+    const workspace = createEmptyWorkspace("Upload error workspace");
+    const collection = createCollection("Documents API");
+    collection.requests.push(
+      createRequest({ name: "Upload document", method: "POST", url: "/documents" })
+    );
+    workspace.collections.push(collection);
+    const api = studioMock(workspace);
+    api.openUploadFile = vi.fn(async () => ({
+      canceled: false,
+      error: "The selected file is no longer available."
+    }));
+
+    const { user } = await renderApp(api);
+    await user.click(screen.getByRole("button", { name: "Body" }));
+    await user.click(screen.getByRole("button", { name: "Form data" }));
+    await user.click(screen.getByRole("button", { name: "Add file" }));
+    await user.click(screen.getByRole("button", { name: "Choose file for field 1" }));
+
+    expect((await screen.findByRole("alert")).textContent)
+      .toBe("The selected file is no longer available.");
+    expect(screen.getByRole("listitem", { name: "Form-data field 1" })).toBeTruthy();
   });
 
   it("edits a folder base URL and sends its inherited folder path", async () => {

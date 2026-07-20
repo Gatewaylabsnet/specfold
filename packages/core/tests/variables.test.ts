@@ -112,4 +112,41 @@ describe("variable resolver", () => {
 
     expect(prepared.url).toBe("https://api.tarimorman.gov.tr/auth/jwt");
   });
+
+  it("resolves multipart text fields without treating file metadata as variables", () => {
+    const request = createRequest({
+      name: "Upload",
+      method: "POST",
+      url: "{{baseUrl}}/upload"
+    });
+    request.body = {
+      mode: "multipart",
+      multipart: [
+        { id: "p1", key: "{{fieldName}}", value: "{{caption}}", type: "text", enabled: true },
+        {
+          id: "p2",
+          key: "file",
+          value: "",
+          type: "file",
+          enabled: true,
+          uploadId: "{{opaque-token}}",
+          fileName: "{{do-not-resolve}}.txt"
+        }
+      ]
+    };
+    const environment = createEnvironment("Local");
+    environment.variables = [
+      { id: "v1", name: "baseUrl", value: "https://api.example.com", enabled: true },
+      { id: "v2", name: "fieldName", value: "title", enabled: true },
+      { id: "v3", name: "caption", value: "July report", enabled: true }
+    ];
+
+    const prepared = prepareHttpRequest(request, environment);
+
+    expect(prepared.multipart?.[0]).toMatchObject({ key: "title", value: "July report" });
+    expect(prepared.multipart?.[1]).toMatchObject({
+      uploadId: "{{opaque-token}}",
+      fileName: "{{do-not-resolve}}.txt"
+    });
+  });
 });

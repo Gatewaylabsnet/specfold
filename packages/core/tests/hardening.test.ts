@@ -179,6 +179,55 @@ describe("form-urlencoded body", () => {
   });
 });
 
+describe("multipart body", () => {
+  it("keeps enabled text and file parts and lets fetch generate the boundary", () => {
+    const request = createRequest({
+      name: "Upload",
+      method: "POST",
+      url: "https://api.example.com/upload"
+    });
+    request.headers = [
+      createKeyValue("Content-Type", "multipart/form-data"),
+      createKeyValue("X-Trace", "1")
+    ];
+    request.body = {
+      mode: "multipart",
+      contentType: "multipart/form-data",
+      multipart: [
+        { id: "p1", key: "title", value: "report", type: "text", enabled: true },
+        {
+          id: "p2",
+          key: "document",
+          value: "",
+          type: "file",
+          enabled: true,
+          uploadId: "upload-token",
+          fileName: "report.pdf",
+          contentType: "application/pdf"
+        },
+        { id: "p3", key: "ignored", value: "no", type: "text", enabled: false }
+      ]
+    };
+
+    const prepared = prepareHttpRequest(request);
+
+    expect(prepared.body).toBeUndefined();
+    expect(prepared.headers).toEqual({ "X-Trace": "1" });
+    expect(prepared.multipart?.map((field) => field.key)).toEqual(["title", "document"]);
+  });
+
+  it("does not attach multipart bodies to GET or HEAD requests", () => {
+    for (const method of ["GET", "HEAD"] as const) {
+      const request = createRequest({ name: method, method, url: "https://api.example.com/upload" });
+      request.body = {
+        mode: "multipart",
+        multipart: [{ id: "p1", key: "value", value: "x", type: "text", enabled: true }]
+      };
+      expect(prepareHttpRequest(request).multipart).toBeUndefined();
+    }
+  });
+});
+
 describe("basic auth encoding", () => {
   it("encodes non-Latin1 credentials as UTF-8 base64", () => {
     const request = createRequest({ name: "Auth", method: "GET", url: "https://api.example.com/x" });

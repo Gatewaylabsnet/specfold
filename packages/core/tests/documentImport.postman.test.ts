@@ -118,10 +118,19 @@ describe("Postman imports", () => {
     };
 
     const result = importDocument(JSON.stringify(document), importOptions);
-    const fields = result.collections[0].requests[0].body.form ?? [];
-    expect(fields[0]).toMatchObject({ key: "title", value: "Report", enabled: true });
-    expect(fields[1]).toMatchObject({ key: "file", value: "report.pdf", enabled: false });
-    expect(result.warnings.join(" ")).toMatch(/multipart form-data.*file entries require manual review/i);
+    const body = result.collections[0].requests[0].body;
+    const fields = body.multipart ?? [];
+    expect(body).toMatchObject({ mode: "multipart", contentType: "multipart/form-data" });
+    expect(fields[0]).toMatchObject({ type: "text", key: "title", value: "Report", enabled: true });
+    expect(fields[1]).toMatchObject({
+      type: "file",
+      key: "file",
+      value: "",
+      fileName: "report.pdf",
+      enabled: false
+    });
+    expect(fields[1].uploadId).toBeUndefined();
+    expect(result.warnings.join(" ")).toMatch(/without local paths or contents.*select each file/i);
   });
 
 

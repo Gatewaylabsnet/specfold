@@ -25,6 +25,15 @@ v1.1 broadens the untrusted input surface and adds complete backup/restore. The 
 
 Atomic workspace writes, rotating backups, corrupt-file quarantine, single-instance writer protection, export secret warnings, response/time limits, opt-in insecure TLS, system/environment HTTP(S) proxies, sandbox/context isolation/node-integration-off, packaged CSP, and source-operation OpenAPI fidelity remain in place.
 
+## Multipart Upload Controls
+
+- **Imported local-file exfiltration:** Blocked. Imports retain only disabled filename placeholders; arbitrary paths and imported upload IDs are never read.
+- **Renderer filesystem access:** Blocked. Native selection and file reads stay in main; renderer receives random session-only IDs and display metadata.
+- **Stale or forged selection:** Rejected. Send accepts only IDs currently registered by the native picker and revalidates the canonical file before encoding.
+- **Boundary mismatch/header injection:** Avoided by removing manual multipart `Content-Type` values and letting `FormData` generate the matching boundary.
+- **Copied cURL local-file reads:** Blocked. Text parts use `--form-string`; only explicit file placeholders use cURL's `--form @file` syntax, and conflicting framing headers are omitted.
+- **Upload resource exhaustion:** Bounded to 200 total parts, 50 file parts, and 100 MB of file and text content per request. Response and timeout limits remain in force.
+
 ## Remaining Risks
 
 - Windows builds are unsigned and may trigger SmartScreen.

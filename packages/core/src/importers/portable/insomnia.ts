@@ -1,7 +1,7 @@
 import { createCollection, createFolder, createId, createRequest } from "../../model/factory";
 import type { AuthConfig, Collection, EnvironmentVariable, Folder, KeyValue, RequestBody, ResponseExample } from "../../model/types";
 import { asArray, asRecord, asString, isRecord, type AnyRecord } from "../shared";
-import { contentTypeFromHeaders, environmentFromVariables, keyValues, looksSecret, numberValue, portableFormFields, previewCollections, rawBody, scalarText, splitUrl, supportedMethod } from "./shared";
+import { contentTypeFromHeaders, environmentFromVariables, keyValues, looksSecret, numberValue, portableFormFields, portableMultipartFields, previewCollections, rawBody, scalarText, splitUrl, supportedMethod } from "./shared";
 import type { ImportDocumentResult } from "./types";
 
 export function isInsomniaExport(document: AnyRecord): boolean {
@@ -246,11 +246,26 @@ export function insomniaBody(
   const body = asRecord(input);
   const mimeType = asString(body.mimeType) ?? contentTypeFromHeaders(headers);
   const text = asString(body.text);
+  if (mimeType?.toLowerCase().includes("multipart/form-data")) {
+    const fields = portableMultipartFields(
+      body.params,
+      "name",
+      "value",
+      normalizeInsomniaVariables
+    );
+    if (fields.some((field) => field.type === "file")) {
+      warnings.push(
+        `${requestName}: multipart file fields were imported without local paths or contents; select each file manually before sending.`
+      );
+    }
+    return {
+      mode: "multipart",
+      contentType: "multipart/form-data",
+      multipart: fields
+    };
+  }
   const params = portableFormFields(body.params, "name", "value", normalizeInsomniaVariables);
   if (params.length > 0) {
-    if (mimeType?.includes("multipart/form-data")) {
-      warnings.push(`${requestName}: multipart form-data was imported as editable form fields; file entries require manual review.`);
-    }
     return {
       mode: "form",
       contentType: "application/x-www-form-urlencoded",

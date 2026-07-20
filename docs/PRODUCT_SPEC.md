@@ -12,6 +12,7 @@ Specfold is a simple, local-first desktop REST API collection studio for develop
 - Manage renameable environments and resolve `{{variableName}}` values with folder, collection, and environment base URL precedence.
 - Isolate multiple API proxies inside one collection and create Apinizer JWT authentication with an automatically derived gateway origin.
 - Send requests outside browser CORS restrictions and inspect/capture responses.
+- Test multipart form-data services with text fields, repeated names, and explicitly selected local files.
 - Export selected content to OpenAPI or native Collection JSON with secret warnings.
 - Export, validate, and restore a complete local backup; delete every local Specfold data file with strong confirmation.
 
@@ -21,6 +22,7 @@ Specfold is a simple, local-first desktop REST API collection studio for develop
 - Local by default: no account, cloud workspace, telemetry, or hosted sync.
 - Portable but explicit: broad import support, visible fidelity warnings, no script execution.
 - Safe persistence: atomic writes, encryption at rest, restore rollback, and no plaintext fallback for secrets.
+- Explicit file access: imported documents can describe file fields but can never make Specfold read a local path; every upload file requires a native picker grant for the current session.
 
 ## Non-Goals For v1.1
 

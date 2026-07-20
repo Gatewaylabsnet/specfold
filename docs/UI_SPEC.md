@@ -12,6 +12,8 @@ Users can open a supported file, select a Postman v3 folder, fetch an HTTP(S) UR
 
 - Collection tree supports multiple expanded collections, search, inline rename, duplicate/delete, active collection color, and request/folder drag-and-drop.
 - Request editor exposes method, URL, request name, destination folder, Params, Auth, Headers, and Body.
+- Body modes are None, JSON, Text, Form data, and URL encoded. Form data uses accessible text/file rows with Choose, Replace, Clear, media-type, enabled, and remove controls; duplicate field names are allowed.
+- File rows show a clear re-selection state after restart/import/restore, and the editor explains that Specfold generates the multipart boundary automatically.
 - Response panel exposes body, headers, raw text, history, timing/size, and response-to-environment assignment.
 - Collection base URL remains editable with or without a selected request.
 - Selecting a folder exposes its optional base URL, inherited parent/collection hint, and subtree override behavior.
@@ -31,3 +33,4 @@ Export backup, Restore backup, and Delete all data are grouped together. Export 
 ## Responsive Gate
 
 Desktop and narrow layouts must avoid horizontal viewport overflow. Release QA checks at least 1100x720, 1366x768, and 1920x1080, including long tree labels, Import, Settings, and response content.
+Multipart rows switch to a stacked card layout instead of forcing horizontal viewport overflow.

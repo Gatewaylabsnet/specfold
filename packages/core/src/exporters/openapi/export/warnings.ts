@@ -28,6 +28,13 @@ export function collectRequestSecretWarnings(
       message: `Request "${request.name}" has a request body example that looks like it contains a secret (token/password/key). Consider disabling example values or replacing secrets with {{variables}}.`
     });
   }
+  if (options.includeRequestExamples && request.body.mode === "multipart") {
+    for (const field of request.body.multipart ?? []) {
+      if (field.type === "text" && field.enabled && looksSecret(field.key, field.value)) {
+        flag("multipart field", field.key);
+      }
+    }
+  }
 }
 
 export function looksSecret(key: string, value: string): boolean {
