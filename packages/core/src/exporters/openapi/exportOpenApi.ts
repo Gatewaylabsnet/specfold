@@ -8,6 +8,8 @@ import { stripUndefined } from "./export/shared";
 import type { AnyRecord, ExportWarning, OpenApiExportOptions, OpenApiExportResult } from "./export/types";
 import { collectRequestSecretWarnings } from "./export/warnings";
 
+export { collectCollectionSecretWarnings } from "./export/warnings";
+
 export type { ExportWarning, ExportWarningKind, OpenApiExportFormat, OpenApiExportOptions, OpenApiExportResult } from "./export/types";
 
 /** Backwards-compatible entry point returning only serialized content. */

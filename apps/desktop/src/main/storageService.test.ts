@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { mkdtemp, mkdir, readFile, readdir, rm, stat, truncate, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createEmptyWorkspace, type Workspace } from "@openapi-collection-studio/core";
+import { createEmptyWorkspace, createRequest, type Workspace } from "@openapi-collection-studio/core";
 import {
   MAX_BACKUP_BYTES,
   atomicWriteFile,
@@ -115,6 +115,39 @@ describe("storage service", () => {
     expect(persisted).not.toContain("must-not-reach-disk");
     expect(loaded.secureStorageAvailable).toBe(false);
     expect(loaded.workspace.environments[0].variables[0].value).toBe("");
+  });
+
+  it("encrypts literal request credentials and sensitive examples at rest", async () => {
+    const userData = await testDirectory();
+    const paths = storagePaths(userData);
+    const service = createStorageService({ paths, secureStorage: secureStorage(), appVersion: "1.3.1" });
+    const workspace = createEmptyWorkspace("Credential storage");
+    const request = createRequest({ name: "Profile", method: "POST", url: "https://api.example.test/profile" });
+    request.auth = { type: "bearer", token: "literal-bearer-token" };
+    request.headers.push({ id: "auth", key: "Authorization", value: "Bearer literal-header-token", enabled: true });
+    request.body = { mode: "json", raw: '{"client_secret":"literal-body-secret"}' };
+    request.responseExamples.push({
+      id: "response",
+      name: "Token response",
+      status: 200,
+      headers: [],
+      body: '{"access_token":"literal-response-token"}'
+    });
+    workspace.collections = [{ id: "collection", name: "Credentials", folders: [], requests: [request] }];
+
+    await service.saveWorkspace(workspace);
+    const persisted = await readFile(paths.workspace, "utf8");
+    const loaded = await service.loadWorkspace();
+    const loadedRequest = loaded.workspace.collections[0].requests[0];
+
+    expect(persisted).not.toContain("literal-bearer-token");
+    expect(persisted).not.toContain("literal-header-token");
+    expect(persisted).not.toContain("literal-body-secret");
+    expect(persisted).not.toContain("literal-response-token");
+    expect(loadedRequest.auth).toEqual({ type: "bearer", token: "literal-bearer-token" });
+    expect(loadedRequest.headers[0].value).toBe("Bearer literal-header-token");
+    expect(loadedRequest.body.raw).toBe('{"client_secret":"literal-body-secret"}');
+    expect(loadedRequest.responseExamples[0].body).toBe('{"access_token":"literal-response-token"}');
   });
 
   it("never persists or backs up session-only multipart upload ids", async () => {

@@ -47,6 +47,15 @@ export function requestToCurl(request: ApiRequest): string {
       const flag = field.type === "text" ? "--form-string" : "--form";
       lines.push(`  ${flag} ${shellQuote(curlFormValue(field))}`);
     }
+  } else if (request.body.mode === "form" && method !== "GET" && method !== "HEAD") {
+    for (const field of request.body.form ?? []) {
+      if (!field.enabled || !field.key.trim()) {
+        continue;
+      }
+      // Preserve URL-encoded form semantics instead of silently dropping the
+      // body. curl applies the correct encoding for both keys and values.
+      lines.push(`  --data-urlencode ${shellQuote(`${field.key}=${field.value}`)}`);
+    }
   } else if (request.body.mode !== "none" && request.body.raw && method !== "GET") {
     lines.push(`  --data ${shellQuote(request.body.raw)}`);
   }

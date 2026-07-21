@@ -14,7 +14,10 @@ import { dirname, join } from "node:path";
 import {
   createEmptyWorkspace,
   ensureWorkspaceEnvironment,
+  flattenRequests,
   stripTransientUploadData,
+  type ApiRequest,
+  type KeyValue,
   type Workspace
 } from "@openapi-collection-studio/core";
 import {
@@ -27,6 +30,8 @@ import {
 export const ENCRYPTED_PREFIX = "enc:v1:";
 export const MAX_BACKUP_BYTES = 100 * 1024 * 1024;
 const MAX_BACKUPS = 5;
+const SECRET_FIELD_NAME = /authorization|token|secret|password|passwd|api[-_]?key|cookie|bearer/i;
+const SECRET_JSON_VALUE = /"\s*(password|passwd|secret|client_secret|token|access_token|api[-_]?key)\s*"\s*:\s*"[^"{][^"]*"/i;
 
 export interface SecureStorageAdapter {
   isEncryptionAvailable(): boolean;
@@ -89,41 +94,137 @@ export function createStorageService(options: StorageServiceOptions) {
   const secureStorageAvailable = () => secureStorage.isEncryptionAvailable();
   const stamp = () => now().toISOString().replace(/[:.]/g, "-");
 
-  const encryptSecrets = (workspace: Workspace): Workspace => ({
-    ...workspace,
-    environments: workspace.environments.map((environment) => ({
-      ...environment,
-      variables: environment.variables.map((variable) => {
-        if (!variable.secret || !variable.value || variable.value.startsWith(ENCRYPTED_PREFIX)) {
-          return variable;
-        }
-        if (!secureStorageAvailable()) {
-          return { ...variable, value: "" };
-        }
-        const encrypted = secureStorage.encryptString(variable.value).toString("base64");
-        return { ...variable, value: `${ENCRYPTED_PREFIX}${encrypted}` };
-      })
+  const encryptValue = (value: string): string => {
+    if (!value || value.startsWith(ENCRYPTED_PREFIX) || value.includes("{{")) {
+      return value;
+    }
+    if (!secureStorageAvailable()) {
+      return "";
+    }
+    return `${ENCRYPTED_PREFIX}${secureStorage.encryptString(value).toString("base64")}`;
+  };
+
+  const decryptValue = (value: string): string => {
+    if (!value.startsWith(ENCRYPTED_PREFIX)) {
+      return value;
+    }
+    if (!secureStorageAvailable()) {
+      return "";
+    }
+    try {
+      return secureStorage.decryptString(Buffer.from(value.slice(ENCRYPTED_PREFIX.length), "base64"));
+    } catch {
+      return "";
+    }
+  };
+
+  const protectKeyValues = (items: KeyValue[] = []): KeyValue[] =>
+    items.map((item) =>
+      SECRET_FIELD_NAME.test(item.key) ? { ...item, value: encryptValue(item.value) } : item
+    );
+
+  const restoreKeyValues = (items: KeyValue[] = []): KeyValue[] =>
+    items.map((item) => ({ ...item, value: decryptValue(item.value) }));
+
+  const protectRequest = (request: ApiRequest): ApiRequest => {
+    const bodyLooksSensitive = Boolean(request.body.raw && SECRET_JSON_VALUE.test(request.body.raw));
+    const responseExamples = request.responseExamples.map((example) => ({
+      ...example,
+      headers: protectKeyValues(example.headers),
+      body: example.body && SECRET_JSON_VALUE.test(example.body) ? encryptValue(example.body) : example.body
+    }));
+    const auth = request.auth.type === "bearer"
+      ? { ...request.auth, token: encryptValue(request.auth.token) }
+      : request.auth.type === "basic"
+        ? { ...request.auth, password: encryptValue(request.auth.password) }
+        : request.auth.type === "apiKey"
+          ? { ...request.auth, value: encryptValue(request.auth.value) }
+          : request.auth;
+    return {
+      ...request,
+      auth,
+      headers: protectKeyValues(request.headers),
+      queryParams: protectKeyValues(request.queryParams),
+      pathParams: protectKeyValues(request.pathParams),
+      body: {
+        ...request.body,
+        raw: bodyLooksSensitive && request.body.raw ? encryptValue(request.body.raw) : request.body.raw,
+        form: protectKeyValues(request.body.form),
+        multipart: request.body.multipart?.map((field) =>
+          field.type === "text" && SECRET_FIELD_NAME.test(field.key)
+            ? { ...field, value: encryptValue(field.value) }
+            : field
+        )
+      },
+      responseExamples
+    };
+  };
+
+  const restoreRequest = (request: ApiRequest): ApiRequest => ({
+    ...request,
+    auth: request.auth.type === "bearer"
+      ? { ...request.auth, token: decryptValue(request.auth.token) }
+      : request.auth.type === "basic"
+        ? { ...request.auth, password: decryptValue(request.auth.password) }
+        : request.auth.type === "apiKey"
+          ? { ...request.auth, value: decryptValue(request.auth.value) }
+          : request.auth,
+    headers: restoreKeyValues(request.headers),
+    queryParams: restoreKeyValues(request.queryParams),
+    pathParams: restoreKeyValues(request.pathParams),
+    body: {
+      ...request.body,
+      raw: request.body.raw ? decryptValue(request.body.raw) : request.body.raw,
+      form: restoreKeyValues(request.body.form),
+      multipart: request.body.multipart?.map((field) => ({ ...field, value: decryptValue(field.value) }))
+    },
+    responseExamples: request.responseExamples.map((example) => ({
+      ...example,
+      headers: restoreKeyValues(example.headers),
+      body: example.body ? decryptValue(example.body) : example.body
     }))
   });
 
-  const decryptSecrets = (workspace: Workspace): Workspace => ({
-    ...workspace,
-    environments: (workspace.environments ?? []).map((environment) => ({
-      ...environment,
-      variables: (environment.variables ?? []).map((variable) => {
-        if (!variable.value?.startsWith(ENCRYPTED_PREFIX)) return variable;
-        if (!secureStorageAvailable()) return { ...variable, value: "" };
-        try {
-          const value = secureStorage.decryptString(
-            Buffer.from(variable.value.slice(ENCRYPTED_PREFIX.length), "base64")
-          );
-          return { ...variable, value };
-        } catch {
-          return { ...variable, value: "" };
+  const transformRequests = (workspace: Workspace, transform: (request: ApiRequest) => ApiRequest): Workspace => {
+    const copy = structuredClone(workspace) as Workspace;
+    for (const collection of copy.collections) {
+      for (const { request, folder } of flattenRequests(collection)) {
+        const owner = folder?.requests ?? collection.requests;
+        const index = owner.findIndex((candidate) => candidate.id === request.id);
+        if (index >= 0) {
+          owner[index] = transform(request);
         }
-      })
-    }))
-  });
+      }
+    }
+    return copy;
+  };
+
+  const encryptSecrets = (workspace: Workspace): Workspace => {
+    const protectedWorkspace = transformRequests(workspace, protectRequest);
+    return {
+      ...protectedWorkspace,
+      environments: protectedWorkspace.environments.map((environment) => ({
+        ...environment,
+        variables: environment.variables.map((variable) =>
+          variable.secret ? { ...variable, value: encryptValue(variable.value) } : variable
+        )
+      }))
+    };
+  };
+
+  const decryptSecrets = (workspace: Workspace): Workspace => {
+    const restoredWorkspace = transformRequests(workspace, restoreRequest);
+    return {
+      ...restoredWorkspace,
+      environments: (restoredWorkspace.environments ?? []).map((environment) => ({
+        ...environment,
+        variables: (environment.variables ?? []).map((variable) => ({
+          ...variable,
+          value: decryptValue(variable.value)
+        }))
+      }))
+    };
+  };
 
   const rotateBackup = async (): Promise<void> => {
     try {
