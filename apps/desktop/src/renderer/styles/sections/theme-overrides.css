@@ -1,0 +1,239 @@
+/* Theme variables and final overrides intentionally load after the legacy sections.
+   New UI should use these semantic variables instead of introducing literal colours. */
+:root {
+  --surface-canvas: #f6f7f9;
+  --surface-primary: #ffffff;
+  --surface-subtle: #f8fafc;
+  --surface-muted: #eef2f7;
+  --surface-selected: #e7f0ff;
+  --border-default: #dce1e8;
+  --border-strong: #cfd6df;
+  --text-primary: #18202c;
+  --text-secondary: #526071;
+  --text-muted: #657184;
+  --accent: #1f6feb;
+  --accent-strong: #185fc9;
+  --accent-text: #133d75;
+  --focus-ring: rgba(45, 127, 249, 0.2);
+}
+
+:root[data-theme="dark"] {
+  --surface-canvas: #101720;
+  --surface-primary: #17212d;
+  --surface-subtle: #1d2a38;
+  --surface-muted: #263648;
+  --surface-selected: #173b67;
+  --border-default: #34465a;
+  --border-strong: #465b71;
+  --text-primary: #e7edf5;
+  --text-secondary: #b5c2d1;
+  --text-muted: #93a6ba;
+  --accent: #68a7ff;
+  --accent-strong: #8abaff;
+  --accent-text: #d9e9ff;
+  --focus-ring: rgba(104, 167, 255, 0.28);
+}
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .topbar,
+:root[data-theme="dark"] .pane,
+:root[data-theme="dark"] .side-panel,
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] .request-panel,
+:root[data-theme="dark"] .response-panel,
+:root[data-theme="dark"] .workspace-table,
+:root[data-theme="dark"] .summary-band > div,
+:root[data-theme="dark"] .multipart-field {
+  color: var(--text-primary);
+  background: var(--surface-primary);
+}
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .screen-tabs,
+:root[data-theme="dark"] .export-preview,
+:root[data-theme="dark"] .workspace-table__head,
+:root[data-theme="dark"] .base-url-effective,
+:root[data-theme="dark"] .sidebar__new-panel,
+:root[data-theme="dark"] .segmented,
+:root[data-theme="dark"] .multipart-editor__help,
+:root[data-theme="dark"] .multipart-editor__empty,
+:root[data-theme="dark"] .multipart-field.is-disabled,
+:root[data-theme="dark"] .multipart-field__file,
+:root[data-theme="dark"] .response-panel pre,
+:root[data-theme="dark"] .home-empty,
+:root[data-theme="dark"] .empty-state {
+  color: var(--text-primary);
+  background: var(--surface-subtle);
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] .secondary-button,
+:root[data-theme="dark"] .icon-button,
+:root[data-theme="dark"] .tree-search,
+:root[data-theme="dark"] .segmented button.is-active {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  background: var(--surface-primary);
+}
+
+:root[data-theme="dark"] input:focus,
+:root[data-theme="dark"] select:focus,
+:root[data-theme="dark"] textarea:focus,
+:root[data-theme="dark"] .tree-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+:root[data-theme="dark"] .topbar,
+:root[data-theme="dark"] .screen-tabs,
+:root[data-theme="dark"] .sidebar__nav,
+:root[data-theme="dark"] .request-tabs,
+:root[data-theme="dark"] .response-tabs,
+:root[data-theme="dark"] .side-panel,
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] .response-panel,
+:root[data-theme="dark"] .request-panel,
+:root[data-theme="dark"] .workspace-table,
+:root[data-theme="dark"] .summary-band,
+:root[data-theme="dark"] .summary-band > div,
+:root[data-theme="dark"] .base-url-effective,
+:root[data-theme="dark"] .multipart-field,
+:root[data-theme="dark"] .multipart-field__file,
+:root[data-theme="dark"] .response-panel pre {
+  border-color: var(--border-default);
+}
+
+:root[data-theme="dark"] .nav-btn,
+:root[data-theme="dark"] .screen-tab,
+:root[data-theme="dark"] .tab,
+:root[data-theme="dark"] .tree__item,
+:root[data-theme="dark"] .new-menu-item,
+:root[data-theme="dark"] .list-button,
+:root[data-theme="dark"] .field,
+:root[data-theme="dark"] .radio-row,
+:root[data-theme="dark"] .check-row,
+:root[data-theme="dark"] .base-url-effective code,
+:root[data-theme="dark"] .empty-state h2,
+:root[data-theme="dark"] .multipart-editor__help strong,
+:root[data-theme="dark"] .multipart-field__file-copy strong {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .topbar p,
+:root[data-theme="dark"] .topbar__environment,
+:root[data-theme="dark"] .field span,
+:root[data-theme="dark"] .side-panel h3,
+:root[data-theme="dark"] .tab-panel h3,
+:root[data-theme="dark"] .response-panel h3,
+:root[data-theme="dark"] .tree-empty,
+:root[data-theme="dark"] .tree-search,
+:root[data-theme="dark"] .tree-row__toggle,
+:root[data-theme="dark"] .tree-row__badge,
+:root[data-theme="dark"] .multipart-field__enabled,
+:root[data-theme="dark"] .multipart-field__name,
+:root[data-theme="dark"] .multipart-field__type,
+:root[data-theme="dark"] .multipart-field__value,
+:root[data-theme="dark"] .multipart-field__media-type,
+:root[data-theme="dark"] .multipart-field__file-copy > span,
+:root[data-theme="dark"] .multipart-field__file-copy small,
+:root[data-theme="dark"] .empty-response,
+:root[data-theme="dark"] .empty-state {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .nav-btn:hover,
+:root[data-theme="dark"] .screen-tab.is-active,
+:root[data-theme="dark"] .tab.is-active,
+:root[data-theme="dark"] .tree__item:hover,
+:root[data-theme="dark"] .tree__item.is-selected,
+:root[data-theme="dark"] .tree-row:hover,
+:root[data-theme="dark"] .tree-row:focus-within,
+:root[data-theme="dark"] .tree-row__actions,
+:root[data-theme="dark"] .list-button.is-active,
+:root[data-theme="dark"] .list-button:hover,
+:root[data-theme="dark"] .new-menu-item:hover,
+:root[data-theme="dark"] .secondary-button:hover,
+:root[data-theme="dark"] .icon-button:hover {
+  background: var(--surface-muted);
+}
+
+:root[data-theme="dark"] .nav-btn.is-active,
+:root[data-theme="dark"] .tree__item.is-active {
+  color: var(--accent-text);
+  background: var(--surface-selected);
+}
+
+:root[data-theme="dark"] .primary-button { background: var(--accent); }
+:root[data-theme="dark"] .primary-button:hover { background: var(--accent-strong); }
+:root[data-theme="dark"] .workspace-table__row { border-color: var(--border-default); }
+
+.import-doctor {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #f0d9a8;
+  border-radius: 8px;
+  color: #7a5a10;
+  background: #fffaf0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.import-doctor__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.import-doctor h3 { margin: 0; color: inherit; }
+.import-doctor p { margin: 5px 0; }
+.import-doctor ul { max-height: 180px; margin: 6px 0 0; padding-left: 18px; overflow: auto; }
+.import-doctor li + li { margin-top: 4px; }
+
+:root[data-theme="dark"] .import-doctor {
+  border-color: #765b25;
+  color: #f3d38b;
+  background: #302717;
+}
+
+.request-route {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0 12px;
+  padding: 7px 10px;
+  border: 1px solid #d8e2ef;
+  border-radius: 7px;
+  color: #405064;
+  background: #f7faff;
+  font-size: 12px;
+}
+
+.request-route > span { color: #1f6feb; font-weight: 700; }
+.request-route code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.request-route--warning { border-color: #f0d9a8; color: #7a5a10; background: #fffaf0; }
+.request-route--warning > span { color: inherit; }
+.request-route small { grid-column: 2 / -1; color: inherit; }
+.response-tabs__action { margin-left: auto; }
+.response-tabs__action + .response-tabs__action { margin-left: -2px; }
+
+:root[data-theme="dark"] .request-route {
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+  background: var(--surface-subtle);
+}
+
+:root[data-theme="dark"] .request-route > span { color: var(--accent-strong); }
+:root[data-theme="dark"] .request-route--warning { border-color: #765b25; color: #f3d38b; background: #302717; }
+
+.import-target { margin-top: 0; }
+.import-target small { color: #64748b; font-size: 11px; line-height: 1.4; }
+.reimport-diff { display: grid; gap: 4px; margin: 10px 0 14px; padding: 10px; border: 1px solid #c9d8e9; border-radius: 8px; color: #31445d; background: #f3f8ff; font-size: 12px; }
+:root[data-theme="dark"] .import-target small { color: var(--text-muted); }
+:root[data-theme="dark"] .reimport-diff { border-color: #3b5d7d; color: #c7e2ff; background: #132b42; }
+
+.connection-profile-help { max-width: 620px; margin: 0 0 16px; color: #5d6878; font-size: 13px; line-height: 1.5; }
+:root[data-theme="dark"] .connection-profile-help { color: var(--text-secondary); }

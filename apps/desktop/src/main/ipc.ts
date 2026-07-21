@@ -1,12 +1,13 @@
 import { BrowserWindow, dialog, ipcMain, type OpenDialogOptions, type WebContents } from "electron";
 import { readFile } from "node:fs/promises";
 import type { Workspace } from "@openapi-collection-studio/core";
-import type { AppSettings, SendRequestPayload } from "../shared/contracts";
+import { DEFAULT_SETTINGS, type AppSettings, type SendRequestPayload } from "../shared/contracts";
 import { MAX_IMPORT_BYTES } from "./constants";
 import { fetchImportUrl, sendHttpRequest } from "./http";
 import { readPostmanV3Folder } from "./importSources";
 import { atomicWrite, deleteAllLocalData, exportFullBackup, loadSettings, loadWorkspace, restoreBackup, saveSettings, saveWorkspace, serializeStorageMutation } from "./storage";
 import { clearUploadFiles, registerUploadFile, releaseUploadFile, retainUploadFiles } from "./uploadFiles";
+import { applyNativeTheme } from "./window";
 
 const uploadOwnersWithCleanup = new Set<number>();
 
@@ -18,9 +19,11 @@ export function registerIpcHandlers(): void {
     return serializeStorageMutation(() => saveWorkspace(workspace));
   });
   ipcMain.handle("settings:load", () => loadSettings());
-  ipcMain.handle("settings:save", (_event, settings: AppSettings) =>
-    serializeStorageMutation(() => saveSettings(settings))
-  );
+  ipcMain.handle("settings:save", async (_event, settings: AppSettings) => {
+    const saved = await serializeStorageMutation(() => saveSettings(settings));
+    applyNativeTheme(saved.theme);
+    return saved;
+  });
   ipcMain.handle("http:send", (event, payload: SendRequestPayload) => {
     registerUploadOwnerCleanup(event.sender);
     return sendHttpRequest(payload, event.sender.id);
@@ -88,12 +91,16 @@ export function registerIpcHandlers(): void {
   ipcMain.handle("file:exportBackup", (_event, workspace: Workspace) => exportFullBackup(workspace));
   ipcMain.handle("file:restoreBackup", async () => {
     const result = await serializeStorageMutation(restoreBackup);
-    if (result.restored) clearUploadFiles();
+    if (result.restored) {
+      clearUploadFiles();
+      applyNativeTheme(result.settings?.theme ?? DEFAULT_SETTINGS.theme);
+    }
     return result;
   });
   ipcMain.handle("data:deleteAll", () => serializeStorageMutation(async () => {
     clearUploadFiles();
     await deleteAllLocalData();
+    applyNativeTheme(DEFAULT_SETTINGS.theme);
   }));
   ipcMain.handle("file:saveExport", async (_event, payload: { defaultPath: string; content: string }) => {
     const result = await dialog.showSaveDialog({

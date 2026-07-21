@@ -50,7 +50,7 @@ describe("storage service", () => {
     const paths = storagePaths(userData);
     const service = createStorageService({ paths, secureStorage: secureStorage(), appVersion: "1.1.0" });
     const original = workspaceWithSecret("Original", "top-secret-token");
-    await service.saveSettings({ requestTimeoutMs: 1234, maxResponseBytes: 2048, allowInsecureTls: true });
+    await service.saveSettings({ requestTimeoutMs: 1234, maxResponseBytes: 2048, allowInsecureTls: true, theme: "dark" });
     const backupPath = join(userData, "complete-backup.json");
     await service.writeBackup(backupPath, original);
 
@@ -62,6 +62,7 @@ describe("storage service", () => {
     expect(result.workspace?.name).toBe("Original");
     expect(result.workspace?.environments[0].variables[0].value).toBe("top-secret-token");
     expect(result.settings?.requestTimeoutMs).toBe(1234);
+    expect(result.settings?.theme).toBe("dark");
     expect(persisted).not.toContain("top-secret-token");
     expect(persisted).toContain("enc:v1:");
   });
@@ -71,7 +72,7 @@ describe("storage service", () => {
     const paths = storagePaths(userData);
     await mkdir(userData, { recursive: true });
     const oldWorkspace = createEmptyWorkspace("Before restore");
-    const oldSettings = { requestTimeoutMs: 30000, maxResponseBytes: 1024, allowInsecureTls: false };
+    const oldSettings = { requestTimeoutMs: 30000, maxResponseBytes: 1024, allowInsecureTls: false, theme: "system" };
     await writeFile(paths.workspace, JSON.stringify(oldWorkspace), "utf8");
     await writeFile(paths.settings, JSON.stringify(oldSettings), "utf8");
 
@@ -95,7 +96,7 @@ describe("storage service", () => {
       appVersion: "1.1.0",
       secretsIncluded: true,
       workspace: createEmptyWorkspace("After restore"),
-      settings: { requestTimeoutMs: 1, maxResponseBytes: 2, allowInsecureTls: true }
+      settings: { requestTimeoutMs: 1, maxResponseBytes: 2, allowInsecureTls: true, theme: "dark" }
     };
 
     await expect(service.restoreBackupText(JSON.stringify(backup))).rejects.toThrow("previous data was restored");

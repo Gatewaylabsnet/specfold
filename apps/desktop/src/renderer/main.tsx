@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { createCollection, createEmptyWorkspace, createKeyValue, createRequest } from "@openapi-collection-studio/core";
 import { App } from "./App";
+import { applyThemePreference } from "./app/theme";
 import "./styles/global.css";
 
 // Dev-only fallback: when the renderer is opened in a plain browser (no
@@ -33,7 +34,8 @@ if (browserPreview && typeof window.studio === "undefined") {
     loadSettings: async () => ({
       requestTimeoutMs: 30_000,
       maxResponseBytes: 10 * 1024 * 1024,
-      allowInsecureTls: false
+      allowInsecureTls: false,
+      theme: "system"
     }),
     saveSettings: async (settings) => settings,
     sendRequest: async (request) => {
@@ -80,8 +82,14 @@ if (browserPreview && typeof window.studio === "undefined") {
   };
 }
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+async function bootstrap(): Promise<void> {
+  const settings = await window.studio.loadSettings();
+  applyThemePreference(settings.theme);
+  ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+}
+
+void bootstrap();

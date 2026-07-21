@@ -34,7 +34,8 @@ function studioMock(workspace = sampleWorkspace()): StudioApi {
     loadSettings: vi.fn(async () => ({
       requestTimeoutMs: 30_000,
       maxResponseBytes: 10 * 1024 * 1024,
-      allowInsecureTls: false
+      allowInsecureTls: false,
+      theme: "system" as const
     })),
     saveSettings: vi.fn(async (settings) => settings),
     sendRequest: vi.fn(async () => ({

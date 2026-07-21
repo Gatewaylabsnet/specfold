@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Plus, Send, Terminal, Wand2 } from "lucide-react";
-import { flattenFolders, folderBaseUrl, type ApiRequest, type AuthConfig, type Collection, type Folder, type HttpMethod } from "@openapi-collection-studio/core";
+import { Copy, Plus, Send, Terminal, Wand2 } from "lucide-react";
+import { flattenFolders, type ApiRequest, type AuthConfig, type Collection, type Environment, type Folder, type HttpMethod } from "@openapi-collection-studio/core";
 import { KeyValueEditor } from "../../components/KeyValueEditor";
 import { methods } from "../types";
 import { activeRequestFolderId, authForType, tabLabel } from "../helpers";
+import { baseUrlRouting, inheritedBaseUrl, resolveRoutePreview } from "../routing";
 import type { RequestTab, ResponseHistoryEntry, ResponseState } from "../types";
 import { RequestBodyEditor } from "./RequestBodyEditor";
 import { ResponsePanel } from "./ResponsePanel";
@@ -11,6 +12,7 @@ import { ResponsePanel } from "./ResponsePanel";
 export function RequestWorkspace({
   activeCollection,
   activeEnvironmentBaseUrl,
+  activeEnvironment,
   activeEnvironmentName,
   activeFolder,
   activeRequest,
@@ -28,11 +30,13 @@ export function RequestWorkspace({
   onSend,
   onCopyCurl,
   onAssignResponseValue,
+  onSaveResponseExample,
   environmentVariableNames,
   responseHistory
 }: {
   activeCollection?: Collection;
   activeEnvironmentBaseUrl?: string;
+  activeEnvironment?: Environment;
   activeEnvironmentName?: string;
   activeFolder?: Folder;
   activeRequest?: ApiRequest;
@@ -51,6 +55,7 @@ export function RequestWorkspace({
   onSend(): void;
   onCopyCurl(): void;
   onAssignResponseValue(path: string, variableName: string): void;
+  onSaveResponseExample(response: ResponseState): void;
   environmentVariableNames: string[];
 }) {
   const routing = activeCollection
@@ -61,6 +66,9 @@ export function RequestWorkspace({
         activeEnvironmentBaseUrl,
         activeEnvironmentName
       )
+    : undefined;
+  const routePreview = activeRequest
+    ? resolveRoutePreview(activeRequest, activeEnvironment, activeCollection, activeFolder, folderOptions)
     : undefined;
 
   return (
@@ -145,6 +153,25 @@ export function RequestWorkspace({
                 {isSending ? "Sending" : "Send"}
               </button>
             </div>
+            {routePreview && (
+              <div className={routePreview.missing.length ? "request-route request-route--warning" : "request-route"} role="status">
+                <span>{routePreview.missing.length ? "Needs values" : "Will send"}</span>
+                <code title={routePreview.url}>{routePreview.url}</code>
+                {routePreview.missing.length > 0 && <small>Missing: {routePreview.missing.join(", ")}</small>}
+                {!routePreview.missing.length && (
+                  <button
+                    aria-label="Copy resolved URL"
+                    className="secondary-button"
+                    onClick={() => void navigator.clipboard.writeText(routePreview.url)}
+                    title="Copy resolved URL"
+                    type="button"
+                  >
+                    <Copy size={14} />
+                    Copy
+                  </button>
+                )}
+              </div>
+            )}
             <div className="request-meta">
               <RequestNameInput
                 key={activeRequest.id}
@@ -210,71 +237,11 @@ export function RequestWorkspace({
         response={response}
         history={responseHistory}
         onAssignResponseValue={onAssignResponseValue}
+        onSaveResponseExample={onSaveResponseExample}
         environmentVariableNames={environmentVariableNames}
       />
     </section>
   );
-}
-
-function inheritedBaseUrl(
-  collection: Collection,
-  folder: Folder,
-  folderOptions: ReturnType<typeof flattenFolders>,
-  environmentBaseUrl?: string
-): string {
-  const path = folderOptions.find((item) => item.folder.id === folder.id)?.path ?? [];
-  const inherited = folderBaseUrl(path.slice(0, -1)) ?? collection.baseUrl ?? environmentBaseUrl;
-  return inherited ? `Inherited: ${inherited}` : "https://api.example.com/proxy";
-}
-
-function baseUrlRouting(
-  collection: Collection,
-  folder: Folder | undefined,
-  folderOptions: ReturnType<typeof flattenFolders>,
-  environmentBaseUrl?: string,
-  environmentName?: string
-): { effective: string; source: string } {
-  if (!folder) {
-    const collectionValue = collection.baseUrl?.trim() ?? "";
-    const environmentValue = environmentBaseUrl?.trim() ?? "";
-    const effective = collectionValue || environmentValue;
-    return {
-      effective,
-      source: collectionValue
-        ? "Collection default"
-        : environmentValue
-          ? `Inherited from ${environmentName ?? "active"} environment`
-          : "Add a collection base URL to resolve relative requests."
-    };
-  }
-
-  const path = folderOptions.find((item) => item.folder.id === folder.id)?.path ?? [folder];
-  const ownValue = folder.baseUrl?.trim() ?? "";
-  if (ownValue) {
-    return { effective: ownValue, source: `${folder.name} folder override` };
-  }
-
-  const inheritedFolder = [...path.slice(0, -1)]
-    .reverse()
-    .find((candidate) => candidate.baseUrl?.trim());
-  if (inheritedFolder?.baseUrl) {
-    return {
-      effective: inheritedFolder.baseUrl.trim(),
-      source: `Inherited from ${inheritedFolder.name}`
-    };
-  }
-
-  const collectionValue = collection.baseUrl?.trim() ?? "";
-  const environmentValue = environmentBaseUrl?.trim() ?? "";
-  const effective = collectionValue || environmentValue;
-  return {
-    effective,
-    source: collectionValue
-      ? `Inherited from ${collection.name}`
-      : environmentValue
-        ? `Inherited from ${environmentName ?? "active"} environment`
-      : "No folder or collection base URL is configured."
-  };
 }
 
 function RequestNameInput({ name, onCommit }: { name: string; onCommit(name: string): void }) {

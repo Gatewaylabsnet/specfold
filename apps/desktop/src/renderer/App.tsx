@@ -17,7 +17,7 @@ export function App() {
     postmanFolderSource, setPostmanFolderSource, postmanFolderPath, setPostmanFolderPath,
     importUrl, setImportUrl, isFetchingImport, setIsFetchingImport, importOperations,
     setImportOperations, selectedImportKeys, setSelectedImportKeys, lastImportIndexRef,
-    grouping, setGrouping, importError, setImportError, importSummary, setImportSummary,
+    grouping, setGrouping, importError, setImportError, importSummary, setImportSummary, importWarnings, setImportWarnings,
     exportFormat, setExportFormat, exportFolderIds, setExportFolderIds, includeAllComponents,
     setIncludeAllComponents, includeExamples, setIncludeExamples, pruneUnusedComponents,
     setPruneUnusedComponents, preferSourceOperation, setPreferSourceOperation, savedExportPath,
@@ -29,7 +29,7 @@ export function App() {
     mutateCollection, openImportFile, openPostmanFolder, fetchImportUrl,
     toggleImportOperation, handlePreviewImport, handleImport, copyActiveRequestAsCurl,
     sendActiveRequest, updateEnvironment, updateEnvironmentBaseUrl, createNewEnvironment,
-    updateSettings, assignResponseValue, saveExport, copyExportToClipboard, exportFullBackup,
+    updateSettings, assignResponseValue, saveResponseAsExample, saveExport, copyExportToClipboard, exportFullBackup,
     restoreFullBackup, deleteAllData, treeActions
   } = useStudioController();
   const activeFolder =
@@ -108,6 +108,7 @@ export function App() {
             grouping={grouping}
             importError={importError}
             importSummary={importSummary}
+            importWarnings={importWarnings}
             importText={importText}
             importUrl={importUrl}
             isFetchingUrl={isFetchingImport}
@@ -131,6 +132,7 @@ export function App() {
             onTextChange={(value) => {
               setPostmanFolderSource(undefined);
               setPostmanFolderPath("");
+              setImportWarnings([]);
               setImportText(value);
             }}
             postmanFolderPath={postmanFolderPath}
@@ -145,6 +147,7 @@ export function App() {
               activeFolder={activeFolder}
               activeRequest={activeRequest}
               activeEnvironmentBaseUrl={activeEnvironment ? environmentBaseUrl(activeEnvironment) : undefined}
+              activeEnvironment={activeEnvironment}
               activeEnvironmentName={activeEnvironment?.name}
               folderOptions={activeCollection ? flattenFolders(activeCollection) : []}
               isSending={isSending}
@@ -167,6 +170,7 @@ export function App() {
               }
               onUpdateRequest={updateActiveRequest}
               onAssignResponseValue={assignResponseValue}
+              onSaveResponseExample={saveResponseAsExample}
               environmentVariableNames={activeEnvironment?.variables.map((variable) => variable.name) ?? []}
               responseHistory={selectedRequestId ? responseHistory[selectedRequestId] ?? [] : []}
               requestTab={requestTab}

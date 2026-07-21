@@ -37,6 +37,20 @@ export function SettingsScreen({
           <Plus size={16} />
           New workspace
         </button>
+        <h3>Appearance</h3>
+        <label className="field">
+          <span>Color theme</span>
+          <select
+            aria-label="Color theme"
+            onChange={(event) => onChange({ theme: event.target.value as AppSettings["theme"] })}
+            value={settings.theme}
+          >
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </label>
+        <p>System follows your operating system. Your choice is saved in this local workspace profile.</p>
         <h3>Data management</h3>
         <p>Backups include collections, environments, settings, and secret values. Store exported files securely.</p>
         <div className="settings-actions">

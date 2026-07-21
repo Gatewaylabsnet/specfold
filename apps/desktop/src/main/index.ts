@@ -1,7 +1,8 @@
 import { app, BrowserWindow } from "electron";
+import { loadSettings } from "./storage";
 import { closeHttpAgents } from "./http";
 import { registerIpcHandlers } from "./ipc";
-import { applyContentSecurityPolicy, createWindow } from "./window";
+import { applyContentSecurityPolicy, applyNativeTheme, createWindow } from "./window";
 
 const PRODUCT_NAME = "Specfold";
 const APP_ID = "net.gatewaylabs.specfold";
@@ -21,7 +22,8 @@ if (!gotSingleInstanceLock) {
     }
   });
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
+    applyNativeTheme((await loadSettings()).theme);
     applyContentSecurityPolicy();
     registerIpcHandlers();
     createWindow();

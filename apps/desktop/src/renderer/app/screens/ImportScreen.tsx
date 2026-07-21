@@ -7,6 +7,7 @@ export function ImportScreen({
   isFetchingUrl,
   grouping,
   importSummary,
+  importWarnings,
   importError,
   operations,
   selectedOperationKeys,
@@ -27,6 +28,7 @@ export function ImportScreen({
   isFetchingUrl: boolean;
   grouping: GroupingStrategy;
   importSummary: string;
+  importWarnings: string[];
   importError: string;
   operations: ImportOperationSummary[];
   selectedOperationKeys: Set<string>;
@@ -45,6 +47,9 @@ export function ImportScreen({
   const importDisabled =
     (!importText.trim() && !postmanFolderPath) ||
     (operations.length > 0 && selectedOperationKeys.size === 0);
+  // Safe re-import is introduced in v1.5; keep the panel hidden in v1.4.
+  const importTargetCollectionId = "";
+  const importDiff = undefined as { matched: number; added: number; retained: number } | undefined;
 
   return (
     <section className="import-layout">
@@ -108,6 +113,12 @@ export function ImportScreen({
       </div>
       <aside className="side-panel">
         <h3>Grouping</h3>
+        {importTargetCollectionId && importDiff && (
+          <div className="reimport-diff" role="status">
+            <strong>Safe re-import preview</strong>
+            <span>{importDiff.matched} matched · {importDiff.added} new · {importDiff.retained} retained</span>
+          </div>
+        )}
         <label className="radio-row">
           <input
             checked={grouping === "tags"}
@@ -186,6 +197,20 @@ export function ImportScreen({
         <div className={importError ? "status-box status-box--error" : "status-box"}>
           {importError || importSummary || "Preview results appear here."}
         </div>
+        {importWarnings.length > 0 && (
+          <section aria-label="Import Doctor" className="import-doctor">
+            <div className="import-doctor__header">
+              <h3>Import Doctor</h3>
+              <span>{importWarnings.length} item{importWarnings.length === 1 ? "" : "s"} to review</span>
+            </div>
+            <p>Nothing is changed until you choose Import.</p>
+            <ul>
+              {importWarnings.map((warning, index) => (
+                <li key={`${warning}-${index}`}>{warning}</li>
+              ))}
+            </ul>
+          </section>
+        )}
       </aside>
     </section>
   );

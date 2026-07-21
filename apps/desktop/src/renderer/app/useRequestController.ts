@@ -12,7 +12,7 @@ import {
 } from "@openapi-collection-studio/core";
 import { applyEnvironmentBaseUrlToCollection, createEnvironmentVariable, environmentBaseUrl, extractJsonPath, replaceEnvironmentCustomVariables, upsertEnvironmentBaseUrl } from "./helpers";
 import { MAX_HISTORY_PER_REQUEST } from "./types";
-import type { AppSettings } from "./types";
+import type { AppSettings, ResponseState } from "./types";
 import type { StudioState } from "./useStudioState";
 import type { WorkspaceController } from "./useWorkspaceController";
 
@@ -180,8 +180,39 @@ export function useRequestController(state: StudioState, workspaceController: Wo
     setNotice(`Saved "${variableName}" to the ${activeEnvironment ? "active" : "new"} environment.`);
   };
 
+  const saveResponseAsExample = (responseToSave: ResponseState) => {
+    if (!activeRequest || responseToSave.error) {
+      return;
+    }
+    const contentType = Object.entries(responseToSave.headers).find(
+      ([name]) => name.toLowerCase() === "content-type"
+    )?.[1];
+    const includesSensitiveData = /(?:authorization|api[_-]?key|access[_-]?token|client[_-]?secret|password)/i.test(
+      `${JSON.stringify(responseToSave.headers)}\n${responseToSave.rawBody}`
+    );
+    if (
+      includesSensitiveData &&
+      !window.confirm("This response may contain a secret. Save it as a local example anyway?")
+    ) {
+      return;
+    }
+    updateActiveRequest((request) => {
+      request.responseExamples.push({
+        id: createId("response"),
+        name: `Response ${responseToSave.status}`,
+        status: responseToSave.status,
+        headers: Object.entries(responseToSave.headers).map(([key, value]) =>
+          createKeyValue(key, value)
+        ),
+        body: responseToSave.rawBody || responseToSave.body,
+        contentType
+      });
+    });
+    setNotice(`Saved ${responseToSave.status} response as an example for ${activeRequest.name}.`);
+  };
+
   return {
     copyActiveRequestAsCurl, sendActiveRequest, updateEnvironment,
-    updateEnvironmentBaseUrl, createNewEnvironment, updateSettings, assignResponseValue
+    updateEnvironmentBaseUrl, createNewEnvironment, updateSettings, assignResponseValue, saveResponseAsExample
   };
 }

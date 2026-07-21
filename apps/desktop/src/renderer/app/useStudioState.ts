@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  cloneFolder, cloneRequest, countFolderRequests, createApinizerJwtRequest, createCollection,
+  cloneFolder, cloneRequest, collectCollectionSecretWarnings, countFolderRequests, createApinizerJwtRequest, createCollection,
   createEmptyWorkspace, createEnvironment, createFolder, createId, createJwtRequest,
   createKeyValue, createRequest, checkOpenApiDocument, exportCollectionToOpenApiResult,
   looksLikeCurl, parseCurlCommand, requestToCurl, findFolder, findRequest, flattenRequests,
@@ -12,6 +12,7 @@ import {
 } from "@openapi-collection-studio/core";
 import { firstRequestId } from "./helpers";
 import { DEFAULT_SETTINGS } from "./types";
+import { applyThemePreference, observeThemePreference } from "./theme";
 import type { AppSettings, ExportFormat, RequestTab, ResponseHistoryEntry, ResponseState, SaveStatus, Screen } from "./types";
 
 export function useStudioState() {
@@ -37,6 +38,7 @@ export function useStudioState() {
   const [grouping, setGrouping] = useState<GroupingStrategy>("tags");
   const [importError, setImportError] = useState("");
   const [importSummary, setImportSummary] = useState("");
+  const [importWarnings, setImportWarnings] = useState<string[]>([]);
   const [exportFormat, setExportFormat] = useState<ExportFormat>("openapi-yaml");
   const [exportFolderIds, setExportFolderIds] = useState<string[]>([]);
   const [includeAllComponents, setIncludeAllComponents] = useState(true);
@@ -77,6 +79,11 @@ export function useStudioState() {
     });
     window.studio.loadSettings().then(setSettings);
   }, []);
+
+  useEffect(() => {
+    applyThemePreference(settings.theme);
+    return observeThemePreference(settings.theme);
+  }, [settings.theme]);
 
   useEffect(() => {
     if (!loaded) {
@@ -143,7 +150,10 @@ export function useStudioState() {
       return { content: "", warnings: [] };
     }
     if (exportFormat === "collection-json") {
-      return { content: serializeCollectionJson(activeCollection), warnings: [] };
+      return {
+        content: serializeCollectionJson(activeCollection),
+        warnings: collectCollectionSecretWarnings(activeCollection)
+      };
     }
     const result = exportCollectionToOpenApiResult(activeCollection, {
       format: exportFormat === "openapi-json" ? "json" : "yaml",
@@ -151,7 +161,7 @@ export function useStudioState() {
       useFolderNamesAsTags: true,
       includeRequestExamples: includeExamples,
       includeParameterExamples: includeExamples,
-      includeResponseExamples: true,
+      includeResponseExamples: includeExamples,
       includeBearerJwtSecurityScheme: true,
       includeAllComponents,
       pruneUnusedComponents,
@@ -203,7 +213,7 @@ export function useStudioState() {
     postmanFolderSource, setPostmanFolderSource, postmanFolderPath, setPostmanFolderPath,
     importUrl, setImportUrl, isFetchingImport, setIsFetchingImport, importOperations,
     setImportOperations, selectedImportKeys, setSelectedImportKeys, lastImportIndexRef,
-    grouping, setGrouping, importError, setImportError, importSummary, setImportSummary,
+    grouping, setGrouping, importError, setImportError, importSummary, setImportSummary, importWarnings, setImportWarnings,
     exportFormat, setExportFormat, exportFolderIds, setExportFolderIds, includeAllComponents,
     setIncludeAllComponents, includeExamples, setIncludeExamples, pruneUnusedComponents,
     setPruneUnusedComponents, preferSourceOperation, setPreferSourceOperation, savedExportPath,

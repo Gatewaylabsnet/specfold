@@ -1,5 +1,17 @@
-import { app, BrowserWindow, nativeImage, session } from "electron";
+import { app, BrowserWindow, nativeImage, nativeTheme, session } from "electron";
 import { join } from "node:path";
+import type { ThemePreference } from "../shared/contracts";
+
+function windowBackgroundColor(): string {
+  return nativeTheme.shouldUseDarkColors ? "#111827" : "#f6f7f9";
+}
+
+export function applyNativeTheme(preference: ThemePreference): void {
+  nativeTheme.themeSource = preference;
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.setBackgroundColor(windowBackgroundColor());
+  }
+}
 
 export function resolveWindowIcon(): Electron.NativeImage | undefined {
   // The running window's title-bar and taskbar icon come from here (the exe
@@ -20,7 +32,7 @@ export function createWindow(): void {
     minHeight: 720,
     title: "Specfold",
     icon: resolveWindowIcon(),
-    backgroundColor: "#f6f7f9",
+    backgroundColor: windowBackgroundColor(),
     webPreferences: {
       preload: join(__dirname, "../preload/index.cjs"),
       contextIsolation: true,

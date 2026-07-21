@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import type { ResponseHistoryEntry, ResponseState, ResponseTab } from "../types";
-import { Save } from "lucide-react";
+import { Copy, Save } from "lucide-react";
 import { formatBytes, formatHistoryTime, looksLikeJson, tabLabel } from "../helpers";
 
 export function ResponsePanel({
   response,
   history,
   onAssignResponseValue,
+  onSaveResponseExample,
   environmentVariableNames
 }: {
   response?: ResponseState;
   history: ResponseHistoryEntry[];
   onAssignResponseValue(path: string, variableName: string): void;
+  onSaveResponseExample(response: ResponseState): void;
   environmentVariableNames: string[];
 }) {
   const [responseTab, setResponseTab] = useState<ResponseTab>("body");
@@ -28,6 +30,13 @@ export function ResponsePanel({
   // Show the selected history entry when browsing; otherwise the live response.
   const displayed = history[historyIndex]?.response ?? response;
   const isJsonResponse = Boolean(displayed && !displayed.error && looksLikeJson(displayed.rawBody));
+  const displayedText = displayed
+    ? responseTab === "headers"
+      ? JSON.stringify(displayed.headers, null, 2)
+      : responseTab === "raw"
+        ? displayed.rawBody
+        : displayed.body
+    : "";
 
   return (
     <aside className="response-panel">
@@ -74,14 +83,24 @@ export function ResponsePanel({
                 {tabLabel(tab)}
               </button>
             ))}
+            <button
+              className="secondary-button response-tabs__action"
+              onClick={() => void navigator.clipboard.writeText(displayedText)}
+              type="button"
+            >
+              <Copy size={14} />
+              Copy
+            </button>
+            <button
+              className="secondary-button response-tabs__action"
+              onClick={() => onSaveResponseExample(displayed)}
+              type="button"
+            >
+              <Save size={14} />
+              Save example
+            </button>
           </div>
-          <pre>
-            {responseTab === "headers"
-              ? JSON.stringify(displayed.headers, null, 2)
-              : responseTab === "raw"
-                ? displayed.rawBody
-                : displayed.body}
-          </pre>
+          <pre>{displayedText}</pre>
           {isJsonResponse && (
             <div className="assign-row">
               <span className="assign-row__label">Save field to variable</span>

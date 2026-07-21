@@ -1,4 +1,5 @@
 import type { HttpMethod } from "@openapi-collection-studio/core";
+import type { AppSettings as SharedAppSettings, ThemePreference } from "../../shared/contracts";
 
 export type Screen = "editor" | "import" | "environments" | "export" | "settings";
 export type RequestTab = "params" | "auth" | "headers" | "body";
@@ -6,16 +7,14 @@ export type ResponseTab = "body" | "headers" | "raw";
 export type ExportFormat = "openapi-yaml" | "openapi-json" | "collection-json";
 export type SaveStatus = "saved" | "dirty" | "saving" | "error";
 
-export interface AppSettings {
-  requestTimeoutMs: number;
-  maxResponseBytes: number;
-  allowInsecureTls: boolean;
-}
+export type AppSettings = SharedAppSettings;
+export type { ThemePreference };
 
 export const DEFAULT_SETTINGS: AppSettings = {
   requestTimeoutMs: 30_000,
   maxResponseBytes: 10 * 1024 * 1024,
-  allowInsecureTls: false
+  allowInsecureTls: false,
+  theme: "system"
 };
 
 export interface ResponseState {

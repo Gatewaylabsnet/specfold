@@ -448,7 +448,9 @@ function normalizeSettings(value: unknown): AppSettings {
     maxResponseBytes: typeof input.maxResponseBytes === "number" && input.maxResponseBytes > 0
       ? input.maxResponseBytes : DEFAULT_SETTINGS.maxResponseBytes,
     allowInsecureTls: typeof input.allowInsecureTls === "boolean"
-      ? input.allowInsecureTls : DEFAULT_SETTINGS.allowInsecureTls
+      ? input.allowInsecureTls : DEFAULT_SETTINGS.allowInsecureTls,
+    theme: input.theme === "light" || input.theme === "dark" || input.theme === "system"
+      ? input.theme : DEFAULT_SETTINGS.theme
   };
 }
 

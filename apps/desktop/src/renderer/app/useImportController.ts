@@ -21,7 +21,7 @@ export function useImportController(state: StudioState, workspaceController: Wor
     postmanFolderSource, setPostmanFolderSource, postmanFolderPath, setPostmanFolderPath,
     importUrl, setImportUrl, isFetchingImport, setIsFetchingImport, importOperations,
     setImportOperations, selectedImportKeys, setSelectedImportKeys, lastImportIndexRef,
-    grouping, setGrouping, importError, setImportError, importSummary, setImportSummary,
+    grouping, setGrouping, importError, setImportError, importSummary, setImportSummary, importWarnings, setImportWarnings,
     exportFormat, setExportFormat, exportFolderIds, setExportFolderIds, includeAllComponents,
     setIncludeAllComponents, includeExamples, setIncludeExamples, pruneUnusedComponents,
     setPruneUnusedComponents, preferSourceOperation, setPreferSourceOperation, savedExportPath,
@@ -37,6 +37,7 @@ export function useImportController(state: StudioState, workspaceController: Wor
     if (result.error) {
       setImportSummary("");
       setImportError(result.error);
+      setImportWarnings([]);
       return;
     }
     if (result.content !== undefined) {
@@ -44,6 +45,7 @@ export function useImportController(state: StudioState, workspaceController: Wor
       setPostmanFolderPath("");
       setImportText(result.content);
       setImportError("");
+      setImportWarnings([]);
       setImportSummary(result.filePath ? `Loaded ${result.filePath}` : "File loaded.");
     }
   };
@@ -56,6 +58,7 @@ export function useImportController(state: StudioState, workspaceController: Wor
     if (result.error || !result.source) {
       setImportSummary("");
       setImportError(result.error ?? "The selected folder could not be loaded.");
+      setImportWarnings([]);
       return;
     }
     try {
@@ -64,12 +67,14 @@ export function useImportController(state: StudioState, workspaceController: Wor
       setPostmanFolderSource(result.source);
       setPostmanFolderPath(result.folderPath ?? result.source.rootName);
       setImportError("");
+      setImportWarnings([]);
       setImportSummary(
         `${preview.label} ${preview.version ?? ""} - ${preview.requestCount} requests in ${preview.containerCount} folders`
       );
     } catch (error) {
       setImportSummary("");
       setImportError(error instanceof Error ? error.message : String(error));
+      setImportWarnings([]);
     }
   };
 
@@ -80,6 +85,7 @@ export function useImportController(state: StudioState, workspaceController: Wor
     }
     setIsFetchingImport(true);
     setImportError("");
+    setImportWarnings([]);
     const result = await window.studio.fetchImportUrl(url);
     setIsFetchingImport(false);
     if (result.ok && result.content !== undefined) {
@@ -130,27 +136,34 @@ export function useImportController(state: StudioState, workspaceController: Wor
     if (postmanFolderSource) {
       try {
         const preview = previewPostmanV3Folder(postmanFolderSource);
+        const analyzed = importPostmanV3Folder(postmanFolderSource, { grouping });
+        setImportWarnings(analyzed.warnings);
         setImportSummary(
           `${preview.label} ${preview.version ?? ""} - ${preview.requestCount} requests in ${preview.containerCount} folders`
         );
       } catch (error) {
         setImportSummary("");
         setImportError(error instanceof Error ? error.message : String(error));
+        setImportWarnings([]);
       }
       return;
     }
     if (looksLikeCurl(importText)) {
       try {
         const request = parseCurlCommand(importText);
+        setImportWarnings([]);
         setImportSummary(`cURL command: ${request.method} ${request.url}`);
       } catch (error) {
         setImportSummary("");
         setImportError(error instanceof Error ? error.message : String(error));
+        setImportWarnings([]);
       }
       return;
     }
     try {
       const preview = previewImportDocument(importText);
+      const analyzed = importDocument(importText, { grouping });
+      setImportWarnings(analyzed.warnings);
       const version = preview.version ? ` ${preview.version}` : "";
       setImportSummary(
         `${preview.label}${version} ${preview.format.toUpperCase()} - ${preview.requestCount} requests in ${preview.containerCount} ${preview.containerLabel}`
@@ -158,6 +171,7 @@ export function useImportController(state: StudioState, workspaceController: Wor
     } catch (error) {
       setImportSummary("");
       setImportError(error instanceof Error ? error.message : String(error));
+      setImportWarnings([]);
     }
   };
 
@@ -222,12 +236,12 @@ export function useImportController(state: StudioState, workspaceController: Wor
       setActiveCollectionId(collection.id);
       setSelectedFolderId(undefined);
       setSelectedRequestId(firstRequestId(collection));
-      setImportSummary(
-        imported.collections.length === 1
+      setImportSummary(imported.collections.length === 1
           ? `Imported ${collection.name}`
           : `Imported ${imported.collections.length} collections`
       );
       if (imported.warnings.length > 0) {
+        setImportWarnings(imported.warnings);
         const visibleWarnings = imported.warnings.slice(0, 3).join(" ");
         const remainder = imported.warnings.length - 3;
         setNotice(`${visibleWarnings}${remainder > 0 ? ` (+${remainder} more)` : ""}`);

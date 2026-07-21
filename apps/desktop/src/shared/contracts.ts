@@ -1,15 +1,19 @@
 import type { ApiRequest, Collection, Environment, Folder, PostmanV3FolderSource, Workspace } from "@openapi-collection-studio/core";
 
+export type ThemePreference = "system" | "light" | "dark";
+
 export interface AppSettings {
   requestTimeoutMs: number;
   maxResponseBytes: number;
   allowInsecureTls: boolean;
+  theme: ThemePreference;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   requestTimeoutMs: 30_000,
   maxResponseBytes: 10 * 1024 * 1024,
-  allowInsecureTls: false
+  allowInsecureTls: false,
+  theme: "system"
 };
 
 export interface SendRequestPayload {
