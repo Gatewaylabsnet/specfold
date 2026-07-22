@@ -1,6 +1,6 @@
 {
   "name": "openapi-collection-studio",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
   "description": "Local-first desktop REST API collection editor for OpenAPI and Swagger imports.",
   "author": "GatewayLabs (https://gatewaylabs.net)",
