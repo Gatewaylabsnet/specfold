@@ -48,17 +48,24 @@ export function prepareHttpRequest(
   );
   const headers = keyValuesToHeaders(requestWithPathParams.headers);
 
-  if (requestWithPathParams.auth.type === "bearer" && requestWithPathParams.auth.token) {
-    headers.Authorization = `Bearer ${requestWithPathParams.auth.token}`;
+  if (requestWithPathParams.auth.type === "bearer") {
+    deleteHeader(headers, "authorization");
+    const token = requestWithPathParams.auth.token.trim();
+    if (token) {
+      setHeader(headers, "Authorization", `Bearer ${token}`);
+    }
   }
   if (requestWithPathParams.auth.type === "basic") {
     const token = encodeBase64(
       `${requestWithPathParams.auth.username}:${requestWithPathParams.auth.password}`
     );
-    headers.Authorization = `Basic ${token}`;
+    setHeader(headers, "Authorization", `Basic ${token}`);
   }
   if (requestWithPathParams.auth.type === "apiKey" && requestWithPathParams.auth.in === "header") {
-    headers[requestWithPathParams.auth.key] = requestWithPathParams.auth.value;
+    const key = requestWithPathParams.auth.key.trim();
+    if (key) {
+      setHeader(headers, key, requestWithPathParams.auth.value);
+    }
   }
 
   let body = requestWithPathParams.body.raw;
@@ -68,10 +75,13 @@ export function prepareHttpRequest(
     body = pairs
       .map((item) => `${encodeURIComponent(item.key)}=${encodeURIComponent(item.value)}`)
       .join("&");
-    headers["Content-Type"] =
-      headers["Content-Type"] ??
-      requestWithPathParams.body.contentType ??
-      "application/x-www-form-urlencoded";
+    if (!hasHeader(headers, "content-type")) {
+      setHeader(
+        headers,
+        "Content-Type",
+        requestWithPathParams.body.contentType ?? "application/x-www-form-urlencoded"
+      );
+    }
   }
   if (requestWithPathParams.body.mode === "multipart") {
     multipart = (requestWithPathParams.body.multipart ?? []).filter(
@@ -89,7 +99,9 @@ export function prepareHttpRequest(
     multipart = undefined;
   }
   if (requestWithPathParams.body.mode === "json" && requestWithPathParams.body.contentType) {
-    headers["Content-Type"] = headers["Content-Type"] ?? requestWithPathParams.body.contentType;
+    if (!hasHeader(headers, "content-type")) {
+      setHeader(headers, "Content-Type", requestWithPathParams.body.contentType);
+    }
   }
 
   return {
@@ -157,8 +169,12 @@ function appendApiKeyQuery(urlInput: string, request: ApiRequest): string {
   if (request.auth.type !== "apiKey" || request.auth.in !== "query") {
     return urlInput;
   }
+  const key = request.auth.key.trim();
+  if (!key) {
+    return urlInput;
+  }
   const url = createUrl(urlInput);
-  url.searchParams.set(request.auth.key, request.auth.value);
+  url.searchParams.set(key, request.auth.value);
   return normalizeUrl(urlInput, url);
 }
 
@@ -184,6 +200,15 @@ function keyValuesToHeaders(values: KeyValue[]): Record<string, string> {
     }
   }
   return headers;
+}
+
+function hasHeader(headers: Record<string, string>, name: string): boolean {
+  return Object.keys(headers).some((key) => key.toLowerCase() === name.toLowerCase());
+}
+
+function setHeader(headers: Record<string, string>, name: string, value: string): void {
+  deleteHeader(headers, name);
+  headers[name] = value;
 }
 
 function deleteHeader(headers: Record<string, string>, name: string): void {

@@ -14,6 +14,17 @@ export function requestToCurl(request: ApiRequest): string {
   lines.push(`curl -X ${method} ${shellQuote(buildUrl(request))}`);
 
   const headers = new Map<string, string>();
+  const deleteHeader = (name: string) => {
+    for (const key of headers.keys()) {
+      if (key.toLowerCase() === name.toLowerCase()) {
+        headers.delete(key);
+      }
+    }
+  };
+  const setConfiguredHeader = (key: string, value: string) => {
+    deleteHeader(key);
+    headers.set(key, value);
+  };
   for (const header of request.headers) {
     if (header.enabled && header.key.trim()) {
       const normalizedHeader = header.key.toLowerCase();
@@ -27,12 +38,20 @@ export function requestToCurl(request: ApiRequest): string {
     }
   }
 
-  if (request.auth.type === "bearer" && request.auth.token) {
-    headers.set("Authorization", `Bearer ${request.auth.token}`);
+  if (request.auth.type === "bearer") {
+    deleteHeader("authorization");
+    const token = request.auth.token.trim();
+    if (token) {
+      setConfiguredHeader("Authorization", `Bearer ${token}`);
+    }
   } else if (request.auth.type === "basic") {
+    deleteHeader("authorization");
     lines.push(`  --user ${shellQuote(`${request.auth.username}:${request.auth.password}`)}`);
-  } else if (request.auth.type === "apiKey" && request.auth.in === "header" && request.auth.key) {
-    headers.set(request.auth.key, request.auth.value);
+  } else if (request.auth.type === "apiKey" && request.auth.in === "header") {
+    const key = request.auth.key.trim();
+    if (key) {
+      setConfiguredHeader(key, request.auth.value);
+    }
   }
 
   for (const [key, value] of headers) {
@@ -65,17 +84,51 @@ export function requestToCurl(request: ApiRequest): string {
 
 function buildUrl(request: ApiRequest): string {
   const enabledQuery = request.queryParams.filter((param) => param.enabled && param.key.trim());
-  if (request.auth.type === "apiKey" && request.auth.in === "query" && request.auth.key) {
-    enabledQuery.push(createKeyValue(request.auth.key, request.auth.value));
-  }
-  if (enabledQuery.length === 0) {
+  const apiKeyName =
+    request.auth.type === "apiKey" && request.auth.in === "query"
+      ? request.auth.key.trim()
+      : "";
+  if (enabledQuery.length === 0 && !apiKeyName) {
     return request.url;
   }
-  const query = enabledQuery
-    .map((param) => `${encodeURIComponent(param.key)}=${encodeURIComponent(param.value)}`)
-    .join("&");
-  const separator = request.url.includes("?") ? "&" : "?";
-  return `${request.url}${separator}${query}`;
+
+  const hashIndex = request.url.indexOf("#");
+  const hash = hashIndex >= 0 ? request.url.slice(hashIndex) : "";
+  const urlWithoutHash = hashIndex >= 0 ? request.url.slice(0, hashIndex) : request.url;
+  const questionIndex = urlWithoutHash.indexOf("?");
+  const path = questionIndex >= 0 ? urlWithoutHash.slice(0, questionIndex) : urlWithoutHash;
+  const query = questionIndex >= 0 ? urlWithoutHash.slice(questionIndex + 1) : "";
+  let queryParts = query ? query.split("&") : [];
+
+  for (const param of enabledQuery) {
+    queryParts = setQueryParam(queryParts, param.key, param.value);
+  }
+  if (apiKeyName && request.auth.type === "apiKey") {
+    queryParts = setQueryParam(queryParts, apiKeyName, request.auth.value);
+  }
+
+  const renderedQuery = queryParts.join("&");
+  return `${path}${renderedQuery ? `?${renderedQuery}` : ""}${hash}`;
+}
+
+function setQueryParam(parts: string[], key: string, value: string): string[] {
+  const encoded = `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+  const next: string[] = [];
+  let replaced = false;
+  for (const part of parts) {
+    const separator = part.indexOf("=");
+    const partKey = safeDecode(separator >= 0 ? part.slice(0, separator) : part);
+    if (partKey !== key) {
+      next.push(part);
+    } else if (!replaced) {
+      next.push(encoded);
+      replaced = true;
+    }
+  }
+  if (!replaced) {
+    next.push(encoded);
+  }
+  return next;
 }
 
 function shellQuote(value: string): string {

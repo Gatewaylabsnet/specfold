@@ -179,6 +179,108 @@ describe("form-urlencoded body", () => {
   });
 });
 
+describe("HTTP header normalization", () => {
+  it("applies body and auth settings without duplicate case variants", () => {
+    const request = createRequest({
+      name: "Create",
+      method: "POST",
+      url: "https://api.example.com/items"
+    });
+    request.headers = [
+      createKeyValue("content-type", "application/problem+json"),
+      createKeyValue("authorization", "Bearer stale"),
+      createKeyValue("X-Trace", "first"),
+      createKeyValue("x-trace", "last")
+    ];
+    request.auth = { type: "bearer", token: "current" };
+    request.body = {
+      mode: "json",
+      contentType: "application/json",
+      raw: "{}"
+    };
+
+    const prepared = prepareHttpRequest(request);
+    const entries = Object.entries(prepared.headers);
+
+    expect(entries.filter(([key]) => key.toLowerCase() === "content-type")).toEqual([
+      ["content-type", "application/problem+json"]
+    ]);
+    expect(entries.filter(([key]) => key.toLowerCase() === "authorization")).toEqual([
+      ["Authorization", "Bearer current"]
+    ]);
+    expect(entries.filter(([key]) => key.toLowerCase() === "x-trace")).toEqual([
+      ["X-Trace", "first"],
+      ["x-trace", "last"]
+    ]);
+
+    request.auth = { type: "basic", username: "alice", password: "secret" };
+    const basicEntries = Object.entries(prepareHttpRequest(request).headers);
+    expect(basicEntries.filter(([key]) => key.toLowerCase() === "authorization")).toEqual([
+      ["Authorization", "Basic YWxpY2U6c2VjcmV0"]
+    ]);
+
+    request.auth = { type: "bearer", token: "   " };
+    const emptyBearerEntries = Object.entries(prepareHttpRequest(request).headers);
+    expect(
+      emptyBearerEntries.filter(([key]) => key.toLowerCase() === "authorization")
+    ).toHaveLength(0);
+    expect(emptyBearerEntries.filter(([key]) => key.toLowerCase() === "x-trace")).toEqual([
+      ["X-Trace", "first"],
+      ["x-trace", "last"]
+    ]);
+  });
+
+  it("trims API-key names and gives configured query auth precedence", () => {
+    const headerRequest = createRequest({
+      name: "Header key",
+      method: "GET",
+      url: "https://api.example.com/items"
+    });
+    headerRequest.headers = [createKeyValue("x-api-key", "stale")];
+    headerRequest.auth = {
+      type: "apiKey",
+      in: "header",
+      key: " X-API-Key ",
+      value: "current"
+    };
+
+    expect(
+      Object.entries(prepareHttpRequest(headerRequest).headers).filter(
+        ([key]) => key.toLowerCase() === "x-api-key"
+      )
+    ).toEqual([["X-API-Key", "current"]]);
+
+    headerRequest.headers = [];
+    headerRequest.auth.key = "   ";
+    expect(prepareHttpRequest(headerRequest).headers).toEqual({});
+
+    const queryRequest = createRequest({
+      name: "Query key",
+      method: "GET",
+      url: "https://api.example.com/items?api_key=url&keep=1"
+    });
+    queryRequest.queryParams = [
+      createKeyValue("api_key", "manual"),
+      createKeyValue("page", "2")
+    ];
+    queryRequest.auth = {
+      type: "apiKey",
+      in: "query",
+      key: " api_key ",
+      value: "configured"
+    };
+
+    expect(prepareHttpRequest(queryRequest).url).toBe(
+      "https://api.example.com/items?api_key=configured&keep=1&page=2"
+    );
+
+    queryRequest.url = "https://api.example.com/items";
+    queryRequest.queryParams = [];
+    queryRequest.auth.key = "   ";
+    expect(prepareHttpRequest(queryRequest).url).toBe("https://api.example.com/items");
+  });
+});
+
 describe("multipart body", () => {
   it("keeps enabled text and file parts and lets fetch generate the boundary", () => {
     const request = createRequest({

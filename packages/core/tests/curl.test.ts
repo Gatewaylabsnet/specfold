@@ -38,6 +38,106 @@ describe("requestToCurl", () => {
     expect(curl).toContain("--data-urlencode 'grant_type=client_credentials'");
     expect(curl).not.toContain("client_secret");
   });
+
+  it("emits one header when manual and configured names differ only by case", () => {
+    const request = createRequest({
+      name: "Authorized",
+      method: "GET",
+      url: "https://api.example.com/items"
+    });
+    request.headers = [
+      { id: "h1", key: "authorization", value: "Bearer stale", enabled: true },
+      { id: "h2", key: "X-Trace", value: "first", enabled: true },
+      { id: "h3", key: "x-trace", value: "last", enabled: true }
+    ];
+    request.auth = { type: "bearer", token: "current" };
+
+    const curl = requestToCurl(request);
+
+    expect(curl.match(/authorization:/gi)).toHaveLength(1);
+    expect(curl).toContain("-H 'Authorization: Bearer current'");
+    expect(curl.match(/x-trace:/gi)).toHaveLength(2);
+    expect(curl).toContain("-H 'X-Trace: first'");
+    expect(curl).toContain("-H 'x-trace: last'");
+
+    request.auth = { type: "basic", username: "alice", password: "secret" };
+    const basicCurl = requestToCurl(request);
+    expect(basicCurl).toContain("--user 'alice:secret'");
+    expect(basicCurl).not.toMatch(/authorization:/i);
+  });
+
+  it("fails closed for empty bearer auth without collapsing unrelated repeated headers", () => {
+    const request = createRequest({
+      name: "Empty bearer",
+      method: "GET",
+      url: "https://api.example.com/items"
+    });
+    request.headers = [
+      { id: "h1", key: "Authorization", value: "Bearer stale-one", enabled: true },
+      { id: "h2", key: "authorization", value: "Bearer stale-two", enabled: true },
+      { id: "h3", key: "X-Trace", value: "first", enabled: true },
+      { id: "h4", key: "x-trace", value: "last", enabled: true }
+    ];
+    request.auth = { type: "bearer", token: "   " };
+
+    const curl = requestToCurl(request);
+
+    expect(curl).not.toMatch(/authorization:/i);
+    expect(curl.match(/x-trace:/gi)).toHaveLength(2);
+  });
+
+  it("trims API-key names and lets configured query auth replace existing values", () => {
+    const headerRequest = createRequest({
+      name: "Header key",
+      method: "GET",
+      url: "https://api.example.com/items"
+    });
+    headerRequest.headers = [
+      { id: "h1", key: "x-api-key", value: "stale", enabled: true }
+    ];
+    headerRequest.auth = {
+      type: "apiKey",
+      in: "header",
+      key: " X-API-Key ",
+      value: "current"
+    };
+
+    const headerCurl = requestToCurl(headerRequest);
+    expect(headerCurl.match(/x-api-key:/gi)).toHaveLength(1);
+    expect(headerCurl).toContain("-H 'X-API-Key: current'");
+
+    headerRequest.headers = [];
+    headerRequest.auth.key = "   ";
+    expect(requestToCurl(headerRequest)).not.toContain("-H ':");
+
+    const queryRequest = createRequest({
+      name: "Query key",
+      method: "GET",
+      url: "https://api.example.com/items?api_key=url&keep={{keep}}#section"
+    });
+    queryRequest.queryParams = [
+      { id: "q1", key: "api_key", value: "manual", enabled: true },
+      { id: "q2", key: "page", value: "2", enabled: true }
+    ];
+    queryRequest.auth = {
+      type: "apiKey",
+      in: "query",
+      key: " api_key ",
+      value: "configured"
+    };
+
+    const queryCurl = requestToCurl(queryRequest);
+    expect(queryCurl).toContain(
+      "'https://api.example.com/items?api_key=configured&keep={{keep}}&page=2#section'"
+    );
+    expect(queryCurl.match(/api_key=/g)).toHaveLength(1);
+
+    queryRequest.url = "https://api.example.com/items";
+    queryRequest.queryParams = [];
+    queryRequest.auth.key = "   ";
+    expect(requestToCurl(queryRequest)).toContain("'https://api.example.com/items'");
+    expect(requestToCurl(queryRequest)).not.toContain("?=");
+  });
 });
 
 describe("parseCurlCommand", () => {
