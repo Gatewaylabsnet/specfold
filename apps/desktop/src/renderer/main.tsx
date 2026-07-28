@@ -27,6 +27,23 @@ if (browserPreview && typeof window.studio === "undefined") {
   previewCollection.requests.push(previewRequest);
   workspace.collections.push(previewCollection);
   window.studio = {
+    getAppInfo: async () => ({
+      name: "Specfold",
+      version: "browser-preview",
+      platform: "browser",
+      arch: "preview",
+      releaseUrl: "https://github.com/Gatewaylabsnet/specfold/releases",
+      downloadUrl: "https://gatewaylabs.net/specfold",
+      license: "Apache-2.0"
+    }),
+    checkForUpdates: async () => ({
+      ok: false,
+      currentVersion: "browser-preview",
+      error: "Update checks require the desktop app."
+    }),
+    openExternal: async (url) => {
+      window.open(url, "_blank", "noopener,noreferrer");
+    },
     loadWorkspace: async () => ({ workspace, recovered: false, secureStorageAvailable: true }),
     saveWorkspace: async (next) => {
       workspace = next;

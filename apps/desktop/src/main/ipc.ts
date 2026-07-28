@@ -1,9 +1,9 @@
-import { BrowserWindow, dialog, ipcMain, type OpenDialogOptions, type WebContents } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, shell, type OpenDialogOptions, type WebContents } from "electron";
 import { readFile } from "node:fs/promises";
 import type { Workspace } from "@openapi-collection-studio/core";
 import { DEFAULT_SETTINGS, type AppSettings, type SendRequestPayload } from "../shared/contracts";
 import { MAX_IMPORT_BYTES } from "./constants";
-import { fetchImportUrl, sendHttpRequest } from "./http";
+import { checkForUpdates, fetchImportUrl, sendHttpRequest } from "./http";
 import { readPostmanV3Folder } from "./importSources";
 import { atomicWrite, deleteAllLocalData, exportFullBackup, loadSettings, loadWorkspace, restoreBackup, saveSettings, saveWorkspace, serializeStorageMutation } from "./storage";
 import { clearUploadFiles, registerUploadFile, releaseUploadFile, retainUploadFiles } from "./uploadFiles";
@@ -12,6 +12,23 @@ import { applyNativeTheme } from "./window";
 const uploadOwnersWithCleanup = new Set<number>();
 
 export function registerIpcHandlers(): void {
+  ipcMain.handle("app:info", () => ({
+    name: "Specfold",
+    version: app.getVersion(),
+    platform: process.platform,
+    arch: process.arch,
+    releaseUrl: `https://github.com/Gatewaylabsnet/specfold/releases/tag/v${app.getVersion()}`,
+    downloadUrl: "https://gatewaylabs.net/specfold",
+    license: "Apache-2.0"
+  }));
+  ipcMain.handle("app:checkForUpdates", () => checkForUpdates(app.getVersion()));
+  ipcMain.handle("app:openExternal", async (_event, url: string) => {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      throw new Error("Only http(s) links can be opened.");
+    }
+    await shell.openExternal(parsed.toString());
+  });
   ipcMain.handle("workspace:load", () => loadWorkspace());
   ipcMain.handle("workspace:save", (event, workspace: Workspace) => {
     registerUploadOwnerCleanup(event.sender);

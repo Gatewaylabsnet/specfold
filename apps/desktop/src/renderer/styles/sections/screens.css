@@ -161,3 +161,9 @@
   background: #fff5f5;
 }
 
+.status-box--success {
+  border-color: #b7e1c0;
+  color: #166534;
+  background: #f0fdf4;
+}
+

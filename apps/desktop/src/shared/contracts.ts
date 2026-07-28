@@ -91,7 +91,31 @@ export interface FetchImportUrlResult {
   error?: string;
 }
 
+export interface AppInfo {
+  name: string;
+  version: string;
+  platform: string;
+  arch: string;
+  releaseUrl: string;
+  downloadUrl: string;
+  license: string;
+}
+
+export interface UpdateCheckResult {
+  ok: boolean;
+  currentVersion: string;
+  latestVersion?: string;
+  updateAvailable?: boolean;
+  releaseName?: string;
+  releaseUrl?: string;
+  publishedAt?: string;
+  error?: string;
+}
+
 export interface StudioApi {
+  getAppInfo(): Promise<AppInfo>;
+  checkForUpdates(): Promise<UpdateCheckResult>;
+  openExternal(url: string): Promise<void>;
   loadWorkspace(): Promise<WorkspaceLoadResult>;
   saveWorkspace(workspace: Workspace): Promise<void>;
   loadSettings(): Promise<AppSettings>;

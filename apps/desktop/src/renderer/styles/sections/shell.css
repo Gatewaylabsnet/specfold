@@ -70,7 +70,7 @@
 
 .topbar h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 720;
 }
 
@@ -81,17 +81,27 @@
 }
 
 .topbar__environment {
-  display: grid;
-  gap: 5px;
-  width: min(260px, 36vw);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(320px, 42vw);
   min-width: 0;
   color: #536072;
   font-size: 12px;
 }
 
+.topbar__environment span {
+  flex: none;
+  font-weight: 700;
+}
+
+.topbar__environment select {
+  min-width: 0;
+}
+
 .topbar__actions {
   display: flex;
-  align-items: end;
+  align-items: center;
   gap: 10px;
   min-width: 0;
 }

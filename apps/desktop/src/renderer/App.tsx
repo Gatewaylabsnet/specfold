@@ -1,5 +1,4 @@
 import { findFolder, flattenFolders } from "@openapi-collection-studio/core";
-import { BrandMark } from "./app/BrandMark";
 import { environmentBaseUrl, saveStatusLabel } from "./app/helpers";
 import { CollectionsSidebar, WelcomeMain } from "./app/screens/CollectionsSidebar";
 import { EnvironmentScreen } from "./app/screens/EnvironmentScreen";
@@ -45,10 +44,8 @@ export function App() {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand">
-          <BrandMark />
           <div>
-            <h1>Specfold</h1>
-            <p>{workspace.collections.length} collections | {workspace.environments.length} environments</p>
+            <h1>{workspace.name || "Workspace"}</h1>
           </div>
         </div>
         <div className="topbar__actions">

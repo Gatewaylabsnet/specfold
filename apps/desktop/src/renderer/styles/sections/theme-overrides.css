@@ -61,7 +61,8 @@
 :root[data-theme="dark"] .multipart-field__file,
 :root[data-theme="dark"] .response-panel pre,
 :root[data-theme="dark"] .home-empty,
-:root[data-theme="dark"] .empty-state {
+:root[data-theme="dark"] .empty-state,
+:root[data-theme="dark"] .about-card {
   color: var(--text-primary);
   background: var(--surface-subtle);
 }
@@ -101,7 +102,8 @@
 :root[data-theme="dark"] .base-url-effective,
 :root[data-theme="dark"] .multipart-field,
 :root[data-theme="dark"] .multipart-field__file,
-:root[data-theme="dark"] .response-panel pre {
+:root[data-theme="dark"] .response-panel pre,
+:root[data-theme="dark"] .about-card {
   border-color: var(--border-default);
 }
 
@@ -117,7 +119,8 @@
 :root[data-theme="dark"] .base-url-effective code,
 :root[data-theme="dark"] .empty-state h2,
 :root[data-theme="dark"] .multipart-editor__help strong,
-:root[data-theme="dark"] .multipart-field__file-copy strong {
+:root[data-theme="dark"] .multipart-field__file-copy strong,
+:root[data-theme="dark"] .about-card__title strong {
   color: var(--text-primary);
 }
 
@@ -139,7 +142,9 @@
 :root[data-theme="dark"] .multipart-field__file-copy > span,
 :root[data-theme="dark"] .multipart-field__file-copy small,
 :root[data-theme="dark"] .empty-response,
-:root[data-theme="dark"] .empty-state {
+:root[data-theme="dark"] .empty-state,
+:root[data-theme="dark"] .about-card__title span,
+:root[data-theme="dark"] .about-card__meta {
   color: var(--text-secondary);
 }
 
@@ -168,6 +173,7 @@
 :root[data-theme="dark"] .primary-button { background: var(--accent); }
 :root[data-theme="dark"] .primary-button:hover { background: var(--accent-strong); }
 :root[data-theme="dark"] .workspace-table__row { border-color: var(--border-default); }
+:root[data-theme="dark"] .status-box--success { border-color: #2f6b45; color: #b8f1ca; background: #102719; }
 
 .import-doctor {
   margin-top: 14px;

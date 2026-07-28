@@ -3,7 +3,7 @@ import { MissingVariablesError, prepareHttpRequest } from "@openapi-collection-s
 import { fetchWithProxy, ProxyAgentCache } from "./proxy";
 import { MAX_IMPORT_BYTES } from "./constants";
 import { loadSettings } from "./storage";
-import type { SendRequestPayload, SendRequestResult } from "../shared/contracts";
+import type { SendRequestPayload, SendRequestResult, UpdateCheckResult } from "../shared/contracts";
 import { createMultipartFormData, stripMultipartTransportHeaders } from "./uploadFiles";
 
 const proxyAgents = new ProxyAgentCache();
@@ -176,6 +176,73 @@ export async function fetchImportUrl(
   } finally {
     clearTimeout(timeout);
   }
+}
+
+export async function checkForUpdates(currentVersion: string): Promise<UpdateCheckResult> {
+  const settings = await loadSettings();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), settings.requestTimeoutMs);
+  try {
+    const response = await fetchWithProxy(
+      "https://api.github.com/repos/Gatewaylabsnet/specfold/releases/latest",
+      {
+        signal: controller.signal,
+        headers: {
+          Accept: "application/vnd.github+json",
+          "User-Agent": `Specfold/${currentVersion}`
+        }
+      },
+      (targetUrl) => session.defaultSession.resolveProxy(targetUrl),
+      proxyAgents
+    );
+    if (!response.ok) {
+      return {
+        ok: false,
+        currentVersion,
+        error: `Update check failed: HTTP ${response.status} ${response.statusText}`
+      };
+    }
+    const { bytes, truncated } = await readCappedBody(response, 1024 * 1024);
+    if (truncated) {
+      return { ok: false, currentVersion, error: "Update response was too large." };
+    }
+    const payload = JSON.parse(new TextDecoder().decode(bytes)) as Record<string, unknown>;
+    const tagName = typeof payload.tag_name === "string" ? payload.tag_name : "";
+    const latestVersion = normalizeVersion(tagName);
+    if (!latestVersion) {
+      return { ok: false, currentVersion, error: "Latest release did not include a valid version tag." };
+    }
+    return {
+      ok: true,
+      currentVersion,
+      latestVersion,
+      updateAvailable: compareVersions(latestVersion, currentVersion) > 0,
+      releaseName: typeof payload.name === "string" ? payload.name : tagName,
+      releaseUrl: typeof payload.html_url === "string" ? payload.html_url : undefined,
+      publishedAt: typeof payload.published_at === "string" ? payload.published_at : undefined
+    };
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      return { ok: false, currentVersion, error: "Update check timed out." };
+    }
+    return { ok: false, currentVersion, error: error instanceof Error ? error.message : String(error) };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function normalizeVersion(version: string): string {
+  return version.trim().replace(/^v/i, "");
+}
+
+function compareVersions(left: string, right: string): number {
+  const leftParts = normalizeVersion(left).split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const rightParts = normalizeVersion(right).split(".").map((part) => Number.parseInt(part, 10) || 0);
+  for (let index = 0; index < Math.max(leftParts.length, rightParts.length); index += 1) {
+    const delta = (leftParts[index] ?? 0) - (rightParts[index] ?? 0);
+    if (delta !== 0) return delta;
+  }
+  return 0;
 }
 
 export function emptyError(statusText: string, message: string): SendRequestResult {

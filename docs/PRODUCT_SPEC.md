@@ -17,6 +17,7 @@ Specfold is a simple, local-first desktop REST API collection studio for develop
 - Re-import into an existing collection only through an explicit, non-destructive diff/merge.
 - OAuth recipes start with only required fields enabled; optional scope can be enabled when the provider requires it.
 - Export, validate, and restore a complete local backup; delete every local Specfold data file with strong confirmation.
+- Show installed version metadata and manually check GitHub Releases for newer versions.
 
 ## Product Principles
 
@@ -27,9 +28,9 @@ Specfold is a simple, local-first desktop REST API collection studio for develop
 - Explicit file access: imported documents can describe file fields but can never make Specfold read a local path; every upload file requires a native picker grant for the current session.
 - Progressive disclosure: Import Doctor, route resolution, and response tools surface the next action without adding a scripting language or cloud workflow.
 
-## Non-Goals For v1.5
+## Non-Goals
 
-- Auto-update.
+- Automatic update download or installation.
 - Windows code signing or Apple signing/notarization.
 - Cloud sync, collaboration, accounts, or remote `$ref` fetching.
 - Postman/Insomnia script execution or automatic file upload restoration.

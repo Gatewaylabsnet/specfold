@@ -15,19 +15,21 @@
 - Production modules below 500 lines with shared IPC contracts and format-specific import/export modules.
 - React Testing Library coverage and tagless release-package verification with `SHA256SUMS.txt`.
 
-## v1.3.1–v1.5 (In progress)
+## v1.3.1-v1.7
 
 - Correctness and secret-safety hotfixes for cURL, native exports, response examples, and literal request credentials.
 - System/Light/Dark appearance, Import Doctor, route inspection, response copy/save-example tools, and named connection profiles.
 - Safe re-import diffs, Postman v2.1 and `.http` export, plus portable OAuth token recipes.
+- Multipart upload testing, inherited base URL fixes, compact request/response layout, and text density preferences.
+- About panel with installed version metadata and manual GitHub Release update checks.
 
-Acceptance criteria and release gates: [v1.3.1–v1.5 delivery plan](V1_3_TO_V1_5_DELIVERY_PLAN.md).
+Acceptance criteria and release gates: [v1.3.1-v1.5 delivery plan](V1_3_TO_V1_5_DELIVERY_PLAN.md).
 
 ## Later
 
 - Windows code signing.
 - Apple signing and notarization.
-- Auto-update after signed release infrastructure exists.
+- Automatic update download and installation after signed release infrastructure exists.
 - Authenticated/SOCKS proxy UI.
 - Worker-thread parsing for very large documents.
 - Broader packaged-app automation on physical platform runners.

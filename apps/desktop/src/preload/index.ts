@@ -3,6 +3,9 @@ import type { ApiRequest, Collection, Environment, Folder, Workspace } from "@op
 import type { StudioApi } from "../shared/contracts";
 
 const studioApi: StudioApi = {
+  getAppInfo: () => ipcRenderer.invoke("app:info"),
+  checkForUpdates: () => ipcRenderer.invoke("app:checkForUpdates"),
+  openExternal: (url: string) => ipcRenderer.invoke("app:openExternal", url),
   loadWorkspace: () => ipcRenderer.invoke("workspace:load"),
   saveWorkspace: (workspace: Workspace) =>
     ipcRenderer.invoke("workspace:save", workspace) as Promise<void>,

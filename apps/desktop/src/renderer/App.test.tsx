@@ -29,6 +29,24 @@ function sampleWorkspace(): Workspace {
 
 function studioMock(workspace = sampleWorkspace()): StudioApi {
   return {
+    getAppInfo: vi.fn(async () => ({
+      name: "Specfold",
+      version: "1.6.0",
+      platform: "win32",
+      arch: "x64",
+      releaseUrl: "https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.6.0",
+      downloadUrl: "https://gatewaylabs.net/specfold",
+      license: "Apache-2.0"
+    })),
+    checkForUpdates: vi.fn(async () => ({
+      ok: true,
+      currentVersion: "1.6.0",
+      latestVersion: "1.7.0",
+      updateAvailable: true,
+      releaseName: "v1.7.0",
+      releaseUrl: "https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.7.0"
+    })),
+    openExternal: vi.fn(async () => undefined),
     loadWorkspace: vi.fn(async () => ({ workspace, recovered: false, secureStorageAvailable: true })),
     saveWorkspace: vi.fn(async () => undefined),
     loadSettings: vi.fn(async () => ({
@@ -100,6 +118,21 @@ describe("renderer workflows", () => {
 
     await waitFor(() => expect(api.saveSettings).toHaveBeenCalledWith(expect.objectContaining({ fontSize: "large" })));
     expect(document.documentElement.dataset.fontSize).toBe("large");
+  });
+
+  it("shows app version in About and checks for updates without downloading", async () => {
+    const api = studioMock();
+    const { user } = await renderApp(api);
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+
+    expect(await screen.findByText("v1.6.0")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Check for updates" }));
+
+    expect(await screen.findByText(/v1\.7\.0 is available/i)).toBeTruthy();
+    expect(api.checkForUpdates).toHaveBeenCalledTimes(1);
+    expect(api.openExternal).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Release notes" }));
+    expect(api.openExternal).toHaveBeenCalledWith("https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.7.0");
   });
 
   it("does not allow the last environment to be deleted", async () => {
