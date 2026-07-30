@@ -1,4 +1,7 @@
+import { useCallback, useState } from "react";
+import { Info } from "lucide-react";
 import { findFolder, flattenFolders } from "@openapi-collection-studio/core";
+import { AboutDialog } from "./app/AboutDialog";
 import { environmentBaseUrl, saveStatusLabel } from "./app/helpers";
 import { CollectionsSidebar, WelcomeMain } from "./app/screens/CollectionsSidebar";
 import { EnvironmentScreen } from "./app/screens/EnvironmentScreen";
@@ -9,6 +12,8 @@ import { SettingsScreen } from "./app/screens/SettingsScreen";
 import { useStudioController } from "./app/useStudioController";
 
 export function App() {
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const closeAbout = useCallback(() => setIsAboutOpen(false), []);
   const { workspace, setWorkspace, loaded, setLoaded, screen, setScreen,
     activeCollectionId, setActiveCollectionId, selectedFolderId, setSelectedFolderId,
     selectedRequestId, setSelectedRequestId, requestTab, setRequestTab, response, setResponse,
@@ -66,6 +71,14 @@ export function App() {
               ))}
             </select>
           </label>
+          <button
+            className="secondary-button topbar__about"
+            onClick={() => setIsAboutOpen(true)}
+            type="button"
+          >
+            <Info size={16} />
+            About
+          </button>
           <span className={`save-status save-status--${saveStatus}`}>{saveStatusLabel(saveStatus)}</span>
         </div>
       </header>
@@ -253,6 +266,7 @@ export function App() {
         )}
         </main>
       </div>
+      {isAboutOpen && <AboutDialog onClose={closeAbout} />}
     </div>
   );
 }

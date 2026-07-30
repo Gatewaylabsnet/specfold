@@ -123,8 +123,9 @@ describe("renderer workflows", () => {
   it("shows app version in About and checks for updates without downloading", async () => {
     const api = studioMock();
     const { user } = await renderApp(api);
-    await user.click(screen.getByRole("button", { name: "Settings" }));
+    await user.click(screen.getByRole("button", { name: "About" }));
 
+    expect(screen.getByRole("dialog", { name: "About Specfold" })).toBeTruthy();
     expect(await screen.findByText("v1.6.0")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Check for updates" }));
 
@@ -133,6 +134,8 @@ describe("renderer workflows", () => {
     expect(api.openExternal).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Release notes" }));
     expect(api.openExternal).toHaveBeenCalledWith("https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.7.0");
+    await user.click(screen.getByRole("button", { name: "Close About" }));
+    expect(screen.queryByRole("dialog", { name: "About Specfold" })).toBeNull();
   });
 
   it("does not allow the last environment to be deleted", async () => {

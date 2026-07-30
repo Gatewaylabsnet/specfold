@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://gatewaylabs.net/specfold">gatewaylabs.net/specfold</a>
   /
-  <a href="https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.7.0">Download v1.7.0</a>
+  <a href="https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.7.1">Download v1.7.1</a>
   /
   <a href="docs/REDTEAM_REPORT.md">Security review</a>
 </p>
@@ -44,23 +44,23 @@ OpenAPI / Swagger / Postman / Insomnia / HAR / .http / cURL
 
 It is intentionally local-first. There is no account requirement, no cloud workspace, and no hosted sync layer. Your workspace, environments, request history, and secrets stay on the machine running the desktop app.
 
-> The published stable release is v1.7.0. It adds an About panel with the installed version, platform details, release links, and a manual update check while keeping updates user-controlled. It also removes duplicate product branding from the main workspace header so connection profile selection stays compact. See the [release notes](docs/RELEASE_NOTES_v1.7.0.md) and [delivery plan](docs/V1_3_TO_V1_5_DELIVERY_PLAN.md).
+> The published stable release is v1.7.1. It moves About and manual update checks into a dedicated top-bar dialog, widens Settings for easier scanning, and keeps all v1.7.0 capabilities unchanged. See the [release notes](docs/RELEASE_NOTES_v1.7.1.md) and [delivery plan](docs/V1_3_TO_V1_5_DELIVERY_PLAN.md).
 
-## Download v1.7.0
+## Download v1.7.1
 
 | Platform | Package | Download |
 | --- | --- | --- |
-| Windows x64 | Installer | [Specfold-1.7.0-x64.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.0/Specfold-1.7.0-x64.exe) |
-| Windows x64 | Portable app | [Specfold-1.7.0-x64-portable.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.0/Specfold-1.7.0-x64-portable.exe) |
-| macOS Apple Silicon | DMG | [Specfold-1.7.0-mac-arm64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.0/Specfold-1.7.0-mac-arm64.dmg) |
-| macOS Apple Silicon | ZIP | [Specfold-1.7.0-mac-arm64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.0/Specfold-1.7.0-mac-arm64.zip) |
-| macOS Intel | DMG | [Specfold-1.7.0-mac-x64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.0/Specfold-1.7.0-mac-x64.dmg) |
-| macOS Intel | ZIP | [Specfold-1.7.0-mac-x64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.0/Specfold-1.7.0-mac-x64.zip) |
-| Linux x64 | AppImage | [Specfold-1.7.0-linux-x86_64.AppImage](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.0/Specfold-1.7.0-linux-x86_64.AppImage) |
-| Linux x64 | Debian package | [Specfold-1.7.0-linux-amd64.deb](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.0/Specfold-1.7.0-linux-amd64.deb) |
-| All platforms | SHA-256 checksums | [SHA256SUMS.txt](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.0/SHA256SUMS.txt) |
+| Windows x64 | Installer | [Specfold-1.7.1-x64.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.1/Specfold-1.7.1-x64.exe) |
+| Windows x64 | Portable app | [Specfold-1.7.1-x64-portable.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.1/Specfold-1.7.1-x64-portable.exe) |
+| macOS Apple Silicon | DMG | [Specfold-1.7.1-mac-arm64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.1/Specfold-1.7.1-mac-arm64.dmg) |
+| macOS Apple Silicon | ZIP | [Specfold-1.7.1-mac-arm64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.1/Specfold-1.7.1-mac-arm64.zip) |
+| macOS Intel | DMG | [Specfold-1.7.1-mac-x64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.1/Specfold-1.7.1-mac-x64.dmg) |
+| macOS Intel | ZIP | [Specfold-1.7.1-mac-x64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.1/Specfold-1.7.1-mac-x64.zip) |
+| Linux x64 | AppImage | [Specfold-1.7.1-linux-x86_64.AppImage](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.1/Specfold-1.7.1-linux-x86_64.AppImage) |
+| Linux x64 | Debian package | [Specfold-1.7.1-linux-amd64.deb](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.1/Specfold-1.7.1-linux-amd64.deb) |
+| All platforms | SHA-256 checksums | [SHA256SUMS.txt](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.7.1/SHA256SUMS.txt) |
 
-Release page: [github.com/Gatewaylabsnet/specfold/releases/tag/v1.7.0](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.7.0). Earlier releases remain available from the [release archive](https://github.com/Gatewaylabsnet/specfold/releases).
+Release page: [github.com/Gatewaylabsnet/specfold/releases/tag/v1.7.1](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.7.1). Earlier releases remain available from the [release archive](https://github.com/Gatewaylabsnet/specfold/releases).
 
 Verify a downloaded package against the published checksums:
 
@@ -68,7 +68,7 @@ Verify a downloaded package against the published checksums:
 sha256sum -c SHA256SUMS.txt --ignore-missing
 ```
 
-On Windows PowerShell, compare `Get-FileHash .\Specfold-1.7.0-x64.exe -Algorithm SHA256` with the matching line in `SHA256SUMS.txt`.
+On Windows PowerShell, compare `Get-FileHash .\Specfold-1.7.1-x64.exe -Algorithm SHA256` with the matching line in `SHA256SUMS.txt`.
 
 Unsigned Windows builds may trigger SmartScreen. Unsigned and non-notarized macOS builds may require opening from Finder with **Open** to confirm the Gatekeeper prompt.
 
@@ -77,13 +77,13 @@ approval roles, build provenance, privacy, and the current SignPath Foundation
 application status. Release artifacts remain unsigned until that policy
 explicitly states that signing is active.
 
-### v1.7.0 Highlights
+### v1.7.1 Highlights
 
-- Settings now includes an About panel with the installed Specfold version, platform, architecture, license, current release, and download links.
-- Check for updates compares the installed version with the latest GitHub Release and opens release notes or the download page on request.
+- About now opens from the top bar, keeping product identity and release actions available without navigating away from the current screen.
+- The accessible About dialog shows the installed version, platform, architecture, license, current release, download links, and manual update check.
+- Settings now uses a wider content area for workspace, appearance, data management, and request controls.
 - Update checks are manual and never download or install packages automatically.
-- The main workspace header no longer repeats the Specfold logo/name; the current workspace name and compact one-line environment selector use the space instead.
-- All v1.6 capabilities remain available, including reliable inherited base URL routing, stacked request/response layout, and adjustable text density.
+- All v1.7.0 capabilities remain available, including reliable inherited base URL routing, the compact workspace header, and adjustable text density.
 
 ## What It Does
 
@@ -106,7 +106,7 @@ explicitly states that signing is active.
 - Exports a whole collection or selected folders as OpenAPI YAML/JSON, Postman Collection v2.1, `.http`, or native Collection JSON.
 - Exports a complete local backup containing collections, environments, settings, and secrets after an explicit security warning.
 - Permanently deletes all local content, settings, and rotating backups through a two-step confirmation.
-- Shows the installed version and manually checks for newer GitHub Releases from Settings -> About.
+- Shows the installed version and manually checks for newer GitHub Releases from the top-bar About dialog.
 - Runs an export structure check before saving generated OpenAPI.
 
 ## Supported Import Formats
@@ -169,7 +169,7 @@ Imported OpenAPI, Swagger, Postman, Insomnia, HAR, and cURL file fields are safe
 
 ## About And Update Checks
 
-Open **Settings -> About** to see the installed Specfold version, platform, architecture, license, current release link, and download page.
+Open **About** in the top bar to see the installed Specfold version, platform, architecture, license, current release link, and download page. The dialog closes from its close button, the backdrop, or the Escape key.
 
 The **Check for updates** button reads the latest GitHub Release metadata and compares it with the installed version. If a newer version is available, Specfold shows release notes and download links. It does not download packages, install updates, or run installers automatically.
 
@@ -217,21 +217,21 @@ Download the `.dmg` or `.zip` for your architecture:
 - Apple Silicon: `arm64`
 - Intel: `x64`
 
-Because v1.7.0 is not notarized, macOS may require opening the app from Finder with **Open**.
+Because v1.7.1 is not notarized, macOS may require opening the app from Finder with **Open**.
 
 ### Linux
 
 Download the `.AppImage` or `.deb`.
 
 ```bash
-chmod +x Specfold-1.7.0-linux-x86_64.AppImage
-./Specfold-1.7.0-linux-x86_64.AppImage
+chmod +x Specfold-1.7.1-linux-x86_64.AppImage
+./Specfold-1.7.1-linux-x86_64.AppImage
 ```
 
 For Debian-based distributions:
 
 ```bash
-sudo dpkg -i Specfold-1.7.0-linux-amd64.deb
+sudo dpkg -i Specfold-1.7.1-linux-amd64.deb
 sudo apt-get install -f
 ```
 
@@ -275,9 +275,9 @@ Artifacts are written to `apps/desktop/dist`.
 Run the release workflow manually first. `workflow_dispatch` builds and verifies every package plus `SHA256SUMS.txt` without creating a tag or release. Tag pushes run the same package gate and create a draft GitHub Release.
 
 ```bash
-git tag -a v1.7.0 -m "Specfold v1.7.0"
+git tag -a v1.7.1 -m "Specfold v1.7.1"
 git push origin main
-git push origin v1.7.0
+git push origin v1.7.1
 ```
 
 Public release assets are only the two Windows packages, four macOS packages, Linux AppImage/DEB, and `SHA256SUMS.txt`. Builder debug YAML, updater YAML, and blockmaps are excluded. The generated release stays draft until manual smoke tests pass.
@@ -288,7 +288,7 @@ Public release assets are only the two Windows packages, four macOS packages, Li
 - macOS builds are not notarized yet.
 - Complete backups are plaintext by design and may contain secrets.
 - Very large imports/exports can still use the renderer thread, within configured size limits.
-- Automatic update download and installation are not implemented in v1.7.0; use Settings -> About to check manually and download from the release page.
+- Automatic update download and installation are not implemented in v1.7.1; use the top-bar About dialog to check manually and download from the release page.
 - SOCKS proxies are not supported; configure an HTTP(S) proxy for Specfold.
 - Multipart uploads are capped at 200 parts, 50 files, and 100 MB of file and text content per request; selected files must be chosen again after an app restart.
 

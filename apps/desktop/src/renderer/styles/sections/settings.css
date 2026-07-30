@@ -1,6 +1,6 @@
 .settings-layout {
   display: grid;
-  grid-template-columns: minmax(420px, 640px);
+  grid-template-columns: minmax(520px, 960px);
   padding: 18px;
   height: 100%;
   box-sizing: border-box;
@@ -26,11 +26,54 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: 14px;
   align-items: start;
-  margin: 0 0 18px;
+  margin: 0;
   padding: 14px;
   border: 1px solid #dce1e8;
   border-radius: 10px;
   background: #fbfcfe;
+}
+
+.modal-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(2px);
+}
+
+.about-dialog {
+  width: min(560px, 100%);
+  max-height: min(680px, calc(100vh - 48px));
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  color: var(--text-primary);
+  background: var(--surface-primary);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+}
+
+.about-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.about-dialog__header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.about-dialog__description {
+  margin: 14px 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .about-card .brand__mark {
@@ -104,4 +147,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 12px;
+  }
+
+  .modal-backdrop {
+    padding: 12px;
+  }
 }

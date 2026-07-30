@@ -2,7 +2,7 @@
 
 ## Application Shell
 
-The top bar shows product identity, collection/environment counts, active connection profile, save state, transient notices, and a persistent security warning when secure storage is unavailable. The sidebar switches between Editor, Import, Environments, Export, and Settings. Settings exposes System, Light, and Dark appearance; focus states remain visible in every palette.
+The top bar shows the workspace name, active connection profile, a dedicated About action, and save state. About opens an accessible dialog with installed version metadata, release/download links, and a manual update check. Transient notices and a persistent security warning appear below the top bar when needed. The sidebar switches between Editor, Import, Environments, Export, and Settings. Settings exposes System, Light, and Dark appearance; focus states remain visible in every palette.
 
 ## Import
 
@@ -29,7 +29,7 @@ Users choose OpenAPI YAML, OpenAPI JSON, Collection JSON, Postman v2.1, or `.htt
 
 ## Settings And Data Management
 
-Export backup, Restore backup, and Delete all data are grouped together. Export warns that readable secrets are included. Restore confirms replacement and reports the local safety-copy path. Delete requires a warning plus exact `DELETE ALL` text. Request timeout, response cap, insecure TLS, workspace name, and new-workspace actions remain on the same screen.
+Export backup, Restore backup, and Delete all data are grouped together. Export warns that readable secrets are included. Restore confirms replacement and reports the local safety-copy path. Delete requires a warning plus exact `DELETE ALL` text. Request timeout, response cap, insecure TLS, workspace name, and new-workspace actions remain on the same screen. Settings uses a wider content column up to 960 px and falls back to one fluid column on narrow windows.
 
 ## Responsive Gate
 

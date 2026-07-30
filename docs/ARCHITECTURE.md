@@ -27,6 +27,7 @@ apps/desktop/src/shared/contracts.ts
 apps/desktop/src/renderer
   app/use*Controller.ts controller hooks
   app/theme.ts           resolved System/Light/Dark palette preference
+  app/AboutDialog.tsx     version metadata and manual update-check dialog
   app/screens            Import, Editor, Environment, Export, Settings
   components/tree       collection/folder/request rows and drag/drop
   styles/sections       cascade-ordered style modules
