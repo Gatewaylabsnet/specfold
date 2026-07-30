@@ -14,18 +14,20 @@ import { dirname, join } from "node:path";
 import {
   createEmptyWorkspace,
   ensureWorkspaceEnvironment,
+  flattenFolders,
   flattenRequests,
   stripTransientUploadData,
   type ApiRequest,
   type KeyValue,
   type Workspace
 } from "@openapi-collection-studio/core";
+import { DEFAULT_SETTINGS, type AppSettings, type RestoreBackupResult, type WorkspaceLoadResult } from "../shared/contracts";
 import {
-  DEFAULT_SETTINGS,
-  type AppSettings,
-  type RestoreBackupResult,
-  type WorkspaceLoadResult
-} from "../shared/contracts";
+  normalizeSettings,
+  validateBackupDocument,
+  validateWorkspace,
+  type BackupDocument
+} from "./storageValidation";
 
 export const ENCRYPTED_PREFIX = "enc:v1:";
 export const MAX_BACKUP_BYTES = 100 * 1024 * 1024;
@@ -54,15 +56,6 @@ export interface StorageServiceOptions {
   appVersion: string;
   now?: () => Date;
   atomicWrite?: AtomicWriter;
-}
-
-interface BackupDocument {
-  schema: "specfold.backup.v1";
-  exportedAt: string;
-  appVersion: string;
-  secretsIncluded: true;
-  workspace: Workspace;
-  settings: AppSettings;
 }
 
 export function storagePaths(userData: string): StoragePaths {
@@ -201,12 +194,21 @@ export function createStorageService(options: StorageServiceOptions) {
 
   const encryptSecrets = (workspace: Workspace): Workspace => {
     const protectedWorkspace = transformRequests(workspace, protectRequest);
+    const folderTokenVariables = new Set(
+      protectedWorkspace.collections.flatMap((collection) =>
+        flattenFolders(collection)
+          .map(({ folder }) => folder.accessTokenVariable?.trim())
+          .filter((name): name is string => Boolean(name))
+      )
+    );
     return {
       ...protectedWorkspace,
       environments: protectedWorkspace.environments.map((environment) => ({
         ...environment,
         variables: environment.variables.map((variable) =>
-          variable.secret ? { ...variable, value: encryptValue(variable.value) } : variable
+          variable.secret || folderTokenVariables.has(variable.name)
+            ? { ...variable, secret: true, value: encryptValue(variable.value) }
+            : variable
         )
       }))
     };
@@ -367,7 +369,10 @@ export function createStorageService(options: StorageServiceOptions) {
     } catch (error) {
       await restoreSnapshot(paths.workspace, beforeWorkspace, atomicWrite);
       await restoreSnapshot(paths.settings, beforeSettings, atomicWrite);
-      throw new Error(`Restore failed and previous data was restored: ${(error as Error).message}`);
+      throw new Error(
+        `Restore failed and previous data was restored: ${(error as Error).message}`,
+        { cause: error }
+      );
     }
     return {
       canceled: false,
@@ -424,55 +429,4 @@ async function readOptional(path: string): Promise<string | undefined> {
 async function restoreSnapshot(path: string, content: string | undefined, writer: AtomicWriter): Promise<void> {
   if (content === undefined) await unlink(path).catch(() => undefined);
   else await writer(path, content);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function validateWorkspace(value: unknown): Workspace {
-  if (!isRecord(value) || value.schemaVersion !== 1) {
-    throw new Error("The backup workspace must use schemaVersion 1.");
-  }
-  if (!Array.isArray(value.collections) || !Array.isArray(value.environments)) {
-    throw new Error("The backup workspace must contain collection and environment arrays.");
-  }
-  return structuredClone(value) as unknown as Workspace;
-}
-
-function normalizeSettings(value: unknown): AppSettings {
-  const input = isRecord(value) ? value : {};
-  return {
-    requestTimeoutMs: typeof input.requestTimeoutMs === "number" && input.requestTimeoutMs >= 0
-      ? input.requestTimeoutMs : DEFAULT_SETTINGS.requestTimeoutMs,
-    maxResponseBytes: typeof input.maxResponseBytes === "number" && input.maxResponseBytes > 0
-      ? input.maxResponseBytes : DEFAULT_SETTINGS.maxResponseBytes,
-    allowInsecureTls: typeof input.allowInsecureTls === "boolean"
-      ? input.allowInsecureTls : DEFAULT_SETTINGS.allowInsecureTls,
-    theme: input.theme === "light" || input.theme === "dark" || input.theme === "system"
-      ? input.theme : DEFAULT_SETTINGS.theme,
-    fontSize: input.fontSize === "compact" || input.fontSize === "default" || input.fontSize === "large"
-      ? input.fontSize : DEFAULT_SETTINGS.fontSize
-  };
-}
-
-function validateBackupDocument(value: unknown): BackupDocument {
-  if (!isRecord(value) || value.schema !== "specfold.backup.v1") {
-    throw new Error("Only specfold.backup.v1 backup files can be restored.");
-  }
-  const workspace = validateWorkspace(value.workspace);
-  if (!isRecord(value.settings) ||
-      typeof value.settings.requestTimeoutMs !== "number" || value.settings.requestTimeoutMs < 0 ||
-      typeof value.settings.maxResponseBytes !== "number" || value.settings.maxResponseBytes <= 0 ||
-      typeof value.settings.allowInsecureTls !== "boolean") {
-    throw new Error("The backup settings are invalid.");
-  }
-  return {
-    schema: "specfold.backup.v1",
-    exportedAt: typeof value.exportedAt === "string" ? value.exportedAt : "",
-    appVersion: typeof value.appVersion === "string" ? value.appVersion : "",
-    secretsIncluded: true,
-    workspace,
-    settings: normalizeSettings(value.settings)
-  };
 }

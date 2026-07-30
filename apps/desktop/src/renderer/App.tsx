@@ -1,19 +1,33 @@
-import { useCallback, useState } from "react";
-import { Info } from "lucide-react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { findFolder, flattenFolders } from "@openapi-collection-studio/core";
-import { AboutDialog } from "./app/AboutDialog";
 import { environmentBaseUrl, saveStatusLabel } from "./app/helpers";
 import { CollectionsSidebar, WelcomeMain } from "./app/screens/CollectionsSidebar";
-import { EnvironmentScreen } from "./app/screens/EnvironmentScreen";
-import { ExportScreen } from "./app/screens/ExportScreen";
-import { ImportScreen } from "./app/screens/ImportScreen";
 import { RequestWorkspace } from "./app/screens/RequestEditor";
-import { SettingsScreen } from "./app/screens/SettingsScreen";
 import { useStudioController } from "./app/useStudioController";
+
+const AboutDialog = lazy(() =>
+  import("./app/AboutDialog").then((module) => ({ default: module.AboutDialog }))
+);
+const EnvironmentScreen = lazy(() =>
+  import("./app/screens/EnvironmentScreen").then((module) => ({ default: module.EnvironmentScreen }))
+);
+const ExportScreen = lazy(() =>
+  import("./app/screens/ExportScreen").then((module) => ({ default: module.ExportScreen }))
+);
+const ImportScreen = lazy(() =>
+  import("./app/screens/ImportScreen").then((module) => ({ default: module.ImportScreen }))
+);
+const SettingsScreen = lazy(() =>
+  import("./app/screens/SettingsScreen").then((module) => ({ default: module.SettingsScreen }))
+);
 
 export function App() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
-  const closeAbout = useCallback(() => setIsAboutOpen(false), []);
+  const [updateCheckRequestId, setUpdateCheckRequestId] = useState(0);
+  const closeAbout = useCallback(() => {
+    setIsAboutOpen(false);
+    setUpdateCheckRequestId(0);
+  }, []);
   const { workspace, setWorkspace, loaded, setLoaded, screen, setScreen,
     activeCollectionId, setActiveCollectionId, selectedFolderId, setSelectedFolderId,
     selectedRequestId, setSelectedRequestId, requestTab, setRequestTab, response, setResponse,
@@ -42,6 +56,20 @@ export function App() {
     (activeCollection && selectedFolderId
       ? findFolder(activeCollection, selectedFolderId)
       : undefined);
+  useEffect(
+    () =>
+      window.studio.onAppMenuAction((action) => {
+        if (action === "about" || action === "check-for-updates") {
+          setUpdateCheckRequestId((requestId) =>
+            action === "check-for-updates" ? requestId + 1 : 0
+          );
+          setIsAboutOpen(true);
+          return;
+        }
+        setScreen(action);
+      }),
+    [setScreen]
+  );
   if (!loaded) {
     return <div className="loading">Loading workspace...</div>;
   }
@@ -71,14 +99,6 @@ export function App() {
               ))}
             </select>
           </label>
-          <button
-            className="secondary-button topbar__about"
-            onClick={() => setIsAboutOpen(true)}
-            type="button"
-          >
-            <Info size={16} />
-            About
-          </button>
           <span className={`save-status save-status--${saveStatus}`}>{saveStatusLabel(saveStatus)}</span>
         </div>
       </header>
@@ -116,6 +136,7 @@ export function App() {
           workspace={workspace}
         />
         <main className="workspace-main">
+        <Suspense fallback={<div className="loading loading--screen">Loading screen...</div>}>
         {screen === "import" && (
           <ImportScreen
             grouping={grouping}
@@ -183,6 +204,23 @@ export function App() {
                   const folder = findFolder(collection, activeFolder.id);
                   if (folder) {
                     recipe(folder);
+                  }
+                })
+              }
+              onUpdateFolderTokenVariable={(folderId, variableName) =>
+                activeCollection && mutateWorkspace((draft) => {
+                  const collection = draft.collections.find(
+                    (candidate) => candidate.id === activeCollection.id
+                  );
+                  const folder = collection ? findFolder(collection, folderId) : undefined;
+                  if (!folder) return;
+                  folder.accessTokenVariable = variableName || undefined;
+                  if (!variableName) return;
+                  for (const environment of draft.environments) {
+                    const variable = environment.variables.find(
+                      (candidate) => candidate.name === variableName
+                    );
+                    if (variable) variable.secret = true;
                   }
                 })
               }
@@ -264,9 +302,17 @@ export function App() {
             savedExportPath={savedExportPath}
           />
         )}
+        </Suspense>
         </main>
       </div>
-      {isAboutOpen && <AboutDialog onClose={closeAbout} />}
+      {isAboutOpen && (
+        <Suspense fallback={null}>
+          <AboutDialog
+            updateCheckRequestId={updateCheckRequestId}
+            onClose={closeAbout}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

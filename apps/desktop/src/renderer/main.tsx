@@ -27,6 +27,7 @@ if (browserPreview && typeof window.studio === "undefined") {
   previewCollection.requests.push(previewRequest);
   workspace.collections.push(previewCollection);
   window.studio = {
+    onAppMenuAction: () => () => undefined,
     getAppInfo: async () => ({
       name: "Specfold",
       version: "browser-preview",

@@ -27,6 +27,20 @@ export default defineConfig({
   },
   renderer: {
     plugins: [react()],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes("node_modules/react") || id.includes("node_modules/scheduler")) {
+              return "react-vendor";
+            }
+            if (id.includes("node_modules/lucide-react")) return "icons";
+            if (id.includes("packages/core/src")) return "specfold-core";
+            return undefined;
+          }
+        }
+      }
+    },
     resolve: {
       alias: {
         "@openapi-collection-studio/core": coreEntry,

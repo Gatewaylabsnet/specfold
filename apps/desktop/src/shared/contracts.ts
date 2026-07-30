@@ -2,6 +2,14 @@ import type { ApiRequest, Collection, Environment, Folder, PostmanV3FolderSource
 
 export type ThemePreference = "system" | "light" | "dark";
 export type FontSizePreference = "compact" | "default" | "large";
+export const APP_MENU_ACTIONS = [
+  "import",
+  "export",
+  "settings",
+  "about",
+  "check-for-updates"
+] as const;
+export type AppMenuAction = (typeof APP_MENU_ACTIONS)[number];
 
 export interface AppSettings {
   requestTimeoutMs: number;
@@ -113,6 +121,7 @@ export interface UpdateCheckResult {
 }
 
 export interface StudioApi {
+  onAppMenuAction(listener: (action: AppMenuAction) => void): () => void;
   getAppInfo(): Promise<AppInfo>;
   checkForUpdates(): Promise<UpdateCheckResult>;
   openExternal(url: string): Promise<void>;

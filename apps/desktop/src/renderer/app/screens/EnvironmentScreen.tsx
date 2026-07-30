@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import type { Environment, EnvironmentVariable } from "@openapi-collection-studio/core";
-import { KeyValueEditor } from "../../components/KeyValueEditor";
 import { createEnvironmentVariable, environmentBaseUrl, isBaseUrlVariable, replaceEnvironmentCustomVariables } from "../helpers";
 
 export function EnvironmentScreen({

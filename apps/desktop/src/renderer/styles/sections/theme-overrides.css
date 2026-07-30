@@ -226,6 +226,33 @@
 .response-tabs__action { margin-left: auto; }
 .response-tabs__action + .response-tabs__action { margin-left: -2px; }
 
+:root[data-theme="dark"] .pane-resizer {
+  border-color: #334155;
+  background: #182231;
+}
+
+:root[data-theme="dark"] .pane-resizer span {
+  background: #64748b;
+}
+
+:root[data-theme="dark"] .response-font-controls {
+  border-color: var(--border-default);
+  background: var(--surface-subtle);
+}
+
+:root[data-theme="dark"] .response-font-controls button {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .response-font-controls button:hover:not(:disabled) {
+  color: #bfdbfe;
+  background: #183b61;
+}
+
+:root[data-theme="dark"] .response-font-controls span {
+  color: var(--text-muted);
+}
+
 :root[data-theme="dark"] .request-route {
   border-color: var(--border-default);
   color: var(--text-secondary);

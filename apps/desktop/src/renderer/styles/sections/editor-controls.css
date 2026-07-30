@@ -37,6 +37,12 @@
   margin-bottom: 10px;
 }
 
+.base-url-panel__fields {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
 .base-url-panel small {
   color: #64748b;
   font-size: 11px;
@@ -109,6 +115,21 @@
 
 .tab-panel--narrow {
   max-width: 560px;
+}
+
+.auth-token-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.auth-token-field .field {
+  margin-bottom: 0;
+}
+
+.auth-token-field .secondary-button {
+  min-height: 38px;
 }
 
 .kv-editor,
@@ -345,6 +366,53 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+.response-panel__head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.response-font-controls {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  overflow: hidden;
+  border: 1px solid #d5dce5;
+  border-radius: 7px;
+  background: #f7f9fb;
+}
+
+.response-font-controls button {
+  min-width: 34px;
+  min-height: 27px;
+  padding: 0 7px;
+  color: #334155;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.response-font-controls button:hover:not(:disabled) {
+  color: #0f5fc4;
+  background: #e8f1fc;
+}
+
+.response-font-controls button:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.response-font-controls span {
+  min-width: 40px;
+  color: #64748b;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .status-pill {

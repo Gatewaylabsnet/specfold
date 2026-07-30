@@ -2,7 +2,7 @@
 
 ## Application Shell
 
-The top bar shows the workspace name, active connection profile, a dedicated About action, and save state. About opens an accessible dialog with installed version metadata, release/download links, and a manual update check. Transient notices and a persistent security warning appear below the top bar when needed. The sidebar switches between Editor, Import, Environments, Export, and Settings. Settings exposes System, Light, and Dark appearance; focus states remain visible in every palette.
+The top bar shows the workspace name, active connection profile, and save state. The native application menu exposes File actions for Import, Export, and Settings; standard Edit/View/Window behavior; and Help actions for About, update checks, documentation, and release notes. About opens an accessible dialog with installed version metadata and release/download links. Transient notices and a persistent security warning appear below the top bar when needed. The sidebar switches between Editor, Import, Environments, Export, and Settings. Settings exposes System, Light, and Dark appearance; focus states remain visible in every palette.
 
 ## Import
 
@@ -15,9 +15,12 @@ Users can open a supported file, select a Postman v3 folder, fetch an HTTP(S) UR
 - Body modes are None, JSON, Text, Form data, and URL encoded. Form data uses accessible text/file rows with Choose, Replace, Clear, media-type, enabled, and remove controls; duplicate field names are allowed.
 - File rows show a clear re-selection state after restart/import/restore, and the editor explains that Specfold generates the multipart boundary automatically.
 - The request editor shows the resolved outgoing URL or the missing environment variable names before Send, and offers copy for the resolved URL.
-- Response panel exposes body, headers, raw text, history, timing/size, response-to-environment assignment, copy for the visible representation, and security-confirmed Save example.
+- Response panel exposes body, headers, raw text, history, timing/size, response-to-environment assignment, copy for the visible representation, security-confirmed Save example, and persistent A−/A+ response text sizing.
+- A visible horizontal separator resizes the request and response panels by pointer or keyboard; double-click restores the default split.
 - Collection base URL remains editable with or without a selected request.
 - Selecting a folder exposes its optional base URL, inherited parent/collection hint, and subtree override behavior.
+- A folder may reference an environment secret as its access-token variable. Child folders inherit the nearest reference; bearer auth shows **Use folder token** when one is available.
+- JSON response assignment can save a field as the current folder's access token, creating or updating the folder-specific secret variable in the active environment.
 
 ## Environments
 

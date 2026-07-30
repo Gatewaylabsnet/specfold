@@ -1,18 +1,28 @@
-import { app, BrowserWindow, dialog, ipcMain, shell, type OpenDialogOptions, type WebContents } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent, type OpenDialogOptions, type WebContents } from "electron";
 import { readFile } from "node:fs/promises";
 import type { Workspace } from "@openapi-collection-studio/core";
-import { DEFAULT_SETTINGS, type AppSettings, type SendRequestPayload } from "../shared/contracts";
+import { DEFAULT_SETTINGS } from "../shared/contracts";
 import { MAX_IMPORT_BYTES } from "./constants";
 import { checkForUpdates, fetchImportUrl, sendHttpRequest } from "./http";
 import { readPostmanV3Folder } from "./importSources";
 import { atomicWrite, deleteAllLocalData, exportFullBackup, loadSettings, loadWorkspace, restoreBackup, saveSettings, saveWorkspace, serializeStorageMutation } from "./storage";
 import { clearUploadFiles, registerUploadFile, releaseUploadFile, retainUploadFiles } from "./uploadFiles";
 import { applyNativeTheme } from "./window";
+import { openTrustedExternal } from "./external";
+import { assertTrustedIpcSender } from "./security";
+import {
+  validateExportPayload,
+  validateIpcSettings,
+  validateIpcWorkspace,
+  validateSendRequestPayload,
+  validateUploadId,
+  validateUrl
+} from "./ipcValidation";
 
 const uploadOwnersWithCleanup = new Set<number>();
 
 export function registerIpcHandlers(): void {
-  ipcMain.handle("app:info", () => ({
+  handleTrusted("app:info", () => ({
     name: "Specfold",
     version: app.getVersion(),
     platform: process.platform,
@@ -21,31 +31,29 @@ export function registerIpcHandlers(): void {
     downloadUrl: "https://gatewaylabs.net/specfold",
     license: "Apache-2.0"
   }));
-  ipcMain.handle("app:checkForUpdates", () => checkForUpdates(app.getVersion()));
-  ipcMain.handle("app:openExternal", async (_event, url: string) => {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-      throw new Error("Only http(s) links can be opened.");
-    }
-    await shell.openExternal(parsed.toString());
+  handleTrusted("app:checkForUpdates", () => checkForUpdates(app.getVersion()));
+  handleTrusted("app:openExternal", async (_event, value: unknown) => {
+    await openTrustedExternal(validateUrl(value));
   });
-  ipcMain.handle("workspace:load", () => loadWorkspace());
-  ipcMain.handle("workspace:save", (event, workspace: Workspace) => {
+  handleTrusted("workspace:load", () => loadWorkspace());
+  handleTrusted("workspace:save", (event, value: unknown) => {
+    const workspace = validateIpcWorkspace(value);
     registerUploadOwnerCleanup(event.sender);
     retainUploadFiles(event.sender.id, uploadIdsInWorkspace(workspace));
     return serializeStorageMutation(() => saveWorkspace(workspace));
   });
-  ipcMain.handle("settings:load", () => loadSettings());
-  ipcMain.handle("settings:save", async (_event, settings: AppSettings) => {
+  handleTrusted("settings:load", () => loadSettings());
+  handleTrusted("settings:save", async (_event, value: unknown) => {
+    const settings = validateIpcSettings(value);
     const saved = await serializeStorageMutation(() => saveSettings(settings));
     applyNativeTheme(saved.theme);
     return saved;
   });
-  ipcMain.handle("http:send", (event, payload: SendRequestPayload) => {
+  handleTrusted("http:send", (event, value: unknown) => {
     registerUploadOwnerCleanup(event.sender);
-    return sendHttpRequest(payload, event.sender.id);
+    return sendHttpRequest(validateSendRequestPayload(value), event.sender.id);
   });
-  ipcMain.handle("file:openImport", async () => {
+  handleTrusted("file:openImport", async () => {
     const result = await dialog.showOpenDialog({
       title: "Open API document",
       filters: [
@@ -62,7 +70,7 @@ export function registerIpcHandlers(): void {
     }
     return { canceled: false, content, filePath };
   });
-  ipcMain.handle("file:openUpload", async (event) => {
+  handleTrusted("file:openUpload", async (event) => {
     registerUploadOwnerCleanup(event.sender);
     try {
       const options: OpenDialogOptions = {
@@ -86,12 +94,10 @@ export function registerIpcHandlers(): void {
       };
     }
   });
-  ipcMain.handle("file:releaseUpload", (event, uploadId: string) => {
-    if (typeof uploadId === "string" && uploadId.length <= 128) {
-      releaseUploadFile(uploadId, event.sender.id);
-    }
+  handleTrusted("file:releaseUpload", (event, value: unknown) => {
+    releaseUploadFile(validateUploadId(value), event.sender.id);
   });
-  ipcMain.handle("file:openPostmanFolder", async () => {
+  handleTrusted("file:openPostmanFolder", async () => {
     const result = await dialog.showOpenDialog({
       title: "Open Postman Collection v3 folder",
       properties: ["openDirectory"]
@@ -104,9 +110,10 @@ export function registerIpcHandlers(): void {
       return { canceled: false, folderPath, error: error instanceof Error ? error.message : String(error) };
     }
   });
-  ipcMain.handle("import:fetchUrl", (_event, url: string) => fetchImportUrl(url));
-  ipcMain.handle("file:exportBackup", (_event, workspace: Workspace) => exportFullBackup(workspace));
-  ipcMain.handle("file:restoreBackup", async () => {
+  handleTrusted("import:fetchUrl", (_event, value: unknown) => fetchImportUrl(validateUrl(value)));
+  handleTrusted("file:exportBackup", (_event, value: unknown) =>
+    exportFullBackup(validateIpcWorkspace(value)));
+  handleTrusted("file:restoreBackup", async () => {
     const result = await serializeStorageMutation(restoreBackup);
     if (result.restored) {
       clearUploadFiles();
@@ -114,12 +121,13 @@ export function registerIpcHandlers(): void {
     }
     return result;
   });
-  ipcMain.handle("data:deleteAll", () => serializeStorageMutation(async () => {
+  handleTrusted("data:deleteAll", () => serializeStorageMutation(async () => {
     clearUploadFiles();
     await deleteAllLocalData();
     applyNativeTheme(DEFAULT_SETTINGS.theme);
   }));
-  ipcMain.handle("file:saveExport", async (_event, payload: { defaultPath: string; content: string }) => {
+  handleTrusted("file:saveExport", async (_event, value: unknown) => {
+    const payload = validateExportPayload(value);
     const result = await dialog.showSaveDialog({
       title: "Save export",
       defaultPath: payload.defaultPath,
@@ -132,6 +140,16 @@ export function registerIpcHandlers(): void {
     if (result.canceled || !result.filePath) return { canceled: true };
     await atomicWrite(result.filePath, payload.content);
     return { canceled: false, filePath: result.filePath };
+  });
+}
+
+function handleTrusted<TArgs extends unknown[], TResult>(
+  channel: string,
+  handler: (event: IpcMainInvokeEvent, ...args: TArgs) => TResult
+): void {
+  ipcMain.handle(channel, (event, ...args) => {
+    assertTrustedIpcSender(event);
+    return handler(event, ...(args as TArgs));
   });
 }
 

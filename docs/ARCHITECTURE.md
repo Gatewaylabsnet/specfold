@@ -2,14 +2,15 @@
 
 ## Layers
 
-1. Electron bootstrap configures the single-instance lifecycle, window, CSP, and IPC registration.
-2. Electron services own storage, HTTP, import-source traversal, native dialogs, and proxy handling.
+1. Electron bootstrap configures the single-instance lifecycle, bounded application protocol, native menu, window, CSP, and IPC registration.
+2. Electron services own storage, HTTP, import-source traversal, native dialogs, proxy handling, and trusted external navigation.
 3. The preload exposes one typed `StudioApi`; its contracts live in `apps/desktop/src/shared/contracts.ts` and are shared by main, preload, and renderer.
 4. React controller hooks own workspace, import, request, export, data-management, and safe re-import workflows.
 5. React screens and tree components render editor, import, environments, export, and settings views.
 6. Core pure functions own the model, importers, exporters, variables, cURL conversion, and HTTP preparation.
 
 Production TypeScript, TSX, and CSS source files are kept below 500 lines. Generated output under `out` and `dist` is excluded.
+ESLint, strict TypeScript checks, tests, source-size checks, and production builds run through `npm run release:check`. Renderer routes that are not needed for the initial editor load are lazy-loaded, while React, icons, and core logic are emitted as stable build chunks.
 
 ## Repository Layout
 
@@ -17,6 +18,9 @@ Production TypeScript, TSX, and CSS source files are kept below 500 lines. Gener
 apps/desktop/src/main
   index.ts              lifecycle bootstrap
   ipc.ts                typed IPC registration
+  menu.ts               native File/Edit/View/Window/Help application menu
+  protocol.ts           bounded specfold:// renderer asset protocol
+  security.ts           trusted main-frame IPC and renderer checks
   storage.ts            Electron dialogs and storage adapter
   storageService.ts     testable atomic persistence, backup, restore, rollback
   http.ts               request and import-URL HTTP clients
@@ -30,6 +34,7 @@ apps/desktop/src/renderer
   app/AboutDialog.tsx     version metadata and manual update-check dialog
   app/screens            Import, Editor, Environment, Export, Settings
   components/tree       collection/folder/request rows and drag/drop
+  components/HorizontalSplitPane.tsx accessible request/response resizing
   styles/sections       cascade-ordered style modules
 packages/core/src
   importers/portable    Postman v2/v3, Insomnia, HAR, HTTP
@@ -41,7 +46,7 @@ packages/core/src
 
 ## Data Flow
 
-The renderer calls pure core import/export functions directly. Persistence, native file access, and outgoing HTTP cross the sandboxed preload bridge. IPC payloads use the shared contracts. Workspace mutations are serialized in main, while renderer autosave is debounced.
+The renderer calls pure core import/export functions directly. Persistence, native file access, and outgoing HTTP cross the sandboxed preload bridge. IPC payloads and native-menu events use shared contracts. IPC requests are accepted only from the trusted main frame; main also validates and bounds payloads at runtime before using them. Workspace mutations are serialized in main, while renderer autosave is debounced.
 
 Multipart file bytes remain in the main-process boundary. A native picker registers a canonical local file under a random, session-only upload ID; the renderer receives only that ID plus display metadata. `Send` resolves approved IDs, revalidates the file, applies upload limits, and creates `FormData`. Imported or persisted IDs are not trusted, and multipart `Content-Type` is left to the fetch implementation so its boundary always matches the encoded body.
 
@@ -51,6 +56,7 @@ Multipart file bytes remain in the main-process boundary. A native picker regist
 - Workspace schema remains `schemaVersion: 1`; `ensureWorkspaceEnvironment` gives older workspaces an active environment.
 - Writes use same-directory temporary files and atomic rename.
 - Secret variables and literal sensitive request/auth/form/response-example values are encrypted with Electron `safeStorage`. If encryption is unavailable, plaintext sensitive values are never written and the renderer shows a persistent warning.
+- Folder access-token configuration stores only an environment-variable name. The value stays in the active environment's encrypted secret storage, and nested folders resolve the nearest configured reference.
 - Complete backups use `specfold.backup.v1`, intentionally contain readable secrets after explicit confirmation, and are written with `0600` permissions where supported.
 - Restore input is capped at 100 MB and validates the root schema, workspace arrays/version, and settings.
 - Restore creates a safety copy, writes workspace then settings serially, and rolls both files back if either write fails.
@@ -58,7 +64,9 @@ Multipart file bytes remain in the main-process boundary. A native picker regist
 
 ## Desktop Security Boundary
 
-The renderer uses `sandbox: true`, `contextIsolation: true`, `nodeIntegration: false`, and packaged CSP. It cannot access Node or the filesystem directly. Import scripts are treated as data and are never executed.
+The renderer uses `sandbox: true`, `contextIsolation: true`, `nodeIntegration: false`, a bounded `specfold://app` protocol, and packaged CSP. It cannot access Node or the filesystem directly. New windows and renderer navigation are denied, permissions default to denied, external links require HTTPS plus an application-owned host allowlist, and IPC sender frames are validated. Import scripts are treated as data and are never executed.
+
+The desktop runtime decision and Tauri re-evaluation gate are documented in [DESKTOP_RUNTIME_DECISION.md](DESKTOP_RUNTIME_DECISION.md).
 
 ## Import, Request, And Theme Boundaries
 

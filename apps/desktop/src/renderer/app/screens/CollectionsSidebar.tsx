@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Boxes, Download, FileJson, FilePlus2, FolderPlus, Import, Plus, Settings, Wand2 } from "lucide-react";
+import { Boxes, Download, FileJson, FilePlus2, FolderPlus, Import, Plus, Settings } from "lucide-react";
 import { flattenFolders, type Collection, type Workspace } from "@openapi-collection-studio/core";
 import { CollectionTree, type TreeActions } from "../../components/CollectionTree";
 import type { Screen } from "../types";

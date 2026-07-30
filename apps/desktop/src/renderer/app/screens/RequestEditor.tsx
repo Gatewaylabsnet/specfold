@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Copy, Plus, Send, Terminal, Wand2 } from "lucide-react";
-import { flattenFolders, type ApiRequest, type AuthConfig, type Collection, type Environment, type Folder, type HttpMethod } from "@openapi-collection-studio/core";
+import { flattenFolders, folderAccessTokenVariable, type ApiRequest, type AuthConfig, type Collection, type Environment, type Folder, type HttpMethod } from "@openapi-collection-studio/core";
 import { KeyValueEditor } from "../../components/KeyValueEditor";
+import { HorizontalSplitPane } from "../../components/HorizontalSplitPane";
 import { methods } from "../types";
 import { activeRequestFolderId, authForType, tabLabel } from "../helpers";
 import { baseUrlRouting, inheritedBaseUrl, resolveRoutePreview } from "../routing";
 import type { RequestTab, ResponseHistoryEntry, ResponseState } from "../types";
 import { RequestBodyEditor } from "./RequestBodyEditor";
+import { RequestAuthFields } from "./RequestAuthFields";
 import { ResponsePanel } from "./ResponsePanel";
 
 export function RequestWorkspace({
@@ -25,6 +27,7 @@ export function RequestWorkspace({
   onUpdateRequest,
   onUpdateCollection,
   onUpdateFolder,
+  onUpdateFolderTokenVariable,
   onMoveRequest,
   onRequestTabChange,
   onSend,
@@ -50,11 +53,12 @@ export function RequestWorkspace({
   onUpdateRequest(recipe: (request: ApiRequest) => void): void;
   onUpdateCollection(recipe: (collection: Collection) => void): void;
   onUpdateFolder(recipe: (folder: Folder) => void): void;
+  onUpdateFolderTokenVariable(folderId: string, variableName: string): void;
   onMoveRequest(folderId: string): void;
   onRequestTabChange(tab: RequestTab): void;
   onSend(): void;
   onCopyCurl(): void;
-  onAssignResponseValue(path: string, variableName: string): void;
+  onAssignResponseValue(path: string, variableName: string, folderId?: string): void;
   onSaveResponseExample(response: ResponseState): void;
   environmentVariableNames: string[];
 }) {
@@ -65,6 +69,14 @@ export function RequestWorkspace({
   // Tree selection may change while a request stays open. The preview must use
   // the request's own folder chain, not the incidental selected row.
   const routingFolder = activeRequest ? requestFolder : activeFolder;
+  const routingFolderPath = routingFolder
+    ? folderOptions.find((option) => option.folder.id === routingFolder.id)?.path ?? [routingFolder]
+    : [];
+  const inheritedTokenVariable = folderAccessTokenVariable(routingFolderPath);
+  const activeFolderPath = activeFolder
+    ? folderOptions.find((option) => option.folder.id === activeFolder.id)?.path ?? [activeFolder]
+    : [];
+  const parentTokenVariable = folderAccessTokenVariable(activeFolderPath.slice(0, -1));
   const routing = activeCollection
     ? baseUrlRouting(
         activeCollection,
@@ -79,11 +91,12 @@ export function RequestWorkspace({
     : undefined;
 
   return (
-    <section className="editor-layout">
-      <div className="request-panel">
+    <HorizontalSplitPane
+      top={<div className="request-panel">
         {activeCollection && (
           <div className="base-url-panel">
-            <label className="field collection-base-url">
+            <div className="base-url-panel__fields">
+              <label className="field collection-base-url">
               <span>{activeFolder ? "Folder base URL" : "Collection base URL"}</span>
               {activeFolder ? (
                 <input
@@ -120,7 +133,26 @@ export function RequestWorkspace({
                   ? "Applies to this folder and its children. Clear it to inherit the resolved route above."
                   : "Used by this collection unless a folder overrides it."}
               </small>
-            </label>
+              </label>
+              {activeFolder && (
+                <label className="field">
+                  <span>Folder access token variable</span>
+                  <input
+                    aria-label="Folder access token variable"
+                    onChange={(event) =>
+                      onUpdateFolderTokenVariable(activeFolder.id, event.target.value.trim())
+                    }
+                    pattern="[A-Za-z_][A-Za-z0-9_.-]*"
+                    placeholder={parentTokenVariable ?? "ordersAccessToken"}
+                    title="Use a valid environment variable name, such as ordersAccessToken."
+                    value={activeFolder.accessTokenVariable ?? ""}
+                  />
+                  <small>
+                    Bearer requests can use this secret variable. Clear it to inherit from the parent folder.
+                  </small>
+                </label>
+              )}
+            </div>
             <div className="base-url-panel__summary" role="note">
               <span>Resolved route</span>
               <code title={routing?.effective}>{routing?.effective || "Not configured"}</code>
@@ -220,6 +252,7 @@ export function RequestWorkspace({
             </div>
             <RequestTabPanel
               activeRequest={activeRequest}
+              folderAccessTokenVariable={inheritedTokenVariable}
               onUpdateRequest={onUpdateRequest}
               tab={requestTab}
             />
@@ -239,15 +272,20 @@ export function RequestWorkspace({
             </div>
           </div>
         )}
-      </div>
-      <ResponsePanel
+      </div>}
+      bottom={<ResponsePanel
         response={response}
         history={responseHistory}
         onAssignResponseValue={onAssignResponseValue}
         onSaveResponseExample={onSaveResponseExample}
         environmentVariableNames={environmentVariableNames}
-      />
-    </section>
+        folderTokenTarget={routingFolder ? {
+          id: routingFolder.id,
+          name: routingFolder.name,
+          variableName: routingFolder.accessTokenVariable
+        } : undefined}
+      />}
+    />
   );
 }
 
@@ -282,10 +320,12 @@ function RequestNameInput({ name, onCommit }: { name: string; onCommit(name: str
 
 export function RequestTabPanel({
   activeRequest,
+  folderAccessTokenVariable,
   tab,
   onUpdateRequest
 }: {
   activeRequest: ApiRequest;
+  folderAccessTokenVariable?: string;
   tab: RequestTab;
   onUpdateRequest(recipe: (request: ApiRequest) => void): void;
 }) {
@@ -349,8 +389,9 @@ export function RequestTabPanel({
             <option value="apiKey">API key</option>
           </select>
         </label>
-        <AuthFields
+        <RequestAuthFields
           auth={activeRequest.auth}
+          folderAccessTokenVariable={folderAccessTokenVariable}
           onChange={(auth) =>
             onUpdateRequest((request) => {
               request.auth = auth;
@@ -370,73 +411,5 @@ export function RequestTabPanel({
         })
       }
     />
-  );
-}
-
-export function AuthFields({
-  auth,
-  onChange
-}: {
-  auth: AuthConfig;
-  onChange(auth: AuthConfig): void;
-}) {
-  if (auth.type === "none") {
-    return null;
-  }
-  if (auth.type === "bearer") {
-    return (
-      <label className="field">
-        <span>Token</span>
-        <input
-          onChange={(event) => onChange({ ...auth, token: event.target.value })}
-          value={auth.token}
-        />
-      </label>
-    );
-  }
-  if (auth.type === "basic") {
-    return (
-      <>
-        <label className="field">
-          <span>Username</span>
-          <input
-            onChange={(event) => onChange({ ...auth, username: event.target.value })}
-            value={auth.username}
-          />
-        </label>
-        <label className="field">
-          <span>Password</span>
-          <input
-            onChange={(event) => onChange({ ...auth, password: event.target.value })}
-            type="password"
-            value={auth.password}
-          />
-        </label>
-      </>
-    );
-  }
-  return (
-    <>
-      <label className="field">
-        <span>Location</span>
-        <select
-          onChange={(event) =>
-            onChange({ ...auth, in: event.target.value === "query" ? "query" : "header" })
-          }
-          value={auth.in}
-        >
-          <option value="header">Header</option>
-          <option value="query">Query</option>
-        </select>
-      </label>
-      <label className="field">
-        <span>Key</span>
-        <input onChange={(event) => onChange({ ...auth, key: event.target.value })} value={auth.key} />
-      </label>
-      <label className="field">
-        <span>Value</span>
-        <input onChange={(event) => onChange({ ...auth, value: event.target.value })} value={auth.value} />
-      </label>
-    </>
   );
 }

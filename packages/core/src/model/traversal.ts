@@ -73,6 +73,17 @@ export function folderBaseUrl(
   return undefined;
 }
 
+/** Return the nearest configured access-token variable in a folder path. */
+export function folderAccessTokenVariable(
+  folderPath: readonly Pick<Folder, "accessTokenVariable">[]
+): string | undefined {
+  for (let index = folderPath.length - 1; index >= 0; index -= 1) {
+    const value = folderPath[index].accessTokenVariable?.trim();
+    if (value) return value;
+  }
+  return undefined;
+}
+
 export function removeFolder(collection: Collection, folderId: string): Folder | undefined {
   const rootIndex = collection.folders.findIndex((folder) => folder.id === folderId);
   if (rootIndex >= 0) {

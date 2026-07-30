@@ -28,6 +28,7 @@ Multipart text values remain editable. File paths from imported OpenAPI/Swagger/
 - New collections copy the active environment `baseUrl`.
 - Base URL precedence during request preparation is: absolute request URL, nearest folder, collection, then active environment.
 - Nested folders inherit the nearest configured folder base URL; relative request paths are joined to the effective value.
+- Folder access-token bindings are Specfold workspace metadata. Token values remain encrypted environment secrets; portable exports include a token only through the `{{variableName}}` references explicitly applied to requests.
 - Imported OpenAPI servers and portable variables populate the relevant collection/environment fields.
 
 ## OpenAPI Export

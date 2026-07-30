@@ -1,35 +1,23 @@
 import {
   cloneFolder, cloneRequest, countFolderRequests, createApinizerJwtRequest, createCollection, createOAuthTokenRequest,
-  createEmptyWorkspace, createEnvironment, createFolder, createId, createJwtRequest,
+  createEmptyWorkspace, createFolder, createId, createJwtRequest,
   deriveApinizerBaseUrl,
-  createKeyValue, createRequest, checkOpenApiDocument, exportCollectionToOpenApiResult,
-  looksLikeCurl, parseCurlCommand, requestToCurl, findFolder, findRequest, flattenRequests,
-  importDocument, importPostmanV3Folder, listOperations, previewImportDocument,
-  previewPostmanV3Folder, relocateFolder, relocateRequest, removeFolder, removeRequest,
-  serializeCollectionJson,
-  type ApiRequest, type Collection, type Environment, type ExportWarning, type GroupingStrategy,
-  type ImportOperationSummary, type OpenApiCheckResult, type PostmanV3FolderSource, type Workspace
+  createRequest, findFolder, findRequest, flattenRequests,
+  relocateFolder, relocateRequest, removeFolder, removeRequest,
+  type ApiRequest, type Collection
 } from "@openapi-collection-studio/core";
 import { flattenFolders } from "@openapi-collection-studio/core";
-import type { DropTarget, TreeActions } from "../components/CollectionTree";
-import { activeRequestFolderId, applyEnvironmentBaseUrlToCollection, environmentBaseUrl, firstRequestId } from "./helpers";
+import type { DropTarget } from "../components/CollectionTree";
+import { applyEnvironmentBaseUrlToCollection, environmentBaseUrl, firstRequestId } from "./helpers";
 import type { StudioState } from "./useStudioState";
 
 export function useWorkspaceController(state: StudioState) {
-  const { workspace, setWorkspace, loaded, setLoaded, screen, setScreen,
+  const { workspace, setWorkspace, setScreen,
     activeCollectionId, setActiveCollectionId, selectedFolderId, setSelectedFolderId,
-    selectedRequestId, setSelectedRequestId, requestTab, setRequestTab, response, setResponse,
-    responseHistory, setResponseHistory, isSending, setIsSending, importText, setImportText,
-    postmanFolderSource, setPostmanFolderSource, postmanFolderPath, setPostmanFolderPath,
-    importUrl, setImportUrl, isFetchingImport, setIsFetchingImport, importOperations,
-    setImportOperations, selectedImportKeys, setSelectedImportKeys, lastImportIndexRef,
-    grouping, setGrouping, importError, setImportError, importSummary, setImportSummary,
-    exportFormat, setExportFormat, exportFolderIds, setExportFolderIds, includeAllComponents,
-    setIncludeAllComponents, includeExamples, setIncludeExamples, pruneUnusedComponents,
-    setPruneUnusedComponents, preferSourceOperation, setPreferSourceOperation, savedExportPath,
-    setSavedExportPath, savedBackupPath, setSavedBackupPath, saveStatus, setSaveStatus,
-    settings, setSettings, notice, setNotice, activeCollection, activeRequestLocation,
-    activeRequest, activeEnvironment, exportResult, exportContent, mutateWorkspace, saveWorkspaceNow } = state;
+    selectedRequestId, setSelectedRequestId, setRequestTab, setResponse,
+    setPostmanFolderSource, setPostmanFolderPath, setSavedExportPath,
+    setSavedBackupPath, setSaveStatus, setNotice, activeCollection,
+    activeEnvironment, mutateWorkspace } = state;
   const createNewWorkspace = () => {
     if (
       (workspace.collections.length > 0 || workspace.environments.length > 0) &&

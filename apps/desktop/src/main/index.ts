@@ -2,11 +2,14 @@ import { app, BrowserWindow } from "electron";
 import { loadSettings } from "./storage";
 import { closeHttpAgents } from "./http";
 import { registerIpcHandlers } from "./ipc";
+import { installApplicationMenu } from "./menu";
+import { installAppProtocol, registerAppProtocolScheme } from "./protocol";
 import { applyContentSecurityPolicy, applyNativeTheme, createWindow } from "./window";
 
 const PRODUCT_NAME = "Specfold";
 const APP_ID = "net.gatewaylabs.specfold";
 
+registerAppProtocolScheme();
 app.setName(PRODUCT_NAME);
 if (process.platform === "win32") app.setAppUserModelId(APP_ID);
 
@@ -24,8 +27,10 @@ if (!gotSingleInstanceLock) {
 
   app.whenReady().then(async () => {
     applyNativeTheme((await loadSettings()).theme);
+    installAppProtocol();
     applyContentSecurityPolicy();
     registerIpcHandlers();
+    installApplicationMenu();
     createWindow();
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -29,6 +29,7 @@ function sampleWorkspace(): Workspace {
 
 function studioMock(workspace = sampleWorkspace()): StudioApi {
   return {
+    onAppMenuAction: vi.fn(() => () => undefined),
     getAppInfo: vi.fn(async () => ({
       name: "Specfold",
       version: "1.6.0",
@@ -89,7 +90,7 @@ describe("renderer workflows", () => {
   it("shows every supported import source choice", async () => {
     const { user } = await renderApp();
     await user.click(screen.getByRole("button", { name: "Import" }));
-    expect(screen.getByRole("button", { name: "Open file" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Open file" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Postman v3 folder" })).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "Import from URL" })).toBeTruthy();
     expect(screen.getByPlaceholderText(/Paste OpenAPI 3.x/)).toBeTruthy();
@@ -101,7 +102,7 @@ describe("renderer workflows", () => {
     const { user } = await renderApp(api);
     await user.click(screen.getByRole("button", { name: "Settings" }));
 
-    await user.click(screen.getByRole("button", { name: "Export backup" }));
+    await user.click(await screen.findByRole("button", { name: "Export backup" }));
     expect(api.exportBackup).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Export backup" }));
     await waitFor(() => expect(api.exportBackup).toHaveBeenCalledTimes(1));
@@ -114,7 +115,7 @@ describe("renderer workflows", () => {
     const api = studioMock();
     const { user } = await renderApp(api);
     await user.click(screen.getByRole("button", { name: "Settings" }));
-    await user.selectOptions(screen.getByRole("combobox", { name: "Text size" }), "large");
+    await user.selectOptions(await screen.findByRole("combobox", { name: "Text size" }), "large");
 
     await waitFor(() => expect(api.saveSettings).toHaveBeenCalledWith(expect.objectContaining({ fontSize: "large" })));
     expect(document.documentElement.dataset.fontSize).toBe("large");
@@ -122,10 +123,15 @@ describe("renderer workflows", () => {
 
   it("shows app version in About and checks for updates without downloading", async () => {
     const api = studioMock();
+    let menuListener: Parameters<StudioApi["onAppMenuAction"]>[0] | undefined;
+    api.onAppMenuAction = vi.fn((listener) => {
+      menuListener = listener;
+      return () => undefined;
+    });
     const { user } = await renderApp(api);
-    await user.click(screen.getByRole("button", { name: "About" }));
+    act(() => menuListener?.("about"));
 
-    expect(screen.getByRole("dialog", { name: "About Specfold" })).toBeTruthy();
+    expect(await screen.findByRole("dialog", { name: "About Specfold" })).toBeTruthy();
     expect(await screen.findByText("v1.6.0")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Check for updates" }));
 
@@ -136,12 +142,17 @@ describe("renderer workflows", () => {
     expect(api.openExternal).toHaveBeenCalledWith("https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.7.0");
     await user.click(screen.getByRole("button", { name: "Close About" }));
     expect(screen.queryByRole("dialog", { name: "About Specfold" })).toBeNull();
+
+    vi.mocked(api.checkForUpdates).mockClear();
+    act(() => menuListener?.("check-for-updates"));
+    expect(await screen.findByText(/v1\.7\.0 is available/i)).toBeTruthy();
+    expect(api.checkForUpdates).toHaveBeenCalledTimes(1);
   });
 
   it("does not allow the last environment to be deleted", async () => {
     const { user } = await renderApp();
     await user.click(screen.getByRole("button", { name: "Environments" }));
-    const deleteButton = screen.getByTitle("At least one environment is required") as HTMLButtonElement;
+    const deleteButton = await screen.findByTitle("At least one environment is required") as HTMLButtonElement;
     expect(deleteButton.disabled).toBe(true);
   });
 
@@ -319,12 +330,65 @@ describe("renderer workflows", () => {
       .toBe("{{baseUrl}}/auth/jwt");
   });
 
+  it("saves a response token for a folder and applies it to bearer requests", async () => {
+    const workspace = createEmptyWorkspace("Folder token workspace");
+    const collection = createCollection("Orders API");
+    const folder = createFolder("Orders");
+    const protectedRequest = createRequest({
+      name: "Protected orders",
+      method: "GET",
+      url: "/orders"
+    });
+    protectedRequest.auth = { type: "bearer", token: "{{accessToken}}" };
+    folder.requests.push(
+      createRequest({ name: "Get orders token", method: "POST", url: "/token" }),
+      protectedRequest
+    );
+    collection.folders.push(folder);
+    workspace.collections.push(collection);
+    const api = studioMock(workspace);
+    vi.mocked(api.sendRequest).mockResolvedValue({
+      status: 200,
+      statusText: "OK",
+      durationMs: 4,
+      sizeBytes: 31,
+      headers: { "content-type": "application/json" },
+      body: "{\n  \"access_token\": \"folder-token\"\n}",
+      rawBody: "{\"access_token\":\"folder-token\"}"
+    });
+
+    const { user } = await renderApp(api);
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    await user.click(await screen.findByRole("button", { name: "Save as folder token" }));
+    expect(await screen.findByText(/Saved "ordersAccessToken" as the folder access token/i))
+      .toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: /Protected orders/ }));
+    await user.click(screen.getByRole("button", { name: "Auth" }));
+    await user.click(screen.getByRole("button", { name: "Use folder token" }));
+    expect((screen.getByRole("textbox", { name: "Token" }) as HTMLInputElement).value)
+      .toBe("{{ordersAccessToken}}");
+
+    await waitFor(() => {
+      const savedWorkspaces = vi.mocked(api.saveWorkspace).mock.calls.map(([saved]) => saved);
+      expect(savedWorkspaces.some((saved) => {
+        const savedFolder = saved.collections[0]?.folders[0];
+        const tokenVariable = saved.environments[0]?.variables.find(
+          (variable) => variable.name === "ordersAccessToken"
+        );
+        return savedFolder?.accessTokenVariable === "ordersAccessToken" &&
+          tokenVariable?.value === "folder-token" &&
+          tokenVariable.secret === true;
+      })).toBe(true);
+    });
+  });
+
   it("copies the generated export preview to the clipboard", async () => {
     const { user } = await renderApp();
     const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
 
     await user.click(screen.getByRole("button", { name: "Export" }));
-    await user.click(screen.getByRole("button", { name: "Copy to clipboard" }));
+    await user.click(await screen.findByRole("button", { name: "Copy to clipboard" }));
 
     expect(writeText).toHaveBeenCalledTimes(1);
     expect(writeText.mock.calls[0]?.[0]).toContain("/users");

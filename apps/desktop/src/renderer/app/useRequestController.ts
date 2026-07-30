@@ -151,7 +151,7 @@ export function useRequestController(state: StudioState, workspaceController: Wo
     });
   };
 
-  const assignResponseValue = (path: string, variableName: string) => {
+  const assignResponseValue = (path: string, variableName: string, folderId?: string) => {
     if (!response || !variableName.trim()) {
       return;
     }
@@ -173,11 +173,25 @@ export function useRequestController(state: StudioState, workspaceController: Wo
       const existing = environment.variables.find((variable) => variable.name === variableName);
       if (existing) {
         existing.value = value;
+        if (folderId) existing.secret = true;
       } else {
-        environment.variables.push(createEnvironmentVariable(variableName, value));
+        const variable = createEnvironmentVariable(variableName, value);
+        if (folderId) variable.secret = true;
+        environment.variables.push(variable);
+      }
+      if (folderId && activeCollection) {
+        const collection = draft.collections.find(
+          (candidate) => candidate.id === activeCollection.id
+        );
+        const folder = collection ? findFolder(collection, folderId) : undefined;
+        if (folder) folder.accessTokenVariable = variableName;
       }
     });
-    setNotice(`Saved "${variableName}" to the ${activeEnvironment ? "active" : "new"} environment.`);
+    setNotice(
+      folderId
+        ? `Saved "${variableName}" as the folder access token in the ${activeEnvironment ? "active" : "new"} environment.`
+        : `Saved "${variableName}" to the ${activeEnvironment ? "active" : "new"} environment.`
+    );
   };
 
   const saveResponseAsExample = (responseToSave: ResponseState) => {

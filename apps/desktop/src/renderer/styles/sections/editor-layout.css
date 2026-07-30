@@ -1,7 +1,45 @@
 .editor-layout {
   display: grid;
-  grid-template-rows: minmax(340px, 1.15fr) minmax(250px, 0.85fr);
+  grid-template-rows: minmax(220px, var(--split-pane-top-height, 58%)) 9px minmax(180px, 1fr);
   height: 100%;
+}
+
+.pane-resizer {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  min-height: 9px;
+  border-top: 1px solid #d9e0e8;
+  border-bottom: 1px solid #d9e0e8;
+  background: #f4f7fa;
+  cursor: row-resize;
+  touch-action: none;
+}
+
+.pane-resizer::before {
+  position: absolute;
+  inset: -3px 0;
+  content: "";
+}
+
+.pane-resizer span {
+  width: 42px;
+  height: 3px;
+  border-radius: 999px;
+  background: #aab6c5;
+  transition: width 120ms ease, background 120ms ease;
+}
+
+.pane-resizer:hover span,
+.pane-resizer:focus-visible span {
+  width: 56px;
+  background: #1f6feb;
+}
+
+.pane-resizer:focus-visible {
+  outline: 2px solid #1f6feb;
+  outline-offset: -2px;
 }
 
 .sidebar {

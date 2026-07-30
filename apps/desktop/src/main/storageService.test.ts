@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { mkdtemp, mkdir, readFile, readdir, rm, stat, truncate, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createEmptyWorkspace, createRequest, type Workspace } from "@openapi-collection-studio/core";
+import { createCollection, createEmptyWorkspace, createFolder, createRequest, type Workspace } from "@openapi-collection-studio/core";
 import {
   MAX_BACKUP_BYTES,
   atomicWriteFile,
@@ -116,6 +116,34 @@ describe("storage service", () => {
     expect(persisted).not.toContain("must-not-reach-disk");
     expect(loaded.secureStorageAvailable).toBe(false);
     expect(loaded.workspace.environments[0].variables[0].value).toBe("");
+  });
+
+  it("encrypts variables referenced as folder access tokens even when not manually marked secret", async () => {
+    const userData = await testDirectory();
+    const paths = storagePaths(userData);
+    const service = createStorageService({ paths, secureStorage: secureStorage(), appVersion: "1.7.1" });
+    const workspace = createEmptyWorkspace("Folder token storage");
+    const collection = createCollection("Orders");
+    const folder = createFolder("Protected orders");
+    folder.accessTokenVariable = "ordersAccessToken";
+    collection.folders.push(folder);
+    workspace.collections.push(collection);
+    workspace.environments[0].variables.push({
+      id: "folder-token",
+      name: "ordersAccessToken",
+      value: "folder-secret",
+      enabled: true,
+      secret: false
+    });
+
+    await service.saveWorkspace(workspace);
+    const persisted = await readFile(paths.workspace, "utf8");
+    const loaded = await service.loadWorkspace();
+
+    expect(persisted).not.toContain("folder-secret");
+    expect(persisted).toContain("enc:v1:");
+    expect(loaded.workspace.environments[0].variables[0].secret).toBe(true);
+    expect(loaded.workspace.environments[0].variables[0].value).toBe("folder-secret");
   });
 
   it("encrypts literal request credentials and sensitive examples at rest", async () => {

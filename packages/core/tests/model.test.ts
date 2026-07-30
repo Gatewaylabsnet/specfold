@@ -12,10 +12,20 @@ import {
   createMultipartField,
   createRequest,
   findFolder,
+  folderAccessTokenVariable,
   removeFolder
 } from "../src";
 
 describe("model helpers", () => {
+  it("inherits the nearest folder access-token variable", () => {
+    const parent = createFolder("Parent");
+    const child = createFolder("Child");
+    parent.accessTokenVariable = "parentAccessToken";
+    expect(folderAccessTokenVariable([parent, child])).toBe("parentAccessToken");
+    child.accessTokenVariable = "childAccessToken";
+    expect(folderAccessTokenVariable([parent, child])).toBe("childAccessToken");
+  });
+
   it("starts every workspace with an active, renameable Specfold environment", () => {
     const workspace = createEmptyWorkspace();
 

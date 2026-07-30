@@ -112,6 +112,8 @@ export interface Folder {
   name: string;
   /** Overrides the collection/environment base URL for requests in this subtree. */
   baseUrl?: string;
+  /** Environment variable used as the inherited bearer token for this subtree. */
+  accessTokenVariable?: string;
   description?: string;
   folders: Folder[];
   requests: ApiRequest[];

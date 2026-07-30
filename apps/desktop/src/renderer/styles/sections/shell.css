@@ -106,10 +106,6 @@
   min-width: 0;
 }
 
-.topbar__about {
-  flex: none;
-}
-
 .save-status {
   display: inline-flex;
   align-items: center;

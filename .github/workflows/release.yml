@@ -72,6 +72,7 @@ jobs:
       - name: Typecheck and test
         run: |
           npm run check:source-size
+          npm run lint
           npm run typecheck
           npm test
 

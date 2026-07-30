@@ -18,7 +18,9 @@ v1.1 broadens the untrusted input surface and adds complete backup/restore. The 
 - **Backup disclosure ambiguity:** Closed by explicit consent and documentation. Complete backups intentionally contain readable secrets and use `0600` permissions where supported.
 - **Folder traversal/resource exhaustion:** Closed for configured bounds. Postman v3 traversal skips symlinks and scripts, ignores dependency/VCS directories, caps depth/files/bytes, and never executes imported code.
 - **Importer parent cycles/malformed records:** Closed. Cycles are broken, unsupported records are skipped with warnings, and format-specific tests cover malformed/unsupported inputs.
-- **IPC contract drift:** Closed. Main, preload, and renderer share typed contracts including secure-storage and restore results.
+- **IPC contract drift and malformed payloads:** Closed. Main, preload, and renderer share typed contracts; main also validates sender identity, runtime payload shape, and document/string size bounds before privileged operations.
+- **Untrusted renderer navigation and IPC senders:** Closed. Packaged UI assets are served from a bounded custom protocol, navigation/new windows are denied, permissions default to denied, and every invoke handler validates the trusted main frame.
+- **External URL protocol abuse:** Closed. Renderer and native-menu external navigation accepts HTTPS URLs only on the GatewayLabs/GitHub allowlist.
 - **Public release metadata leakage:** Closed. Release artifacts exclude builder debug/updater YAML and blockmaps; only user packages and `SHA256SUMS.txt` enter the release bundle.
 
 ## Existing Controls Retained

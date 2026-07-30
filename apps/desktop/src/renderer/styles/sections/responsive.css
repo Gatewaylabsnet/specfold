@@ -36,6 +36,10 @@
 }
 
 @media (max-width: 760px) {
+  .auth-token-field {
+    grid-template-columns: 1fr;
+  }
+
   .multipart-field__header {
     grid-template-columns: auto minmax(0, 1fr) 34px;
   }

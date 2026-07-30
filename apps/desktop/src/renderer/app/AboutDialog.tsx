@@ -1,13 +1,30 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, RefreshCw, X } from "lucide-react";
 import type { AppInfo, UpdateCheckResult } from "../../shared/contracts";
 import { BrandMark } from "./BrandMark";
 
-export function AboutDialog({ onClose }: { onClose(): void }) {
+export function AboutDialog({
+  updateCheckRequestId = 0,
+  onClose
+}: {
+  updateCheckRequestId?: number;
+  onClose(): void;
+}) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const handledUpdateCheckRef = useRef(0);
   const [appInfo, setAppInfo] = useState<AppInfo>();
   const [updateCheck, setUpdateCheck] = useState<UpdateCheckResult>();
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
+
+  const checkForUpdates = useCallback(async () => {
+    setCheckingForUpdates(true);
+    setUpdateCheck(undefined);
+    try {
+      setUpdateCheck(await window.studio.checkForUpdates());
+    } finally {
+      setCheckingForUpdates(false);
+    }
+  }, []);
 
   useEffect(() => {
     void window.studio.getAppInfo().then(setAppInfo);
@@ -22,19 +39,19 @@ export function AboutDialog({ onClose }: { onClose(): void }) {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [onClose]);
 
+  useEffect(() => {
+    if (
+      updateCheckRequestId > 0 &&
+      handledUpdateCheckRef.current !== updateCheckRequestId
+    ) {
+      handledUpdateCheckRef.current = updateCheckRequestId;
+      void checkForUpdates();
+    }
+  }, [checkForUpdates, updateCheckRequestId]);
+
   const openExternal = (url?: string) => {
     if (url) {
       void window.studio.openExternal(url);
-    }
-  };
-
-  const checkForUpdates = async () => {
-    setCheckingForUpdates(true);
-    setUpdateCheck(undefined);
-    try {
-      setUpdateCheck(await window.studio.checkForUpdates());
-    } finally {
-      setCheckingForUpdates(false);
     }
   };
 
