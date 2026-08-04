@@ -3,6 +3,7 @@ import type { Workspace } from "@openapi-collection-studio/core";
 import type {
   AppSettings,
   FileActionResult,
+  LocalDataInfo,
   RestoreBackupResult,
   WorkspaceLoadResult
 } from "../shared/contracts";
@@ -101,4 +102,8 @@ export async function restoreBackup(): Promise<RestoreBackupResult> {
 
 export function deleteAllLocalData(): Promise<void> {
   return storageService().deleteAllLocalData();
+}
+
+export function getLocalDataInfo(): Promise<LocalDataInfo> {
+  return storageService().getLocalDataInfo();
 }

@@ -125,7 +125,7 @@ export function CollectionTree(props: CollectionTreeProps) {
     <div className="tree-wrap">
       <div className="tree-search">
         <Search size={14} />
-        <input aria-label="Search requests" onChange={(event) => setSearch(event.target.value)} placeholder="Search requests..." value={search} />
+        <input id="request-search" aria-label="Search requests" onChange={(event) => setSearch(event.target.value)} placeholder="Search requests..." value={search} />
         {search && (
           <button className="tree-search__clear" onClick={() => setSearch("")} title="Clear search" type="button"><X size={13} /></button>
         )}

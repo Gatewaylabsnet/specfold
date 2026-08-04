@@ -156,6 +156,11 @@
   color: #1f2f45;
 }
 
+.tree-action.is-favorite {
+  color: #a15c00;
+  background: #fff3d3;
+}
+
 .tree-action--danger:hover {
   background: #fde8e8;
   color: #b91c1c;

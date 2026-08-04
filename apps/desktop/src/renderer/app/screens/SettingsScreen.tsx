@@ -1,5 +1,7 @@
 import type { AppSettings } from "../types";
-import { Download, Plus, Upload } from "lucide-react";
+import type { LocalDataInfo } from "../../../shared/contracts";
+import { Download, FolderOpen, Plus, Upload } from "lucide-react";
+import { formatHistoryTime } from "../helpers";
 
 export function SettingsScreen({
   settings,
@@ -10,6 +12,8 @@ export function SettingsScreen({
   onExportBackup,
   onRestoreBackup,
   onDeleteAllData,
+  localDataInfo,
+  onOpenLocalDataFolder,
   savedBackupPath
 }: {
   settings: AppSettings;
@@ -20,6 +24,8 @@ export function SettingsScreen({
   onExportBackup(): void;
   onRestoreBackup(): void;
   onDeleteAllData(): void;
+  localDataInfo?: LocalDataInfo;
+  onOpenLocalDataFolder(): void;
   savedBackupPath: string;
 }) {
   return (
@@ -78,6 +84,23 @@ export function SettingsScreen({
             Delete all data
           </button>
         </div>
+        {localDataInfo && (
+          <div className="settings-local-data" role="status">
+            <div>
+              <strong>Local data</strong>
+              <code title={localDataInfo.dataPath}>{localDataInfo.dataPath}</code>
+              <small>
+                {localDataInfo.backupCount === 0
+                  ? "No automatic safety backups yet."
+                  : `${localDataInfo.backupCount} automatic safety backup${localDataInfo.backupCount === 1 ? "" : "s"}${localDataInfo.latestBackupAt ? ` · latest ${formatHistoryTime(localDataInfo.latestBackupAt)}` : ""}`}
+              </small>
+            </div>
+            <button className="secondary-button" onClick={onOpenLocalDataFolder} type="button">
+              <FolderOpen size={16} />
+              Open data folder
+            </button>
+          </div>
+        )}
         {savedBackupPath && <div className="status-box">Saved to {savedBackupPath}</div>}
         <div className="status-box status-box--warning">
           Restoring replaces the current workspace after creating a local safety copy. Deleting data is permanent.

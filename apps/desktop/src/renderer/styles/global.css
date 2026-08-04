@@ -4,6 +4,7 @@
 @import "./sections/editor-layout.css";
 @import "./sections/tree-base.css";
 @import "./sections/editor-controls.css";
+@import "./sections/response-panel.css";
 @import "./sections/responsive.css";
 @import "./sections/hardening.css";
 @import "./sections/settings.css";

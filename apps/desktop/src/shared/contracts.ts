@@ -68,6 +68,21 @@ export interface FileActionResult {
   filePath?: string;
 }
 
+export interface ConnectionTestResult {
+  ok: boolean;
+  url: string;
+  status?: number;
+  statusText?: string;
+  durationMs?: number;
+  error?: string;
+}
+
+export interface LocalDataInfo {
+  dataPath: string;
+  backupCount: number;
+  latestBackupAt?: string;
+}
+
 export interface OpenImportResult extends FileActionResult {
   content?: string;
   error?: string;
@@ -129,6 +144,7 @@ export interface StudioApi {
   saveWorkspace(workspace: Workspace): Promise<void>;
   loadSettings(): Promise<AppSettings>;
   saveSettings(settings: AppSettings): Promise<AppSettings>;
+  testConnection(url: string): Promise<ConnectionTestResult>;
   sendRequest(
     request: ApiRequest,
     environment?: Environment,
@@ -143,5 +159,7 @@ export interface StudioApi {
   exportBackup(workspace: Workspace): Promise<FileActionResult>;
   restoreBackup(): Promise<RestoreBackupResult>;
   deleteAllData(): Promise<void>;
+  getLocalDataInfo(): Promise<LocalDataInfo>;
+  openLocalDataFolder(): Promise<{ ok: boolean; error?: string }>;
   fetchImportUrl(url: string): Promise<FetchImportUrlResult>;
 }

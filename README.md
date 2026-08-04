@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://gatewaylabs.net/specfold">gatewaylabs.net/specfold</a>
   /
-  <a href="https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.8.0">Download v1.8.0</a>
+  <a href="https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.0">Download v1.9.0</a>
   /
   <a href="docs/REDTEAM_REPORT.md">Security review</a>
 </p>
@@ -44,23 +44,23 @@ OpenAPI / Swagger / Postman / Insomnia / HAR / .http / cURL
 
 It is intentionally local-first. There is no account requirement, no cloud workspace, and no hosted sync layer. Your workspace, environments, request history, and secrets stay on the machine running the desktop app.
 
-> The published stable release is v1.8.0. It adds native application menus, secure folder-scoped access tokens, resizable request/response panels, persistent response text sizing, stronger Electron boundaries, and faster lazy-loaded screens. See the [release notes](docs/RELEASE_NOTES_v1.8.0.md) and [desktop runtime decision](docs/DESKTOP_RUNTIME_DECISION.md).
+> The published stable release is v1.9.0. It adds scoped base URL editing in Environments, connection checks, pinned requests, richer response inspection, clearer import results, local-data controls, and first-run guidance. See the [release notes](docs/RELEASE_NOTES_v1.9.0.md) and [desktop runtime decision](docs/DESKTOP_RUNTIME_DECISION.md).
 
-## Download v1.8.0
+## Download v1.9.0
 
 | Platform | Package | Download |
 | --- | --- | --- |
-| Windows x64 | Installer | [Specfold-1.8.0-x64.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.8.0/Specfold-1.8.0-x64.exe) |
-| Windows x64 | Portable app | [Specfold-1.8.0-x64-portable.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.8.0/Specfold-1.8.0-x64-portable.exe) |
-| macOS Apple Silicon | DMG | [Specfold-1.8.0-mac-arm64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.8.0/Specfold-1.8.0-mac-arm64.dmg) |
-| macOS Apple Silicon | ZIP | [Specfold-1.8.0-mac-arm64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.8.0/Specfold-1.8.0-mac-arm64.zip) |
-| macOS Intel | DMG | [Specfold-1.8.0-mac-x64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.8.0/Specfold-1.8.0-mac-x64.dmg) |
-| macOS Intel | ZIP | [Specfold-1.8.0-mac-x64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.8.0/Specfold-1.8.0-mac-x64.zip) |
-| Linux x64 | AppImage | [Specfold-1.8.0-linux-x86_64.AppImage](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.8.0/Specfold-1.8.0-linux-x86_64.AppImage) |
-| Linux x64 | Debian package | [Specfold-1.8.0-linux-amd64.deb](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.8.0/Specfold-1.8.0-linux-amd64.deb) |
-| All platforms | SHA-256 checksums | [SHA256SUMS.txt](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.8.0/SHA256SUMS.txt) |
+| Windows x64 | Installer | [Specfold-1.9.0-x64.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/Specfold-1.9.0-x64.exe) |
+| Windows x64 | Portable app | [Specfold-1.9.0-x64-portable.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/Specfold-1.9.0-x64-portable.exe) |
+| macOS Apple Silicon | DMG | [Specfold-1.9.0-mac-arm64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/Specfold-1.9.0-mac-arm64.dmg) |
+| macOS Apple Silicon | ZIP | [Specfold-1.9.0-mac-arm64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/Specfold-1.9.0-mac-arm64.zip) |
+| macOS Intel | DMG | [Specfold-1.9.0-mac-x64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/Specfold-1.9.0-mac-x64.dmg) |
+| macOS Intel | ZIP | [Specfold-1.9.0-mac-x64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/Specfold-1.9.0-mac-x64.zip) |
+| Linux x64 | AppImage | [Specfold-1.9.0-linux-x86_64.AppImage](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/Specfold-1.9.0-linux-x86_64.AppImage) |
+| Linux x64 | Debian package | [Specfold-1.9.0-linux-amd64.deb](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/Specfold-1.9.0-linux-amd64.deb) |
+| All platforms | SHA-256 checksums | [SHA256SUMS.txt](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/SHA256SUMS.txt) |
 
-Release page: [github.com/Gatewaylabsnet/specfold/releases/tag/v1.8.0](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.8.0). Earlier releases remain available from the [release archive](https://github.com/Gatewaylabsnet/specfold/releases).
+Release page: [github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.0](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.0). Earlier releases remain available from the [release archive](https://github.com/Gatewaylabsnet/specfold/releases).
 
 Verify a downloaded package against the published checksums:
 
@@ -68,7 +68,7 @@ Verify a downloaded package against the published checksums:
 sha256sum -c SHA256SUMS.txt --ignore-missing
 ```
 
-On Windows PowerShell, compare `Get-FileHash .\Specfold-1.8.0-x64.exe -Algorithm SHA256` with the matching line in `SHA256SUMS.txt`.
+On Windows PowerShell, compare `Get-FileHash .\Specfold-1.9.0-x64.exe -Algorithm SHA256` with the matching line in `SHA256SUMS.txt`.
 
 Unsigned Windows builds may trigger SmartScreen. Unsigned and non-notarized macOS builds may require opening from Finder with **Open** to confirm the Gatekeeper prompt.
 
@@ -77,13 +77,14 @@ approval roles, build provenance, privacy, and the current SignPath Foundation
 application status. Release artifacts remain unsigned until that policy
 explicitly states that signing is active.
 
-### v1.8.0 Highlights
+### v1.9.0 Highlights
 
-- Native File/Edit/View/Window/Help menus keep Import, Export, Settings, About, documentation, and update checks in familiar desktop locations.
+- Base URL defaults and collection/folder overrides are edited together in Environments, without an environment edit overwriting a scoped route.
 - Request and response panels resize with a pointer or keyboard, and response text has persistent A−/A+ sizing.
-- Response tokens can be saved as encrypted folder-scoped environment secrets; bearer requests can apply the nearest inherited folder token.
-- Packaged renderer assets use a bounded custom protocol with trusted-frame IPC validation, denied navigation/new windows, and allowlisted HTTPS external links.
-- Lazy-loaded screens and stable vendor/core chunks reduce the initial renderer bundle substantially.
+- Test a configured endpoint before sending a request, including protected endpoints that return an expected authentication status.
+- Pin high-value requests, focus request search with Ctrl/Cmd+K, and see imported request/folder counts immediately after import.
+- Inspect JSON in raw or formatted form, find content in the response, and copy response or error details quickly.
+- Settings now disclose the local data location and automatic safety-backup state, with an explicit action to open the data folder.
 - Update checks remain manual and never download or install packages automatically.
 
 ## What It Does
@@ -94,6 +95,7 @@ explicitly states that signing is active.
 - Previews a safe re-import before merging new source changes; matched request IDs, custom auth, bodies, and saved examples are retained, and existing requests are never deleted.
 - Groups imported endpoints by tag, first path segment, or a single folder.
 - Organizes APIs into collections, folders, and requests with search, rename, duplicate, delete, and drag-and-drop movement.
+- Pins frequently used requests at the top of their folder and focuses request search with Ctrl/Cmd+K.
 - Collapses collections and nested folders independently while keeping search matches visible without losing the previous expanded state.
 - Shows only the selected routing scope for base URL editing, alongside the effective URL and its environment, collection, or folder source.
 - Edits request method, URL, query params, path params, headers, body, and auth.
@@ -102,6 +104,7 @@ explicitly states that signing is active.
 - Includes portable OAuth Client Credentials and Password Grant token recipes.
 - Sends HTTP requests from the desktop app and shows status, timing, size, headers, body, raw response, and per-request history. Drag the horizontal divider to give either panel more room, and use A−/A+ to persist a comfortable response text size.
 - Copies any request as a `curl` command.
+- Formats JSON responses, searches response content, and copies response or error details from the inspector.
 - Copies generated export content directly from the preview to the clipboard.
 - Saves JSON response fields directly into environment variables.
 - Exports a whole collection or selected folders as OpenAPI YAML/JSON, Postman Collection v2.1, `.http`, or native Collection JSON.
@@ -131,16 +134,15 @@ Malformed or unsupported records are reported without executing imported scripts
 Specfold separates environment defaults from collection- and folder-level routing:
 
 - Every workspace starts with an active `Specfold` environment; environments can be renamed, and the final environment cannot be deleted.
-- Environment `baseUrl` is a convenient default for new collections and bulk updates.
+- Environment `baseUrl` is the default route for new collections and requests without a more specific route.
 - New collections copy the active environment `baseUrl` as their starting collection base URL.
 - Collection `baseUrl` overrides the environment `baseUrl` when requests resolve `{{baseUrl}}`.
 - A folder `baseUrl` overrides both values for every request below that folder; nested folders inherit the nearest configured parent and can override it again.
 - Absolute request URLs always stay unchanged. Relative request URLs are joined to the effective base URL, so both `/orders` and `{{baseUrl}}/orders` are supported.
-- Collection `baseUrl` can be edited directly from the request workspace, even when no request is selected.
-- Select a folder in the collection tree to edit its base URL. Leaving it empty restores inheritance.
+- Collection and folder `baseUrl` values are managed in the Environment routing view. Leaving an override empty restores inheritance.
 - A folder can also reference an environment secret such as `ordersAccessToken`. Nested folders inherit the nearest configured token variable independently from base URL inheritance.
-- The request workspace keeps only the selected scope's base URL field visible and shows the resolved effective URL and source beside it.
-- Updating an environment `baseUrl` can optionally apply the same value to all collection base URLs.
+- The request workspace shows the resolved effective URL and source beside the request without duplicating the routing fields.
+- Changing an environment `baseUrl` never changes collection or folder base URL overrides.
 - Imported OpenAPI/Swagger `servers` are mapped into collection base URL data.
 
 Effective precedence is: absolute request URL, nearest folder `baseUrl`, collection `baseUrl`, then environment `baseUrl`. This keeps two proxy folders isolated inside one collection.
@@ -178,7 +180,8 @@ The **Check for updates** button reads the latest GitHub Release metadata and co
 ## Data And Security
 
 - Workspaces are saved locally using atomic writes.
-- Rotating workspace backups are kept.
+- Rotating workspace backups are kept, and Settings shows their count and latest safety-backup time.
+- Settings can open the local data folder explicitly; the application does not expose it automatically.
 - Corrupt workspace files are quarantined instead of overwritten.
 - Environment variables marked secret are encrypted at rest with Electron `safeStorage`.
 - Complete backup exports intentionally contain readable secret values, require explicit confirmation, and use `0600` permissions where supported.
@@ -219,21 +222,21 @@ Download the `.dmg` or `.zip` for your architecture:
 - Apple Silicon: `arm64`
 - Intel: `x64`
 
-Because v1.8.0 is not notarized, macOS may require opening the app from Finder with **Open**.
+Because v1.9.0 is not notarized, macOS may require opening the app from Finder with **Open**.
 
 ### Linux
 
 Download the `.AppImage` or `.deb`.
 
 ```bash
-chmod +x Specfold-1.8.0-linux-x86_64.AppImage
-./Specfold-1.8.0-linux-x86_64.AppImage
+chmod +x Specfold-1.9.0-linux-x86_64.AppImage
+./Specfold-1.9.0-linux-x86_64.AppImage
 ```
 
 For Debian-based distributions:
 
 ```bash
-sudo dpkg -i Specfold-1.8.0-linux-amd64.deb
+sudo dpkg -i Specfold-1.9.0-linux-amd64.deb
 sudo apt-get install -f
 ```
 
@@ -277,9 +280,9 @@ Artifacts are written to `apps/desktop/dist`.
 Run the release workflow manually first. `workflow_dispatch` builds and verifies every package plus `SHA256SUMS.txt` without creating a tag or release. Tag pushes run the same package gate and create a draft GitHub Release.
 
 ```bash
-git tag -a v1.8.0 -m "Specfold v1.8.0"
+git tag -a v1.9.0 -m "Specfold v1.9.0"
 git push origin main
-git push origin v1.8.0
+git push origin v1.9.0
 ```
 
 Public release assets are only the two Windows packages, four macOS packages, Linux AppImage/DEB, and `SHA256SUMS.txt`. Builder debug YAML, updater YAML, and blockmaps are excluded. The generated release stays draft until manual smoke tests pass.
@@ -290,7 +293,7 @@ Public release assets are only the two Windows packages, four macOS packages, Li
 - macOS builds are not notarized yet.
 - Complete backups are plaintext by design and may contain secrets.
 - Very large imports/exports can still use the renderer thread, within configured size limits.
-- Automatic update download and installation are not implemented in v1.8.0; use Help -> Check for Updates to check manually and download from the release page.
+- Automatic update download and installation are not implemented in v1.9.0; use Help -> Check for Updates to check manually and download from the release page.
 - SOCKS proxies are not supported; configure an HTTP(S) proxy for Specfold.
 - Multipart uploads are capped at 200 parts, 50 files, and 100 MB of file and text content per request; selected files must be chosen again after an app restart.
 

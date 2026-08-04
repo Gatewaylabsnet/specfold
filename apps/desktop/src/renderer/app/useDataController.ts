@@ -33,7 +33,7 @@ export function useDataController(state: StudioState, workspaceController: Works
     saveTimer, secureStorageAvailable, setSecureStorageAvailable } = state;
   const {
     selectCollection, renameCollection, deleteCollection, renameFolder, deleteFolder,
-    duplicateFolder, renameRequest, deleteRequest, duplicateRequest, moveRequestTo, moveFolderTo
+    duplicateFolder, renameRequest, toggleRequestFavorite, deleteRequest, duplicateRequest, moveRequestTo, moveFolderTo
   } = workspaceController;
   const saveExport = async () => {
     if (!activeCollection || !exportContent) {
@@ -170,6 +170,7 @@ export function useDataController(state: StudioState, workspaceController: Works
     onDeleteFolder: deleteFolder,
     onDuplicateFolder: duplicateFolder,
     onRenameRequest: renameRequest,
+    onToggleRequestFavorite: toggleRequestFavorite,
     onDeleteRequest: deleteRequest,
     onDuplicateRequest: duplicateRequest,
     onMoveRequestTo: moveRequestTo,

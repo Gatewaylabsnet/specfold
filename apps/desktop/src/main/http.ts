@@ -3,7 +3,7 @@ import { MissingVariablesError, prepareHttpRequest } from "@openapi-collection-s
 import { fetchWithProxy, ProxyAgentCache } from "./proxy";
 import { MAX_IMPORT_BYTES } from "./constants";
 import { loadSettings } from "./storage";
-import type { SendRequestPayload, SendRequestResult, UpdateCheckResult } from "../shared/contracts";
+import type { ConnectionTestResult, SendRequestPayload, SendRequestResult, UpdateCheckResult } from "../shared/contracts";
 import { createMultipartFormData, stripMultipartTransportHeaders } from "./uploadFiles";
 
 const proxyAgents = new ProxyAgentCache();
@@ -175,6 +175,60 @@ export async function fetchImportUrl(
     return { ok: false, error: error instanceof Error ? error.message : String(error) };
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+/**
+ * Tests whether the configured API origin can be reached without executing a
+ * collection request. Any HTTP response (including 401 or 405) proves the
+ * gateway is reachable, so only transport and validation failures return ok=false.
+ */
+export async function testConnection(url: string): Promise<ConnectionTestResult> {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return { ok: false, url, error: "Enter a valid http(s) base URL first." };
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return { ok: false, url, error: "Only http(s) URLs are supported." };
+  }
+
+  const settings = await loadSettings();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), settings.requestTimeoutMs);
+  const previousTlsSetting = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+  if (settings.allowInsecureTls) process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+  const normalizedUrl = parsed.toString();
+  const startedAt = performance.now();
+  try {
+    const response = await fetchWithProxy(
+      normalizedUrl,
+      { method: "HEAD", redirect: "follow", signal: controller.signal },
+      (targetUrl) => session.defaultSession.resolveProxy(targetUrl),
+      proxyAgents
+    );
+    return {
+      ok: true,
+      url: normalizedUrl,
+      status: response.status,
+      statusText: response.statusText,
+      durationMs: Math.round(performance.now() - startedAt)
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      url: normalizedUrl,
+      error: error instanceof Error && error.name === "AbortError"
+        ? `Connection test exceeded the ${settings.requestTimeoutMs} ms timeout.`
+        : error instanceof Error ? error.message : String(error)
+    };
+  } finally {
+    clearTimeout(timeout);
+    if (settings.allowInsecureTls) {
+      if (previousTlsSetting === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+      else process.env.NODE_TLS_REJECT_UNAUTHORIZED = previousTlsSetting;
+    }
   }
 }
 

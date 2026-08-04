@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Copy, Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, Pencil, Star, Trash2 } from "lucide-react";
 import type { TreeContext } from "./types";
 
 export function TreeRow({
@@ -20,6 +20,8 @@ export function TreeRow({
   onSelect,
   onToggleExpanded,
   onRename,
+  favorite,
+  onToggleFavorite,
   onDelete,
   onDuplicate
 }: {
@@ -40,6 +42,8 @@ export function TreeRow({
   onSelect(): void;
   onToggleExpanded?(): void;
   onRename(name: string): void;
+  favorite?: boolean;
+  onToggleFavorite?(): void;
   onDelete(): void;
   onDuplicate?(): void;
 }) {
@@ -152,6 +156,17 @@ export function TreeRow({
             {onDuplicate && (
               <button className="tree-action" onClick={onDuplicate} title="Duplicate" type="button">
                 <Copy size={13} />
+              </button>
+            )}
+            {onToggleFavorite && (
+              <button
+                aria-label={favorite ? "Unpin request" : "Pin request"}
+                className={favorite ? "tree-action is-favorite" : "tree-action"}
+                onClick={onToggleFavorite}
+                title={favorite ? "Unpin request" : "Pin request"}
+                type="button"
+              >
+                <Star fill={favorite ? "currentColor" : "none"} size={13} />
               </button>
             )}
             <button className="tree-action tree-action--danger" onClick={onDelete} title="Delete" type="button">

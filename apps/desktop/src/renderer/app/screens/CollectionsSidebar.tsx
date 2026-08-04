@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Boxes, Download, FileJson, FilePlus2, FolderPlus, Import, Plus, Settings } from "lucide-react";
+import { Boxes, Download, FileJson, FilePlus2, FolderPlus, Import, Plus } from "lucide-react";
 import { flattenFolders, type Collection, type Workspace } from "@openapi-collection-studio/core";
 import { CollectionTree, type TreeActions } from "../../components/CollectionTree";
 import type { Screen } from "../types";
@@ -79,13 +79,6 @@ export function CollectionsSidebar({
           onClick={() => onScreenChange(screen === "export" ? "editor" : "export")}
         >
           Export
-        </NavButton>
-        <NavButton
-          active={screen === "settings"}
-          icon={<Settings size={16} />}
-          onClick={() => onScreenChange(screen === "settings" ? "editor" : "settings")}
-        >
-          Settings
         </NavButton>
       </nav>
       <div className="sidebar__toolbar">
@@ -186,9 +179,14 @@ export function WelcomeMain({
         <FileJson size={32} />
         <h2>Welcome to Specfold</h2>
         <p>
-          Import an OpenAPI/Swagger document to turn its endpoints into an editable
-          request collection, or start a collection from scratch.
+          Bring an API specification in, choose where it runs, then send a request.
+          Everything stays in your local workspace.
         </p>
+        <ol className="home-empty__steps">
+          <li><strong>1. Import or create</strong><span>Start from OpenAPI, Postman, Insomnia, HAR, cURL, or a blank collection.</span></li>
+          <li><strong>2. Set the environment</strong><span>Add a base URL and any variables such as tokens or client IDs.</span></li>
+          <li><strong>3. Send and inspect</strong><span>Choose a request, run it, then save useful responses as examples.</span></li>
+        </ol>
         <div className="button-row">
           <button className="primary-button" onClick={onImport} type="button">
             <Import size={16} />

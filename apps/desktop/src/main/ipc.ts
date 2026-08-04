@@ -1,11 +1,11 @@
-import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent, type OpenDialogOptions, type WebContents } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent, type OpenDialogOptions, type WebContents } from "electron";
 import { readFile } from "node:fs/promises";
 import type { Workspace } from "@openapi-collection-studio/core";
 import { DEFAULT_SETTINGS } from "../shared/contracts";
 import { MAX_IMPORT_BYTES } from "./constants";
-import { checkForUpdates, fetchImportUrl, sendHttpRequest } from "./http";
+import { checkForUpdates, fetchImportUrl, sendHttpRequest, testConnection } from "./http";
 import { readPostmanV3Folder } from "./importSources";
-import { atomicWrite, deleteAllLocalData, exportFullBackup, loadSettings, loadWorkspace, restoreBackup, saveSettings, saveWorkspace, serializeStorageMutation } from "./storage";
+import { atomicWrite, deleteAllLocalData, exportFullBackup, getLocalDataInfo, loadSettings, loadWorkspace, restoreBackup, saveSettings, saveWorkspace, serializeStorageMutation } from "./storage";
 import { clearUploadFiles, registerUploadFile, releaseUploadFile, retainUploadFiles } from "./uploadFiles";
 import { applyNativeTheme } from "./window";
 import { openTrustedExternal } from "./external";
@@ -49,6 +49,8 @@ export function registerIpcHandlers(): void {
     applyNativeTheme(saved.theme);
     return saved;
   });
+  handleTrusted("environment:testConnection", (_event, value: unknown) =>
+    testConnection(validateUrl(value)));
   handleTrusted("http:send", (event, value: unknown) => {
     registerUploadOwnerCleanup(event.sender);
     return sendHttpRequest(validateSendRequestPayload(value), event.sender.id);
@@ -126,6 +128,11 @@ export function registerIpcHandlers(): void {
     await deleteAllLocalData();
     applyNativeTheme(DEFAULT_SETTINGS.theme);
   }));
+  handleTrusted("data:info", () => getLocalDataInfo());
+  handleTrusted("data:openFolder", async () => {
+    const error = await shell.openPath((await getLocalDataInfo()).dataPath);
+    return error ? { ok: false, error } : { ok: true };
+  });
   handleTrusted("file:saveExport", async (_event, value: unknown) => {
     const payload = validateExportPayload(value);
     const result = await dialog.showSaveDialog({

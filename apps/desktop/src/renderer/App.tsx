@@ -1,9 +1,12 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { Settings } from "lucide-react";
+import type { LocalDataInfo } from "../shared/contracts";
 import { findFolder, flattenFolders } from "@openapi-collection-studio/core";
 import { environmentBaseUrl, saveStatusLabel } from "./app/helpers";
 import { CollectionsSidebar, WelcomeMain } from "./app/screens/CollectionsSidebar";
 import { RequestWorkspace } from "./app/screens/RequestEditor";
 import { useStudioController } from "./app/useStudioController";
+import { useEditorShortcuts, useUnsavedExitWarning } from "./app/useEditorShortcuts";
 
 const AboutDialog = lazy(() =>
   import("./app/AboutDialog").then((module) => ({ default: module.AboutDialog }))
@@ -24,6 +27,7 @@ const SettingsScreen = lazy(() =>
 export function App() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [updateCheckRequestId, setUpdateCheckRequestId] = useState(0);
+  const [localDataInfo, setLocalDataInfo] = useState<LocalDataInfo>();
   const closeAbout = useCallback(() => {
     setIsAboutOpen(false);
     setUpdateCheckRequestId(0);
@@ -42,7 +46,7 @@ export function App() {
     setPruneUnusedComponents, preferSourceOperation, setPreferSourceOperation, savedExportPath,
     setSavedExportPath, savedBackupPath, setSavedBackupPath, saveStatus, setSaveStatus,
     settings, setSettings, notice, setNotice, activeCollection, activeRequestLocation,
-    activeRequest, activeEnvironment, exportResult, exportContent, mutateWorkspace, saveWorkspaceNow,
+    activeRequest, activeEnvironment, exportResult, exportContent, mutateWorkspace,
     secureStorageAvailable,
     createNewWorkspace, addCollection, addFolder, addRequest, updateActiveRequest, moveActiveRequest,
     mutateCollection, openImportFile, openPostmanFolder, fetchImportUrl,
@@ -56,6 +60,13 @@ export function App() {
     (activeCollection && selectedFolderId
       ? findFolder(activeCollection, selectedFolderId)
       : undefined);
+  const routingFolderId = activeFolder?.id ?? selectedFolderId;
+  const refreshLocalDataInfo = useCallback(() => {
+    void window.studio.getLocalDataInfo().then(setLocalDataInfo).catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    if (loaded) refreshLocalDataInfo();
+  }, [loaded, refreshLocalDataInfo]);
   useEffect(
     () =>
       window.studio.onAppMenuAction((action) => {
@@ -70,6 +81,11 @@ export function App() {
       }),
     [setScreen]
   );
+  useEditorShortcuts(() => {
+    setScreen("editor");
+    window.setTimeout(() => document.getElementById("request-search")?.focus(), 0);
+  });
+  useUnsavedExitWarning(saveStatus);
   if (!loaded) {
     return <div className="loading">Loading workspace...</div>;
   }
@@ -100,6 +116,15 @@ export function App() {
             </select>
           </label>
           <span className={`save-status save-status--${saveStatus}`}>{saveStatusLabel(saveStatus)}</span>
+          <button
+            aria-label="Settings"
+            className={screen === "settings" ? "icon-button is-active" : "icon-button"}
+            onClick={() => setScreen(screen === "settings" ? "editor" : "settings")}
+            title="Settings"
+            type="button"
+          >
+            <Settings size={16} />
+          </button>
         </div>
       </header>
 
@@ -196,17 +221,7 @@ export function App() {
               onRequestTabChange={setRequestTab}
               onSend={sendActiveRequest}
               onCopyCurl={copyActiveRequestAsCurl}
-              onUpdateCollection={(recipe) =>
-                activeCollection && mutateCollection(activeCollection.id, recipe)
-              }
-              onUpdateFolder={(recipe) =>
-                activeCollection && activeFolder && mutateCollection(activeCollection.id, (collection) => {
-                  const folder = findFolder(collection, activeFolder.id);
-                  if (folder) {
-                    recipe(folder);
-                  }
-                })
-              }
+              onConfigureRouting={() => setScreen("environments")}
               onUpdateFolderTokenVariable={(folderId, variableName) =>
                 activeCollection && mutateWorkspace((draft) => {
                   const collection = draft.collections.find(
@@ -244,16 +259,30 @@ export function App() {
               })
             }
             onNewWorkspace={createNewWorkspace}
-            onExportBackup={exportFullBackup}
-            onRestoreBackup={restoreFullBackup}
-            onDeleteAllData={deleteAllData}
+            onExportBackup={() => {
+              void exportFullBackup().finally(refreshLocalDataInfo);
+            }}
+            onRestoreBackup={() => {
+              void restoreFullBackup().finally(refreshLocalDataInfo);
+            }}
+            onDeleteAllData={() => {
+              void deleteAllData().finally(refreshLocalDataInfo);
+            }}
+            localDataInfo={localDataInfo}
+            onOpenLocalDataFolder={() => {
+              void window.studio.openLocalDataFolder().then((result) => {
+                setNotice(result.ok ? "Opened the local Specfold data folder." : `Could not open the data folder: ${result.error ?? "Unknown error"}`);
+              });
+            }}
             savedBackupPath={savedBackupPath}
           />
         )}
         {screen === "environments" && (
           <EnvironmentScreen
             activeEnvironmentId={workspace.activeEnvironmentId}
+            activeCollection={activeCollection}
             environments={workspace.environments}
+            folderOptions={activeCollection ? flattenFolders(activeCollection) : []}
             onCreateEnvironment={createNewEnvironment}
             onDeleteEnvironment={(environmentId) => {
               if (workspace.environments.length <= 1) {
@@ -276,7 +305,20 @@ export function App() {
               })
             }
             onUpdateEnvironmentBaseUrl={updateEnvironmentBaseUrl}
+            onUpdateCollection={(recipe) =>
+              activeCollection && mutateCollection(activeCollection.id, recipe)
+            }
+            onUpdateFolder={(folderId, recipe) =>
+              activeCollection && mutateCollection(activeCollection.id, (collection) => {
+                const folder = findFolder(collection, folderId);
+                if (folder) {
+                  recipe(folder);
+                }
+              })
+            }
             onUpdateEnvironment={updateEnvironment}
+            onTestConnection={(url) => window.studio.testConnection(url)}
+            selectedFolderId={routingFolderId}
           />
         )}
         {screen === "export" && (

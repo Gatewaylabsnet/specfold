@@ -265,4 +265,20 @@ describe("storage service", () => {
     await expect(stat(paths.settings)).rejects.toMatchObject({ code: "ENOENT" });
     await expect(stat(paths.backups)).rejects.toMatchObject({ code: "ENOENT" });
   });
+
+  it("reports the local data location and latest automatic safety backup", async () => {
+    const userData = await testDirectory();
+    const paths = storagePaths(userData);
+    const service = createStorageService({ paths, secureStorage: secureStorage(), appVersion: "1.8.0" });
+    await mkdir(paths.backups, { recursive: true });
+    await writeFile(join(paths.backups, "workspace-2026-08-04.json"), "backup", "utf8");
+    await writeFile(join(paths.backups, "restore-safety-2026-08-05.workspace.json"), "backup", "utf8");
+    await writeFile(join(paths.backups, "unrelated.json"), "backup", "utf8");
+
+    const info = await service.getLocalDataInfo();
+
+    expect(info.dataPath).toBe(userData);
+    expect(info.backupCount).toBe(2);
+    expect(info.latestBackupAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
 });

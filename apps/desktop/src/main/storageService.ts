@@ -21,7 +21,7 @@ import {
   type KeyValue,
   type Workspace
 } from "@openapi-collection-studio/core";
-import { DEFAULT_SETTINGS, type AppSettings, type RestoreBackupResult, type WorkspaceLoadResult } from "../shared/contracts";
+import { DEFAULT_SETTINGS, type AppSettings, type LocalDataInfo, type RestoreBackupResult, type WorkspaceLoadResult } from "../shared/contracts";
 import {
   normalizeSettings,
   validateBackupDocument,
@@ -401,6 +401,29 @@ export function createStorageService(options: StorageServiceOptions) {
       .map((name) => unlink(join(paths.userData, name)).catch(() => undefined)));
   };
 
+  const getLocalDataInfo = async (): Promise<LocalDataInfo> => {
+    const entries = await readdir(paths.backups).catch(() => [] as string[]);
+    const backupEntries = entries.filter((name) => /^(workspace-|restore-safety-).*\.json$/i.test(name));
+    const datedBackups = await Promise.all(
+      backupEntries.map(async (name) => {
+        try {
+          return (await stat(join(paths.backups, name))).mtime.toISOString();
+        } catch {
+          return undefined;
+        }
+      })
+    );
+    const latestBackupAt = datedBackups
+      .filter((date): date is string => Boolean(date))
+      .sort()
+      .at(-1);
+    return {
+      dataPath: paths.userData,
+      backupCount: backupEntries.length,
+      latestBackupAt
+    };
+  };
+
   return {
     secureStorageAvailable,
     encryptSecrets,
@@ -413,7 +436,8 @@ export function createStorageService(options: StorageServiceOptions) {
     writeBackup,
     restoreBackupText,
     restoreBackupFile,
-    deleteAllLocalData
+    deleteAllLocalData,
+    getLocalDataInfo
   };
 }
 

@@ -108,27 +108,10 @@ export function useRequestController(state: StudioState, workspaceController: Wo
 
   const updateEnvironmentBaseUrl = (environmentId: string, value: string): boolean => {
     const nextValue = value.trim();
-    const collectionsToUpdate = workspace.collections.filter(
-      (collection) => (collection.baseUrl ?? "") !== nextValue
-    );
-    if (collectionsToUpdate.length > 0) {
-      const confirmed = window.confirm(
-        nextValue
-          ? `Collection base URL values override environment base URL. Update all ${workspace.collections.length} collection base URLs to "${nextValue}"?`
-          : `Collection base URL values override environment base URL. Clear base URL from all ${workspace.collections.length} collections?`
-      );
-      if (!confirmed) {
-        return false;
-      }
-    }
-
     mutateWorkspace((draft) => {
       const environment = draft.environments.find((candidate) => candidate.id === environmentId);
       if (environment) {
         upsertEnvironmentBaseUrl(environment, nextValue);
-      }
-      for (const collection of draft.collections) {
-        collection.baseUrl = nextValue || undefined;
       }
     });
     return true;

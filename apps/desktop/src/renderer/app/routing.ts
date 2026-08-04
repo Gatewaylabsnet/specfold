@@ -88,7 +88,9 @@ export function resolveRoutePreview(
   try {
     return { url: prepareHttpRequest(request, environment, collection, folderPath).url, missing: [] };
   } catch (error) {
-    if (error instanceof MissingVariablesError) return { url: request.url, missing: error.variables };
+    if (error instanceof MissingVariablesError) {
+      return { url: request.url, missing: error.variables.filter((variable) => variable !== "baseUrl") };
+    }
     return { url: request.url, missing: [] };
   }
 }

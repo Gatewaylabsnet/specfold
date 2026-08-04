@@ -2,7 +2,7 @@ import {
   cloneFolder, cloneRequest, countFolderRequests, createApinizerJwtRequest, createCollection,
   createEmptyWorkspace, createEnvironment, createFolder, createId, createJwtRequest,
   createKeyValue, createRequest, checkOpenApiDocument, exportCollectionToOpenApiResult,
-  looksLikeCurl, parseCurlCommand, requestToCurl, findFolder, findRequest, flattenRequests,
+  looksLikeCurl, parseCurlCommand, requestToCurl, findFolder, findRequest, flattenFolders, flattenRequests,
   applySafeReimport, importDocument, importPostmanV3Folder, listOperations, previewImportDocument, previewSafeReimport,
   previewPostmanV3Folder, relocateFolder, relocateRequest, removeFolder, removeRequest,
   serializeCollectionJson,
@@ -206,6 +206,7 @@ export function useImportController(state: StudioState, workspaceController: Wor
     }
     setSelectedRequestId(request.id);
     setImportSummary(`Imported cURL request: ${request.name}`);
+    setNotice("Import complete — 1 request added to the active collection.");
     setScreen("editor");
   };
 
@@ -259,12 +260,22 @@ export function useImportController(state: StudioState, workspaceController: Wor
       setActiveCollectionId(canUpdate ? target!.id : collection.id);
       setSelectedFolderId(undefined);
       setSelectedRequestId(firstRequestId(collection));
-      setImportSummary(canUpdate && diff
+      const importedRequestCount = imported.collections.reduce(
+        (count, item) => count + flattenRequests(item).length,
+        0
+      );
+      const importedFolderCount = imported.collections.reduce(
+        (count, item) => count + flattenFolders(item).length,
+        0
+      );
+      const importOutcome = `${importedRequestCount} request${importedRequestCount === 1 ? "" : "s"} in ${importedFolderCount} folder${importedFolderCount === 1 ? "" : "s"}`;
+      const summary = canUpdate && diff
         ? `Updated ${target!.name}: ${diff.matched} matched, ${diff.added} added; ${diff.retained} existing request(s) left untouched.`
         : imported.collections.length === 1
-          ? `Imported ${collection.name}`
-          : `Imported ${imported.collections.length} collections`
-      );
+          ? `Imported ${collection.name}: ${importOutcome}.`
+          : `Imported ${imported.collections.length} collections: ${importOutcome}.`;
+      setImportSummary(summary);
+      setNotice(`Import complete — ${summary}`);
       if (imported.warnings.length > 0) {
         setImportWarnings(imported.warnings);
         const visibleWarnings = imported.warnings.slice(0, 3).join(" ");

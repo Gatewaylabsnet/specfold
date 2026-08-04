@@ -1,8 +1,8 @@
 import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 
-const DEFAULT_TOP_RATIO = 0.58;
-const MIN_TOP_HEIGHT = 220;
-const MIN_BOTTOM_HEIGHT = 180;
+const DEFAULT_TOP_RATIO = 0.7;
+const MIN_TOP_HEIGHT = 240;
+const MIN_BOTTOM_HEIGHT = 160;
 const KEYBOARD_STEP = 24;
 const DEFAULT_TOP_PERCENT = Math.round(DEFAULT_TOP_RATIO * 100);
 

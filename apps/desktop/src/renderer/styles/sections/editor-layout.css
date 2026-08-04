@@ -1,6 +1,6 @@
 .editor-layout {
   display: grid;
-  grid-template-rows: minmax(220px, var(--split-pane-top-height, 58%)) 9px minmax(180px, 1fr);
+  grid-template-rows: minmax(240px, var(--split-pane-top-height, 70%)) 9px minmax(160px, 1fr);
   height: 100%;
 }
 
@@ -56,7 +56,7 @@
 
 .sidebar__nav {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 4px;
   padding-bottom: 8px;
   border-bottom: 1px solid #e1e6ee;

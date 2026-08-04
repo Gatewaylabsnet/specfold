@@ -18,10 +18,10 @@ describe("HorizontalSplitPane", () => {
     });
 
     fireEvent.keyDown(separator, { key: "ArrowDown" });
-    expect(container.style.getPropertyValue("--split-pane-top-height")).toBe("61%");
-    expect(separator.getAttribute("aria-valuenow")).toBe("61");
+    expect(container.style.getPropertyValue("--split-pane-top-height")).toBe("73%");
+    expect(separator.getAttribute("aria-valuenow")).toBe("73");
 
     fireEvent.doubleClick(separator);
-    expect(container.style.getPropertyValue("--split-pane-top-height")).toBe("58%");
+    expect(container.style.getPropertyValue("--split-pane-top-height")).toBe("70%");
   });
 });

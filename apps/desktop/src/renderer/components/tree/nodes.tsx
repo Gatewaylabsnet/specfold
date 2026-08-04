@@ -18,7 +18,7 @@ export function CollectionNode({
   const { query } = context;
   const visibleRootRequests = query
     ? collection.requests.filter((request) => requestMatches(request, query))
-    : collection.requests;
+    : pinnedFirst(collection.requests);
   const visibleFolders = query
     ? collection.folders.filter(
         (folder) => folder.name.toLowerCase().includes(query) || folderMatchCount(folder, query) > 0
@@ -93,7 +93,7 @@ function FolderNode({
   const { query } = context;
   const visibleRequests = query
     ? folder.requests.filter((request) => requestMatches(request, query))
-    : folder.requests;
+    : pinnedFirst(folder.requests);
   const visibleFolders = query
     ? folder.folders.filter(
         (child) => child.name.toLowerCase().includes(query) || folderMatchCount(child, query) > 0
@@ -239,10 +239,16 @@ function RequestNode({
       }}
       onSelect={() => context.onSelectRequest(request.id)}
       onRename={(name) => context.onRenameRequest(request.id, name)}
+      favorite={Boolean(request.favorite)}
+      onToggleFavorite={() => context.onToggleRequestFavorite(request.id)}
       onDelete={() => context.onDeleteRequest(request.id)}
       onDuplicate={() => context.onDuplicateRequest(request.id)}
     />
   );
+}
+
+function pinnedFirst(requests: ApiRequest[]): ApiRequest[] {
+  return [...requests].sort((left, right) => Number(Boolean(right.favorite)) - Number(Boolean(left.favorite)));
 }
 
 /**

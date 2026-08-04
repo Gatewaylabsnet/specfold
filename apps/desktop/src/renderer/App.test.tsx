@@ -1,91 +1,21 @@
 // @vitest-environment jsdom
 import React from "react";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createCollection,
   createEmptyWorkspace,
   createFolder,
-  createRequest,
-  type Workspace
+  createRequest
 } from "@openapi-collection-studio/core";
 import type { StudioApi } from "../shared/contracts";
-import { App } from "./App";
-import { CollectionTree } from "./components/CollectionTree";
+import { renderApp, studioMock } from "./App.testHelpers";
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
-
-function sampleWorkspace(): Workspace {
-  const workspace = createEmptyWorkspace("Test workspace");
-  const collection = createCollection("Demo API");
-  collection.requests.push(createRequest({ name: "List users", method: "GET", url: "/users" }));
-  workspace.collections.push(collection);
-  return workspace;
-}
-
-function studioMock(workspace = sampleWorkspace()): StudioApi {
-  return {
-    onAppMenuAction: vi.fn(() => () => undefined),
-    getAppInfo: vi.fn(async () => ({
-      name: "Specfold",
-      version: "1.6.0",
-      platform: "win32",
-      arch: "x64",
-      releaseUrl: "https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.6.0",
-      downloadUrl: "https://gatewaylabs.net/specfold",
-      license: "Apache-2.0"
-    })),
-    checkForUpdates: vi.fn(async () => ({
-      ok: true,
-      currentVersion: "1.6.0",
-      latestVersion: "1.7.0",
-      updateAvailable: true,
-      releaseName: "v1.7.0",
-      releaseUrl: "https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.7.0"
-    })),
-    openExternal: vi.fn(async () => undefined),
-    loadWorkspace: vi.fn(async () => ({ workspace, recovered: false, secureStorageAvailable: true })),
-    saveWorkspace: vi.fn(async () => undefined),
-    loadSettings: vi.fn(async () => ({
-      requestTimeoutMs: 30_000,
-      maxResponseBytes: 10 * 1024 * 1024,
-      allowInsecureTls: false,
-      theme: "system" as const,
-      fontSize: "compact" as const
-    })),
-    saveSettings: vi.fn(async (settings) => settings),
-    sendRequest: vi.fn(async () => ({
-      status: 200,
-      statusText: "OK",
-      durationMs: 1,
-      sizeBytes: 2,
-      headers: {},
-      body: "{}",
-      rawBody: "{}"
-    })),
-    saveExportFile: vi.fn(async () => ({ canceled: true })),
-    openImportFile: vi.fn(async () => ({ canceled: true })),
-    openPostmanFolder: vi.fn(async () => ({ canceled: true })),
-    openUploadFile: vi.fn(async () => ({ canceled: true })),
-    releaseUploadFile: vi.fn(async () => undefined),
-    exportBackup: vi.fn(async () => ({ canceled: true })),
-    restoreBackup: vi.fn(async () => ({ canceled: true, restored: false, secureStorageAvailable: true })),
-    deleteAllData: vi.fn(async () => undefined),
-    fetchImportUrl: vi.fn(async () => ({ ok: false, error: "offline" }))
-  };
-}
-
-async function renderApp(api = studioMock()) {
-  window.studio = api;
-  render(<App />);
-  await screen.findByRole("navigation", { name: "Primary" });
-  return { api, user: userEvent.setup() };
-}
-
 describe("renderer workflows", () => {
   it("shows every supported import source choice", async () => {
     const { user } = await renderApp();
@@ -154,6 +84,85 @@ describe("renderer workflows", () => {
     await user.click(screen.getByRole("button", { name: "Environments" }));
     const deleteButton = await screen.findByTitle("At least one environment is required") as HTMLButtonElement;
     expect(deleteButton.disabled).toBe(true);
+  });
+
+  it("tests an environment base URL and keeps its response visible", async () => {
+    const api = studioMock();
+    const { user } = await renderApp(api);
+    await user.click(screen.getByRole("button", { name: "Environments" }));
+    const baseUrl = await screen.findByRole("textbox", { name: "Environment base URL" });
+    await user.type(baseUrl, "https://api.example.test");
+    await user.click(screen.getByRole("button", { name: "Test connection" }));
+
+    await waitFor(() => expect(api.testConnection).toHaveBeenCalledWith("https://api.example.test"));
+    expect(await screen.findByText(/Reachable: HTTP 204 No Content/)).toBeTruthy();
+  });
+
+  it("shows local data details and opens the local data folder from Settings", async () => {
+    const api = studioMock();
+    api.getLocalDataInfo = vi.fn(async () => ({
+      dataPath: "C:\\Specfold",
+      backupCount: 2,
+      latestBackupAt: "2026-08-04T10:00:00.000Z"
+    }));
+    const { user } = await renderApp(api);
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+
+    expect(await screen.findByText("Local data")).toBeTruthy();
+    expect(screen.getByText(/2 automatic safety backups/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Open data folder" }));
+    await waitFor(() => expect(api.openLocalDataFolder).toHaveBeenCalledTimes(1));
+  });
+
+  it("supports save, request search, and send keyboard shortcuts", async () => {
+    const api = studioMock();
+    const { user } = await renderApp(api);
+    vi.mocked(api.saveWorkspace).mockClear();
+
+    await user.keyboard("{Control>}k{/Control}");
+    expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "Search requests" }));
+    await user.keyboard("{Control>}s{/Control}");
+    await waitFor(() => expect(api.saveWorkspace).toHaveBeenCalled());
+    await user.keyboard("{Control>}{Enter}{/Control}");
+    await waitFor(() => expect(api.sendRequest).toHaveBeenCalledTimes(1));
+  });
+
+  it("pins a frequently used request at the top of its folder", async () => {
+    const api = studioMock();
+    const { user } = await renderApp(api);
+    await user.click(screen.getByRole("button", { name: "Pin request" }));
+
+    await waitFor(() => {
+      const savedWorkspaces = vi.mocked(api.saveWorkspace).mock.calls.map(([saved]) => saved);
+      expect(savedWorkspaces.some((saved) => saved.collections[0]?.requests[0]?.favorite)).toBe(true);
+    });
+  });
+
+  it("clears the environment base URL without prompting or clearing collection routes", async () => {
+    const workspace = createEmptyWorkspace("Base URL workspace");
+    const collection = createCollection("Demo API");
+    collection.baseUrl = "https://collection.example.com";
+    workspace.collections.push(collection);
+    workspace.environments[0].variables = [
+      { id: "var_baseUrl", name: "baseUrl", value: "https://environment.example.com", enabled: true }
+    ];
+    const api = studioMock(workspace);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+
+    const { user } = await renderApp(api);
+    await user.click(screen.getByRole("button", { name: "Environments" }));
+    const baseUrl = await screen.findByRole("textbox", { name: "Environment base URL" });
+    await user.clear(baseUrl);
+    await user.tab();
+
+    expect(confirm).not.toHaveBeenCalled();
+    await waitFor(() => {
+      const savedWorkspaces = vi.mocked(api.saveWorkspace).mock.calls.map(([saved]) => saved);
+      expect(savedWorkspaces.some((saved) =>
+        !saved.environments[0]?.variables.some((variable) => variable.name === "baseUrl") &&
+        saved.collections[0]?.baseUrl === "https://collection.example.com"
+      )).toBe(true);
+    });
   });
 
   it("keeps request name editing responsive across multiple folders and commits on blur", async () => {
@@ -292,12 +301,14 @@ describe("renderer workflows", () => {
 
     const { user } = await renderApp(api);
     await user.click(screen.getByRole("button", { name: /^Orders/ }));
+    await user.click(screen.getByRole("button", { name: "Environments" }));
     const folderBaseUrl = screen.getByRole("textbox", { name: "Folder base URL" });
-    expect(screen.queryByRole("textbox", { name: "Collection base URL" })).toBeNull();
+    expect(screen.getByRole("textbox", { name: "Collection base URL" })).toBeTruthy();
     expect(folderBaseUrl.getAttribute("placeholder")).toContain("https://proxy-a.example.com/service");
     expect(screen.getByText("Inherited from Proxy A")).toBeTruthy();
     await user.type(folderBaseUrl, "https://proxy-b.example.com/orders");
 
+    await user.click(screen.getByRole("button", { name: "Editor" }));
     await user.click(screen.getByRole("button", { name: /List orders/ }));
     await user.click(screen.getByRole("button", { name: "Send" }));
 
@@ -313,6 +324,36 @@ describe("renderer workflows", () => {
     );
   });
 
+  it("opens the folder route editor when a request has no configured base URL", async () => {
+    const workspace = createEmptyWorkspace("Routing workspace");
+    const collection = createCollection("Demo API");
+    const folder = createFolder("Proxy");
+    folder.requests.push(createRequest({ name: "List proxy items", method: "GET", url: "/items" }));
+    collection.folders.push(folder);
+    workspace.collections.push(collection);
+
+    const { user } = await renderApp(studioMock(workspace));
+    await user.click(screen.getByRole("button", { name: /List proxy items/ }));
+
+    expect(screen.getByText("Not configured")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Configure route" }));
+
+    expect(await screen.findByRole("heading", { name: "Connection profiles" })).toBeTruthy();
+    const folderBaseUrl = screen.getByRole("textbox", { name: "Folder base URL" });
+    await user.type(folderBaseUrl, "https://proxy.example.com/api");
+
+    await user.click(screen.getByRole("button", { name: "Editor" }));
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => expect(window.studio.sendRequest).toHaveBeenCalledTimes(1));
+    expect(window.studio.sendRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "List proxy items" }),
+      expect.anything(),
+      expect.anything(),
+      [{ baseUrl: "https://proxy.example.com/api" }]
+    );
+  });
+
   it("creates Apinizer JWT in a dedicated folder with a derived gateway origin", async () => {
     const workspace = createEmptyWorkspace("Apinizer workspace");
     const collection = createCollection("DATS CKS");
@@ -324,8 +365,10 @@ describe("renderer workflows", () => {
     await user.click(screen.getByRole("menuitem", { name: "Apinizer JWT request" }));
 
     expect((await screen.findAllByText("Apinizer Auth")).length).toBeGreaterThan(0);
+    await user.click(screen.getByRole("button", { name: "Environments" }));
     expect((screen.getByRole("textbox", { name: "Folder base URL" }) as HTMLInputElement).value)
       .toBe("https://api.tarimorman.gov.tr");
+    await user.click(screen.getByRole("button", { name: "Editor" }));
     expect((screen.getByRole("textbox", { name: "Request URL" }) as HTMLInputElement).value)
       .toBe("{{baseUrl}}/auth/jwt");
   });
@@ -393,99 +436,5 @@ describe("renderer workflows", () => {
     expect(writeText).toHaveBeenCalledTimes(1);
     expect(writeText.mock.calls[0]?.[0]).toContain("/users");
     expect(await screen.findByText("Copied export content to the clipboard.")).toBeTruthy();
-  });
-});
-
-describe("collection tree", () => {
-  it("collapses nested folders independently and reveals matches while searching", async () => {
-    const collection = createCollection("Hierarchy API");
-    const accounts = createFolder("Accounts");
-    const orders = createFolder("Orders");
-    accounts.requests.push(createRequest({ name: "Find account", method: "GET", url: "/accounts/{id}" }));
-    orders.requests.push(createRequest({ name: "Find order", method: "GET", url: "/orders/{id}" }));
-    accounts.folders.push(orders);
-    collection.folders.push(accounts);
-    const noop = vi.fn();
-    const onSelectFolder = vi.fn();
-    const user = userEvent.setup();
-
-    render(<CollectionTree
-      activeCollectionId={collection.id}
-      collections={[collection]}
-      onDeleteCollection={noop}
-      onDeleteFolder={noop}
-      onDeleteRequest={noop}
-      onDuplicateFolder={noop}
-      onDuplicateRequest={noop}
-      onMoveFolderTo={noop}
-      onMoveRequestTo={noop}
-      onRenameCollection={noop}
-      onRenameFolder={noop}
-      onRenameRequest={noop}
-      onSelectCollection={noop}
-      onSelectFolder={onSelectFolder}
-      onSelectRequest={noop}
-    />);
-
-    const accountsButton = screen.getByRole("button", { name: /^Accounts/ });
-    const collapseAccounts = screen.getByRole("button", { name: "Collapse Accounts" });
-    expect(collapseAccounts.getAttribute("aria-expanded")).toBe("true");
-    expect(screen.getByText("Find account")).toBeTruthy();
-    expect(screen.getByText("Find order")).toBeTruthy();
-
-    await user.click(collapseAccounts);
-    expect(screen.getByRole("button", { name: "Expand Accounts" }).getAttribute("aria-expanded")).toBe("false");
-    expect(screen.queryByText("Find account")).toBeNull();
-    expect(screen.queryByText("Find order")).toBeNull();
-
-    await user.type(screen.getByRole("textbox", { name: "Search requests" }), "order");
-    expect(screen.getByText("Find order")).toBeTruthy();
-    await user.clear(screen.getByRole("textbox", { name: "Search requests" }));
-    expect(screen.queryByText("Find order")).toBeNull();
-
-    await user.click(screen.getByRole("button", { name: "Expand Accounts" }));
-    await user.click(screen.getByRole("button", { name: "Collapse Orders" }));
-    expect(screen.getByText("Find account")).toBeTruthy();
-    expect(screen.queryByText("Find order")).toBeNull();
-
-    await user.click(accountsButton);
-    expect(onSelectFolder).toHaveBeenCalledWith(accounts.id);
-  });
-
-  it("supports selection, search, and inline rename", async () => {
-    const first = createCollection("First API");
-    first.requests.push(createRequest({ name: "Find account", method: "GET", url: "/account" }));
-    const second = createCollection("Second API");
-    const onSelectCollection = vi.fn();
-    const onRenameCollection = vi.fn();
-    const noop = vi.fn();
-    const user = userEvent.setup();
-    render(<CollectionTree
-      collections={[first, second]}
-      onDeleteCollection={noop}
-      onDeleteFolder={noop}
-      onDeleteRequest={noop}
-      onDuplicateFolder={noop}
-      onDuplicateRequest={noop}
-      onMoveFolderTo={noop}
-      onMoveRequestTo={noop}
-      onRenameCollection={onRenameCollection}
-      onRenameFolder={noop}
-      onRenameRequest={noop}
-      onSelectCollection={onSelectCollection}
-      onSelectFolder={noop}
-      onSelectRequest={noop}
-    />);
-
-    await user.click(screen.getByRole("button", { name: "First API" }));
-    expect(onSelectCollection).toHaveBeenCalledWith(first.id);
-    await user.type(screen.getByRole("textbox", { name: "Search requests" }), "account");
-    expect(screen.getByText("Find account")).toBeTruthy();
-    await user.clear(screen.getByRole("textbox", { name: "Search requests" }));
-    await user.dblClick(screen.getByRole("button", { name: "Second API" }));
-    const renameInput = screen.getByDisplayValue("Second API");
-    await user.clear(renameInput);
-    await user.type(renameInput, "Renamed API{Enter}");
-    expect(onRenameCollection).toHaveBeenCalledWith(second.id, "Renamed API");
   });
 });

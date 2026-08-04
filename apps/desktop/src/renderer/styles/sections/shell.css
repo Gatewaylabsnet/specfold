@@ -57,6 +57,34 @@
   max-width: 560px;
 }
 
+.home-empty__steps {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 2px;
+  padding: 0;
+  list-style: none;
+}
+
+.home-empty__steps li {
+  display: grid;
+  gap: 2px;
+  padding: 9px 10px;
+  border-left: 3px solid #9ac4f5;
+  border-radius: 0 7px 7px 0;
+  background: #f4f8fd;
+}
+
+.home-empty__steps strong {
+  color: #31475f;
+  font-size: 12px;
+}
+
+.home-empty__steps span {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .topbar {
   display: flex;
   align-items: center;
@@ -215,6 +243,12 @@
 
 .icon-button:hover {
   background: #eef2f7;
+}
+
+.icon-button.is-active {
+  color: #133d75;
+  border-color: #bad5f7;
+  background: #e7f0ff;
 }
 
 .button-row,

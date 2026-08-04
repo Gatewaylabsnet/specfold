@@ -43,7 +43,9 @@
 :root[data-theme="dark"] .response-panel,
 :root[data-theme="dark"] .workspace-table,
 :root[data-theme="dark"] .summary-band > div,
-:root[data-theme="dark"] .multipart-field {
+:root[data-theme="dark"] .multipart-field,
+:root[data-theme="dark"] .environment-routing,
+:root[data-theme="dark"] .auth-folder-token {
   color: var(--text-primary);
   background: var(--surface-primary);
 }
@@ -60,6 +62,7 @@
 :root[data-theme="dark"] .multipart-field.is-disabled,
 :root[data-theme="dark"] .multipart-field__file,
 :root[data-theme="dark"] .response-panel pre,
+:root[data-theme="dark"] .base-url-panel__summary,
 :root[data-theme="dark"] .home-empty,
 :root[data-theme="dark"] .empty-state,
 :root[data-theme="dark"] .about-card {
@@ -103,6 +106,9 @@
 :root[data-theme="dark"] .multipart-field,
 :root[data-theme="dark"] .multipart-field__file,
 :root[data-theme="dark"] .response-panel pre,
+:root[data-theme="dark"] .base-url-panel__summary,
+:root[data-theme="dark"] .environment-routing,
+:root[data-theme="dark"] .auth-folder-token,
 :root[data-theme="dark"] .about-card {
   border-color: var(--border-default);
 }
@@ -117,6 +123,8 @@
 :root[data-theme="dark"] .radio-row,
 :root[data-theme="dark"] .check-row,
 :root[data-theme="dark"] .base-url-effective code,
+:root[data-theme="dark"] .base-url-panel__summary code,
+:root[data-theme="dark"] .environment-routing__header h3,
 :root[data-theme="dark"] .empty-state h2,
 :root[data-theme="dark"] .multipart-editor__help strong,
 :root[data-theme="dark"] .multipart-field__file-copy strong,
@@ -141,6 +149,13 @@
 :root[data-theme="dark"] .multipart-field__media-type,
 :root[data-theme="dark"] .multipart-field__file-copy > span,
 :root[data-theme="dark"] .multipart-field__file-copy small,
+:root[data-theme="dark"] .base-url-panel small,
+:root[data-theme="dark"] .base-url-panel__summary-copy > span,
+:root[data-theme="dark"] .base-url-panel__summary > span,
+:root[data-theme="dark"] .environment-routing__header p,
+:root[data-theme="dark"] .environment-routing small,
+:root[data-theme="dark"] .kv-editor__head,
+:root[data-theme="dark"] .env-table__head,
 :root[data-theme="dark"] .empty-response,
 :root[data-theme="dark"] .empty-state,
 :root[data-theme="dark"] .about-card__title span,
@@ -261,6 +276,48 @@
 
 :root[data-theme="dark"] .request-route > span { color: var(--accent-strong); }
 :root[data-theme="dark"] .request-route--warning { border-color: #765b25; color: #f3d38b; background: #302717; }
+:root[data-theme="dark"] .base-url-panel__summary { border-left-color: var(--accent); }
+
+:root[data-theme="dark"] .environment-base-url > small,
+:root[data-theme="dark"] .request-context,
+:root[data-theme="dark"] .response-find,
+:root[data-theme="dark"] .response-find span,
+:root[data-theme="dark"] .settings-local-data small,
+:root[data-theme="dark"] .settings-local-data code,
+:root[data-theme="dark"] .home-empty__steps span {
+  color: var(--text-secondary);
+}
+
+:root[data-theme="dark"] .request-context strong,
+:root[data-theme="dark"] .settings-local-data strong,
+:root[data-theme="dark"] .home-empty__steps strong {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .response-find,
+:root[data-theme="dark"] .settings-local-data,
+:root[data-theme="dark"] .home-empty__steps li {
+  border-color: var(--border-default);
+  background: var(--surface-subtle);
+}
+
+:root[data-theme="dark"] .response-find input {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .response-panel mark {
+  color: #261b00;
+  background: #f3cb63;
+}
+
+:root[data-theme="dark"] .response-copy-status {
+  color: #aee7bd;
+}
+
+:root[data-theme="dark"] .tree-action.is-favorite {
+  color: #ffd67b;
+  background: #4b3b17;
+}
 
 .import-target { margin-top: 0; }
 .import-target small { color: #64748b; font-size: 11px; line-height: 1.4; }

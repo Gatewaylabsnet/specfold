@@ -5,7 +5,7 @@ import { KeyValueEditor } from "../../components/KeyValueEditor";
 import { HorizontalSplitPane } from "../../components/HorizontalSplitPane";
 import { methods } from "../types";
 import { activeRequestFolderId, authForType, tabLabel } from "../helpers";
-import { baseUrlRouting, inheritedBaseUrl, resolveRoutePreview } from "../routing";
+import { baseUrlRouting, resolveRoutePreview } from "../routing";
 import type { RequestTab, ResponseHistoryEntry, ResponseState } from "../types";
 import { RequestBodyEditor } from "./RequestBodyEditor";
 import { RequestAuthFields } from "./RequestAuthFields";
@@ -25,13 +25,12 @@ export function RequestWorkspace({
   onAddRequest,
   onAddJwtRequest,
   onUpdateRequest,
-  onUpdateCollection,
-  onUpdateFolder,
   onUpdateFolderTokenVariable,
   onMoveRequest,
   onRequestTabChange,
   onSend,
   onCopyCurl,
+  onConfigureRouting,
   onAssignResponseValue,
   onSaveResponseExample,
   environmentVariableNames,
@@ -51,13 +50,12 @@ export function RequestWorkspace({
   onAddRequest(): void;
   onAddJwtRequest(): void;
   onUpdateRequest(recipe: (request: ApiRequest) => void): void;
-  onUpdateCollection(recipe: (collection: Collection) => void): void;
-  onUpdateFolder(recipe: (folder: Folder) => void): void;
   onUpdateFolderTokenVariable(folderId: string, variableName: string): void;
   onMoveRequest(folderId: string): void;
   onRequestTabChange(tab: RequestTab): void;
   onSend(): void;
   onCopyCurl(): void;
+  onConfigureRouting(): void;
   onAssignResponseValue(path: string, variableName: string, folderId?: string): void;
   onSaveResponseExample(response: ResponseState): void;
   environmentVariableNames: string[];
@@ -73,10 +71,7 @@ export function RequestWorkspace({
     ? folderOptions.find((option) => option.folder.id === routingFolder.id)?.path ?? [routingFolder]
     : [];
   const inheritedTokenVariable = folderAccessTokenVariable(routingFolderPath);
-  const activeFolderPath = activeFolder
-    ? folderOptions.find((option) => option.folder.id === activeFolder.id)?.path ?? [activeFolder]
-    : [];
-  const parentTokenVariable = folderAccessTokenVariable(activeFolderPath.slice(0, -1));
+  const parentTokenVariable = folderAccessTokenVariable(routingFolderPath.slice(0, -1));
   const routing = activeCollection
     ? baseUrlRouting(
         activeCollection,
@@ -89,74 +84,28 @@ export function RequestWorkspace({
   const routePreview = activeRequest
     ? resolveRoutePreview(activeRequest, activeEnvironment, activeCollection, routingFolder, folderOptions)
     : undefined;
+  const requestAuthSummary = activeRequest
+    ? authSummary(activeRequest.auth, inheritedTokenVariable)
+    : "No request selected";
 
   return (
     <HorizontalSplitPane
       top={<div className="request-panel">
         {activeCollection && (
-          <div className="base-url-panel">
-            <div className="base-url-panel__fields">
-              <label className="field collection-base-url">
-              <span>{activeFolder ? "Folder base URL" : "Collection base URL"}</span>
-              {activeFolder ? (
-                <input
-                  aria-label="Folder base URL"
-                  onChange={(event) =>
-                    onUpdateFolder((folder) => {
-                      const value = event.target.value.trim();
-                      folder.baseUrl = value || undefined;
-                    })
-                  }
-                  placeholder={inheritedBaseUrl(
-                    activeCollection,
-                    activeFolder,
-                    folderOptions,
-                    activeEnvironmentBaseUrl
-                  )}
-                  value={activeFolder.baseUrl ?? ""}
-                />
-              ) : (
-                <input
-                  aria-label="Collection base URL"
-                  onChange={(event) =>
-                    onUpdateCollection((collection) => {
-                      const value = event.target.value.trim();
-                      collection.baseUrl = value || undefined;
-                    })
-                  }
-                  placeholder="https://api.example.com/service"
-                  value={activeCollection.baseUrl ?? ""}
-                />
-              )}
-              <small>
-                {activeFolder
-                  ? "Applies to this folder and its children. Clear it to inherit the resolved route above."
-                  : "Used by this collection unless a folder overrides it."}
-              </small>
-              </label>
-              {activeFolder && (
-                <label className="field">
-                  <span>Folder access token variable</span>
-                  <input
-                    aria-label="Folder access token variable"
-                    onChange={(event) =>
-                      onUpdateFolderTokenVariable(activeFolder.id, event.target.value.trim())
-                    }
-                    pattern="[A-Za-z_][A-Za-z0-9_.-]*"
-                    placeholder={parentTokenVariable ?? "ordersAccessToken"}
-                    title="Use a valid environment variable name, such as ordersAccessToken."
-                    value={activeFolder.accessTokenVariable ?? ""}
-                  />
-                  <small>
-                    Bearer requests can use this secret variable. Clear it to inherit from the parent folder.
-                  </small>
-                </label>
-              )}
-            </div>
+          <div className="base-url-panel base-url-panel--summary-only">
             <div className="base-url-panel__summary" role="note">
-              <span>Resolved route</span>
-              <code title={routing?.effective}>{routing?.effective || "Not configured"}</code>
-              <small>{routing?.source}</small>
+              <div className="base-url-panel__summary-copy">
+                <span>Resolved route</span>
+                <code title={routing?.effective}>{routing?.effective || "Not configured"}</code>
+                <small>{routing?.source}</small>
+              </div>
+              <button
+                className="secondary-button"
+                onClick={onConfigureRouting}
+                type="button"
+              >
+                {routing?.effective ? "Edit route" : "Configure route"}
+              </button>
             </div>
           </div>
         )}
@@ -211,6 +160,10 @@ export function RequestWorkspace({
                 )}
               </div>
             )}
+            <div className="request-context" role="status">
+              <span><strong>Environment</strong> {activeEnvironmentName ?? "Not selected"}</span>
+              <span><strong>Auth</strong> {requestAuthSummary}</span>
+            </div>
             <div className="request-meta">
               <RequestNameInput
                 key={activeRequest.id}
@@ -252,7 +205,12 @@ export function RequestWorkspace({
             </div>
             <RequestTabPanel
               activeRequest={activeRequest}
+              folderAuthScope={routingFolder ? {
+                folder: routingFolder,
+                parentVariable: parentTokenVariable
+              } : undefined}
               folderAccessTokenVariable={inheritedTokenVariable}
+              onUpdateFolderTokenVariable={onUpdateFolderTokenVariable}
               onUpdateRequest={onUpdateRequest}
               tab={requestTab}
             />
@@ -289,6 +247,15 @@ export function RequestWorkspace({
   );
 }
 
+function authSummary(auth: AuthConfig, inheritedTokenVariable?: string): string {
+  if (auth.type === "none") return "None";
+  if (auth.type === "basic") return "Basic";
+  if (auth.type === "apiKey") return `API key · ${auth.in}`;
+  const folderReference = inheritedTokenVariable ? `{{${inheritedTokenVariable}}}` : undefined;
+  if (folderReference && auth.token === folderReference) return `Bearer · folder token (${inheritedTokenVariable})`;
+  return auth.token.trim() ? "Bearer token" : "Bearer · missing token";
+}
+
 function RequestNameInput({ name, onCommit }: { name: string; onCommit(name: string): void }) {
   const [draft, setDraft] = useState(name);
 
@@ -320,13 +287,20 @@ function RequestNameInput({ name, onCommit }: { name: string; onCommit(name: str
 
 export function RequestTabPanel({
   activeRequest,
+  folderAuthScope,
   folderAccessTokenVariable,
   tab,
+  onUpdateFolderTokenVariable,
   onUpdateRequest
 }: {
   activeRequest: ApiRequest;
+  folderAuthScope?: {
+    folder: Folder;
+    parentVariable?: string;
+  };
   folderAccessTokenVariable?: string;
   tab: RequestTab;
+  onUpdateFolderTokenVariable(folderId: string, variableName: string): void;
   onUpdateRequest(recipe: (request: ApiRequest) => void): void;
 }) {
   if (tab === "params") {
@@ -391,7 +365,9 @@ export function RequestTabPanel({
         </label>
         <RequestAuthFields
           auth={activeRequest.auth}
+          folderAuthScope={folderAuthScope}
           folderAccessTokenVariable={folderAccessTokenVariable}
+          onFolderTokenVariableChange={onUpdateFolderTokenVariable}
           onChange={(auth) =>
             onUpdateRequest((request) => {
               request.auth = auth;

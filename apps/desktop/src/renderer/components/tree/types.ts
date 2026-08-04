@@ -19,6 +19,7 @@ export interface TreeActions {
   onDeleteFolder(folderId: string): void;
   onDuplicateFolder(folderId: string): void;
   onRenameRequest(requestId: string, name: string): void;
+  onToggleRequestFavorite(requestId: string): void;
   onDeleteRequest(requestId: string): void;
   onDuplicateRequest(requestId: string): void;
   onMoveRequestTo(requestId: string, target: DropTarget): void;

@@ -1,31 +1,54 @@
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
-import type { Environment, EnvironmentVariable } from "@openapi-collection-studio/core";
+import { Activity, Plus } from "lucide-react";
+import { type Collection, type Environment, type EnvironmentVariable, type Folder, flattenFolders } from "@openapi-collection-studio/core";
+import type { ConnectionTestResult } from "../../../shared/contracts";
 import { createEnvironmentVariable, environmentBaseUrl, isBaseUrlVariable, replaceEnvironmentCustomVariables } from "../helpers";
+import { baseUrlRouting, inheritedBaseUrl } from "../routing";
 
 export function EnvironmentScreen({
   environments,
   activeEnvironmentId,
+  activeCollection,
+  selectedFolderId,
+  folderOptions,
   onSelectEnvironment,
   onCreateEnvironment,
   onDeleteEnvironment,
   onUpdateEnvironmentBaseUrl,
-  onUpdateEnvironment
+  onUpdateCollection,
+  onUpdateFolder,
+  onUpdateEnvironment,
+  onTestConnection
 }: {
   environments: Environment[];
   activeEnvironmentId?: string;
+  activeCollection?: Collection;
+  selectedFolderId?: string;
+  folderOptions: ReturnType<typeof flattenFolders>;
   onSelectEnvironment(environmentId: string): void;
   onCreateEnvironment(): void;
   onDeleteEnvironment(environmentId: string): void;
   onUpdateEnvironmentBaseUrl(environmentId: string, value: string): boolean;
+  onUpdateCollection(recipe: (collection: Collection) => void): void;
+  onUpdateFolder(folderId: string, recipe: (folder: Folder) => void): void;
   onUpdateEnvironment(environmentId: string, recipe: (environment: Environment) => void): void;
+  onTestConnection(url: string): Promise<ConnectionTestResult>;
 }) {
   const active = environments.find((environment) => environment.id === activeEnvironmentId) ?? environments[0];
   const currentBaseUrl = active ? environmentBaseUrl(active) : "";
   const [baseUrlDraft, setBaseUrlDraft] = useState(currentBaseUrl);
+  const [connectionTest, setConnectionTest] = useState<ConnectionTestResult>();
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const selectedFolder = selectedFolderId
+    ? folderOptions.find(({ folder }) => folder.id === selectedFolderId)?.folder
+    : undefined;
+  const routing = activeCollection
+    ? baseUrlRouting(activeCollection, selectedFolder, folderOptions, currentBaseUrl, active?.name)
+    : undefined;
   const customVariables = active?.variables.filter((variable) => !isBaseUrlVariable(variable)) ?? [];
   useEffect(() => {
     setBaseUrlDraft(currentBaseUrl);
+    setConnectionTest(undefined);
   }, [active?.id, currentBaseUrl]);
 
   const commitBaseUrl = () => {
@@ -39,6 +62,34 @@ export function EnvironmentScreen({
     const accepted = onUpdateEnvironmentBaseUrl(active.id, baseUrlDraft);
     if (!accepted) {
       setBaseUrlDraft(currentBaseUrl);
+    }
+  };
+
+  const testConnection = async () => {
+    const value = baseUrlDraft.trim();
+    if (!value) {
+      setConnectionTest({ ok: false, url: "", error: "Set an environment base URL before testing it." });
+      return;
+    }
+    if (active && value !== currentBaseUrl.trim()) {
+      const accepted = onUpdateEnvironmentBaseUrl(active.id, value);
+      if (!accepted) {
+        setBaseUrlDraft(currentBaseUrl);
+        return;
+      }
+    }
+    setIsTestingConnection(true);
+    setConnectionTest(undefined);
+    try {
+      setConnectionTest(await onTestConnection(value));
+    } catch (error) {
+      setConnectionTest({
+        ok: false,
+        url: value,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    } finally {
+      setIsTestingConnection(false);
     }
   };
 
@@ -96,22 +147,57 @@ export function EnvironmentScreen({
             </p>
             <label className="field environment-base-url">
               <span>Environment base URL</span>
-              <input
-                aria-label="Environment base URL"
-                onBlur={commitBaseUrl}
-                onChange={(event) => setBaseUrlDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.currentTarget.blur();
-                  }
-                  if (event.key === "Escape") {
-                    setBaseUrlDraft(currentBaseUrl);
-                  }
-                }}
-                placeholder="https://api.example.com"
-                value={baseUrlDraft}
-              />
+              <span className="environment-base-url__row">
+                <input
+                  aria-label="Environment base URL"
+                  onBlur={commitBaseUrl}
+                  onChange={(event) => {
+                    setBaseUrlDraft(event.target.value);
+                    setConnectionTest(undefined);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void testConnection();
+                    }
+                    if (event.key === "Escape") {
+                      setBaseUrlDraft(currentBaseUrl);
+                    }
+                  }}
+                  placeholder="https://api.example.com"
+                  value={baseUrlDraft}
+                />
+                <button
+                  className="secondary-button"
+                  disabled={!baseUrlDraft.trim() || isTestingConnection}
+                  onClick={() => void testConnection()}
+                  type="button"
+                >
+                  <Activity size={16} />
+                  {isTestingConnection ? "Testing..." : "Test connection"}
+                </button>
+              </span>
+              <small>Sends a lightweight HEAD request. A 401 or 405 still confirms the API is reachable.</small>
             </label>
+            {connectionTest && (
+              <div
+                className={connectionTest.ok ? "status-box status-box--success" : "status-box status-box--error"}
+                role="status"
+              >
+                {connectionTest.ok
+                  ? `Reachable: HTTP ${connectionTest.status} ${connectionTest.statusText} (${connectionTest.durationMs} ms)`
+                  : `Could not reach this base URL: ${connectionTest.error ?? "Unknown error"}`}
+              </div>
+            )}
+            <EnvironmentRoutingEditor
+              activeCollection={activeCollection}
+              activeEnvironmentBaseUrl={currentBaseUrl}
+              activeFolder={selectedFolder}
+              folderOptions={folderOptions}
+              onUpdateCollection={onUpdateCollection}
+              onUpdateFolder={onUpdateFolder}
+              routing={routing}
+            />
             <EnvironmentVariableEditor
               variables={customVariables}
               onChange={(variables) =>
@@ -129,6 +215,83 @@ export function EnvironmentScreen({
               Create environment
             </button>
           </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function EnvironmentRoutingEditor({
+  activeCollection,
+  activeEnvironmentBaseUrl,
+  activeFolder,
+  folderOptions,
+  onUpdateCollection,
+  onUpdateFolder,
+  routing
+}: {
+  activeCollection?: Collection;
+  activeEnvironmentBaseUrl: string;
+  activeFolder?: Folder;
+  folderOptions: ReturnType<typeof flattenFolders>;
+  onUpdateCollection(recipe: (collection: Collection) => void): void;
+  onUpdateFolder(folderId: string, recipe: (folder: Folder) => void): void;
+  routing?: { effective: string; source: string };
+}) {
+  if (!activeCollection) {
+    return null;
+  }
+
+  return (
+    <section className="environment-routing" aria-label="Base URL routing">
+      <div className="environment-routing__header">
+        <div>
+          <h3>Base URL routing</h3>
+          <p>Environment is the default. Collections and selected folders can override it when a proxy needs a different route.</p>
+        </div>
+        <div className="base-url-panel__summary" role="note">
+          <span>Resolved route</span>
+          <code title={routing?.effective}>{routing?.effective || "Not configured"}</code>
+          <small>{routing?.source}</small>
+        </div>
+      </div>
+      <div className="environment-routing__fields">
+        <label className="field">
+          <span>Collection base URL</span>
+          <input
+            aria-label="Collection base URL"
+            onChange={(event) =>
+              onUpdateCollection((collection) => {
+                const value = event.target.value.trim();
+                collection.baseUrl = value || undefined;
+              })
+            }
+            placeholder={activeEnvironmentBaseUrl || "https://api.example.com/service"}
+            value={activeCollection.baseUrl ?? ""}
+          />
+          <small>Overrides the environment default for this collection. Empty means use the environment base URL.</small>
+        </label>
+        {activeFolder && (
+          <label className="field">
+            <span>Selected folder base URL</span>
+            <input
+              aria-label="Folder base URL"
+              onChange={(event) =>
+                onUpdateFolder(activeFolder.id, (folder) => {
+                  const value = event.target.value.trim();
+                  folder.baseUrl = value || undefined;
+                })
+              }
+              placeholder={inheritedBaseUrl(
+                activeCollection,
+                activeFolder,
+                folderOptions,
+                activeEnvironmentBaseUrl
+              )}
+              value={activeFolder.baseUrl ?? ""}
+            />
+            <small>{activeFolder.name} and its children use this route. Empty restores inheritance.</small>
+          </label>
         )}
       </div>
     </section>

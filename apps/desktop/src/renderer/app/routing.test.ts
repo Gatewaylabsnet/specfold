@@ -28,7 +28,16 @@ describe("resolveRoutePreview", () => {
 
     expect(resolveRoutePreview(request, undefined, undefined, undefined, [])).toEqual({
       url: "{{baseUrl}}/users/{{id}}",
-      missing: ["baseUrl", "id"]
+      missing: ["id"]
+    });
+  });
+
+  it("does not warn when only baseUrl is missing", () => {
+    const request = createRequest({ name: "Get", method: "GET", url: "{{baseUrl}}/users" });
+
+    expect(resolveRoutePreview(request, undefined, undefined, undefined, [])).toEqual({
+      url: "{{baseUrl}}/users",
+      missing: []
     });
   });
 

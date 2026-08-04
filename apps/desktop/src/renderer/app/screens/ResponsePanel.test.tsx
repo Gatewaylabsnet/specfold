@@ -41,4 +41,54 @@ describe("ResponsePanel text size", () => {
     await user.click(screen.getByRole("button", { name: "Decrease response text size" }));
     expect(responseText.style.fontSize).toBe("12px");
   });
+
+  it("formats JSON, finds response text, and copies detailed request failures", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+    const { rerender } = render(
+      <ResponsePanel
+        environmentVariableNames={[]}
+        history={[]}
+        onAssignResponseValue={vi.fn()}
+        onSaveResponseExample={vi.fn()}
+        response={{
+          status: 200,
+          statusText: "OK",
+          durationMs: 12,
+          sizeBytes: 18,
+          headers: {},
+          body: "{\n  \"ok\": true\n}",
+          rawBody: "{\"ok\":true}"
+        }}
+      />
+    );
+
+    await user.type(screen.getByRole("searchbox", { name: "Find in response" }), "ok");
+    expect(screen.getByText("1 match")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Raw JSON" }));
+    expect(screen.getByText((_, element) =>
+      element?.tagName === "PRE" && element.textContent === '{"ok":true}'
+    )).toBeTruthy();
+
+    rerender(
+      <ResponsePanel
+        environmentVariableNames={[]}
+        history={[]}
+        onAssignResponseValue={vi.fn()}
+        onSaveResponseExample={vi.fn()}
+        response={{
+          status: 0,
+          statusText: "Request failed",
+          durationMs: 0,
+          sizeBytes: 0,
+          headers: {},
+          body: "",
+          rawBody: "gateway unavailable",
+          error: "Connection refused"
+        }}
+      />
+    );
+    await user.click(screen.getByRole("button", { name: "Copy error details" }));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining("Connection refused"));
+  });
 });

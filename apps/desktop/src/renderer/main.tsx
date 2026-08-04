@@ -57,6 +57,13 @@ if (browserPreview && typeof window.studio === "undefined") {
       fontSize: "compact"
     }),
     saveSettings: async (settings) => settings,
+    testConnection: async (url) => ({
+      ok: true,
+      url,
+      status: 204,
+      statusText: "No Content",
+      durationMs: 18
+    }),
     sendRequest: async (request) => {
       // Canned success so the editor/response/history flow is reviewable in a
       // browser without a real network stack. Never used in the packaged app.
@@ -94,6 +101,14 @@ if (browserPreview && typeof window.studio === "undefined") {
     deleteAllData: async () => {
       workspace = createEmptyWorkspace("Browser Preview");
     },
+    getLocalDataInfo: async () => ({
+      dataPath: "Browser preview does not use a local data folder",
+      backupCount: 0
+    }),
+    openLocalDataFolder: async () => ({
+      ok: false,
+      error: "Opening a data folder requires the desktop app."
+    }),
     fetchImportUrl: async () => ({
       ok: false,
       error: "Fetching URLs requires the desktop app (browser preview mode)."

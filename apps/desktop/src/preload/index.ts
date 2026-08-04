@@ -20,6 +20,7 @@ const studioApi: StudioApi = {
     ipcRenderer.invoke("workspace:save", workspace) as Promise<void>,
   loadSettings: () => ipcRenderer.invoke("settings:load"),
   saveSettings: (settings: unknown) => ipcRenderer.invoke("settings:save", settings),
+  testConnection: (url: string) => ipcRenderer.invoke("environment:testConnection", url),
   sendRequest: (
     request: ApiRequest,
     environment?: Environment,
@@ -35,6 +36,8 @@ const studioApi: StudioApi = {
   exportBackup: (workspace: Workspace) => ipcRenderer.invoke("file:exportBackup", workspace),
   restoreBackup: () => ipcRenderer.invoke("file:restoreBackup"),
   deleteAllData: () => ipcRenderer.invoke("data:deleteAll"),
+  getLocalDataInfo: () => ipcRenderer.invoke("data:info"),
+  openLocalDataFolder: () => ipcRenderer.invoke("data:openFolder"),
   fetchImportUrl: (url: string) => ipcRenderer.invoke("import:fetchUrl", url)
 };
 

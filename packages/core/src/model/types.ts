@@ -95,6 +95,8 @@ export interface OpenApiMetadata {
 export interface ApiRequest {
   id: string;
   name: string;
+  /** Keeps frequently used requests at the top of their folder in the tree. */
+  favorite?: boolean;
   description?: string;
   method: HttpMethod;
   url: string;

@@ -316,6 +316,16 @@ export function useWorkspaceController(state: StudioState) {
     });
   };
 
+  const toggleRequestFavorite = (requestId: string) => {
+    mutateWorkspace((draft) => {
+      const collection = draft.collections.find((candidate) => findRequest(candidate, requestId));
+      const location = collection ? findRequest(collection, requestId) : undefined;
+      if (location) {
+        location.request.favorite = !location.request.favorite;
+      }
+    });
+  };
+
   const deleteRequest = (requestId: string) => {
     if (!activeCollection) {
       return;
@@ -437,7 +447,7 @@ export function useWorkspaceController(state: StudioState) {
   return {
     createNewWorkspace, selectCollection, addCollection, addFolder, addRequest,
     updateActiveRequest, moveActiveRequest, mutateCollection, renameCollection,
-    deleteCollection, renameFolder, deleteFolder, duplicateFolder, renameRequest,
+    deleteCollection, renameFolder, deleteFolder, duplicateFolder, renameRequest, toggleRequestFavorite,
     deleteRequest, duplicateRequest, moveRequestTo, moveFolderTo
   };
 }

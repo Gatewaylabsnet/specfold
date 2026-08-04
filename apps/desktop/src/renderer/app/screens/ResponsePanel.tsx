@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ResponseHistoryEntry, ResponseState, ResponseTab } from "../types";
-import { Copy, Save } from "lucide-react";
+import { Copy, Search, Save } from "lucide-react";
 import { formatBytes, formatHistoryTime, looksLikeJson, tabLabel } from "../helpers";
 
 const RESPONSE_FONT_SIZES = [11, 12, 14, 16, 18] as const;
@@ -27,6 +27,9 @@ export function ResponsePanel({
   const [assignVariable, setAssignVariable] = useState("accessToken");
   const [historyIndex, setHistoryIndex] = useState(0);
   const [responseFontSize, setResponseFontSize] = useState(readResponseFontSize);
+  const [responseSearch, setResponseSearch] = useState("");
+  const [prettyJson, setPrettyJson] = useState(true);
+  const [copyStatus, setCopyStatus] = useState("");
   const folderTokenTargetId = folderTokenTarget?.id;
   const folderTokenTargetName = folderTokenTarget?.name;
   const folderTokenVariable = folderTokenTarget?.variableName;
@@ -35,6 +38,9 @@ export function ResponsePanel({
     setResponseTab("body");
     // A fresh send resets the view to the latest response.
     setHistoryIndex(0);
+    setResponseSearch("");
+    setPrettyJson(true);
+    setCopyStatus("");
   }, [response?.status, response?.body, response?.rawBody]);
 
   useEffect(() => {
@@ -47,13 +53,17 @@ export function ResponsePanel({
   // Show the selected history entry when browsing; otherwise the live response.
   const displayed = history[historyIndex]?.response ?? response;
   const isJsonResponse = Boolean(displayed && !displayed.error && looksLikeJson(displayed.rawBody));
-  const displayedText = displayed
+  const selectedText = displayed
     ? responseTab === "headers"
       ? JSON.stringify(displayed.headers, null, 2)
       : responseTab === "raw"
         ? displayed.rawBody
         : displayed.body
     : "";
+  const jsonSource = displayed && responseTab === "body" ? displayed.rawBody || displayed.body : selectedText;
+  const canFormatJson = responseTab !== "headers" && looksLikeJson(jsonSource);
+  const displayedText = canFormatJson ? (prettyJson ? formatJson(jsonSource) : jsonSource) : selectedText;
+  const searchMatchCount = countMatches(displayedText, responseSearch);
   const fontSizeIndex = RESPONSE_FONT_SIZES.indexOf(
     responseFontSize as (typeof RESPONSE_FONT_SIZES)[number]
   );
@@ -65,6 +75,14 @@ export function ResponsePanel({
     const nextSize = RESPONSE_FONT_SIZES[nextIndex];
     setResponseFontSize(nextSize);
     localStorage.setItem(RESPONSE_FONT_STORAGE_KEY, String(nextSize));
+  };
+  const copyText = async (value: string, message: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopyStatus(message);
+    } catch {
+      setCopyStatus("Could not copy to the clipboard.");
+    }
   };
 
   return (
@@ -108,7 +126,7 @@ export function ResponsePanel({
             value={historyIndex}
           >
             {history.map((entry, index) => (
-              <option key={entry.at} value={index}>
+              <option key={`${entry.at}-${index}`} value={index}>
                 {index === 0 ? "Latest" : formatHistoryTime(entry.at)} — {entry.response.status} (
                 {entry.response.durationMs} ms)
               </option>
@@ -116,7 +134,19 @@ export function ResponsePanel({
           </select>
         </label>
       )}
-      {displayed?.error && <div className="status-box status-box--error">{displayed.error}</div>}
+      {displayed?.error && (
+        <div className="status-box status-box--error response-error" role="alert">
+          <span>{displayed.error}</span>
+          <button
+            className="secondary-button"
+            onClick={() => void copyText(responseErrorDetails(displayed), "Copied error details.")}
+            type="button"
+          >
+            <Copy size={14} />
+            Copy error details
+          </button>
+        </div>
+      )}
       {displayed?.truncated && (
         <div className="status-box status-box--warning">
           Response was larger than the size limit and has been truncated. Increase the limit in Settings if needed.
@@ -137,12 +167,22 @@ export function ResponsePanel({
             ))}
             <button
               className="secondary-button response-tabs__action"
-              onClick={() => void navigator.clipboard.writeText(displayedText)}
+              onClick={() => void copyText(displayedText, "Copied response content.")}
               type="button"
             >
               <Copy size={14} />
               Copy
             </button>
+            {canFormatJson && (
+              <button
+                aria-pressed={prettyJson}
+                className="secondary-button response-tabs__action"
+                onClick={() => setPrettyJson((current) => !current)}
+                type="button"
+              >
+                {prettyJson ? "Raw JSON" : "Pretty JSON"}
+              </button>
+            )}
             <button
               className="secondary-button response-tabs__action"
               onClick={() => onSaveResponseExample(displayed)}
@@ -152,7 +192,21 @@ export function ResponsePanel({
               Save example
             </button>
           </div>
-          <pre style={{ fontSize: `${responseFontSize}px` }}>{displayedText}</pre>
+          <div className="response-find">
+            <Search size={14} />
+            <input
+              aria-label="Find in response"
+              onChange={(event) => setResponseSearch(event.target.value)}
+              placeholder="Find in response"
+              type="search"
+              value={responseSearch}
+            />
+            {responseSearch && <span>{searchMatchCount > 500 ? "500+ matches" : `${searchMatchCount} match${searchMatchCount === 1 ? "" : "es"}`}</span>}
+          </div>
+          <pre style={{ fontSize: `${responseFontSize}px` }}>
+            <ResponseText text={displayedText} query={responseSearch} />
+          </pre>
+          {copyStatus && <div className="response-copy-status" role="status">{copyStatus}</div>}
           {isJsonResponse && (
             <div className="assign-row">
               <span className="assign-row__label">Save field to variable</span>
@@ -210,6 +264,52 @@ export function ResponsePanel({
       )}
     </aside>
   );
+}
+
+function formatJson(value: string): string {
+  try {
+    return JSON.stringify(JSON.parse(value), null, 2);
+  } catch {
+    return value;
+  }
+}
+
+function countMatches(text: string, query: string): number {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return 0;
+  const source = text.toLowerCase();
+  let from = 0;
+  let count = 0;
+  while (count <= 500) {
+    const index = source.indexOf(needle, from);
+    if (index < 0) return count;
+    count += 1;
+    from = index + needle.length;
+  }
+  return count;
+}
+
+function ResponseText({ text, query }: { text: string; query: string }) {
+  const needle = query.trim();
+  if (!needle || countMatches(text, needle) > 500) return text;
+  const pattern = new RegExp(`(${escapeRegExp(needle)})`, "gi");
+  return text.split(pattern).map((part, index) =>
+    part.toLowerCase() === needle.toLowerCase()
+      ? <mark key={index}>{part}</mark>
+      : part
+  );
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function responseErrorDetails(response: ResponseState): string {
+  return [
+    `Status: ${response.statusText}${response.status ? ` (${response.status})` : ""}`,
+    `Error: ${response.error ?? "Unknown error"}`,
+    response.rawBody ? `Response body:\n${response.rawBody}` : ""
+  ].filter(Boolean).join("\n\n");
 }
 
 function readResponseFontSize(): number {
