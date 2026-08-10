@@ -32,7 +32,7 @@ describe("Postman import environments", () => {
 
     const { user } = await renderApp(api);
     await user.click(screen.getByRole("button", { name: "Import" }));
-    fireEvent.change(screen.getByPlaceholderText(/Paste OpenAPI 3.x/), { target: { value: document } });
+    fireEvent.change(await screen.findByPlaceholderText(/Paste OpenAPI 3.x/), { target: { value: document } });
     const importButton = screen.getAllByRole("button", { name: "Import" })
       .find((button) => button.classList.contains("primary-button"));
     expect(importButton).toBeDefined();
@@ -66,7 +66,7 @@ describe("Postman import environments", () => {
 
     const { user } = await renderApp(api);
     await user.click(screen.getByRole("button", { name: "Import" }));
-    fireEvent.change(screen.getByPlaceholderText(/Paste OpenAPI 3.x/), { target: { value: document } });
+    fireEvent.change(await screen.findByPlaceholderText(/Paste OpenAPI 3.x/), { target: { value: document } });
     await user.click(screen.getByRole("checkbox", { name: "Import source variables as a new environment" }));
     const importButton = screen.getAllByRole("button", { name: "Import" })
       .find((button) => button.classList.contains("primary-button"));
