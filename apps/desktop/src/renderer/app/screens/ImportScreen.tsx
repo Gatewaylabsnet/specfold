@@ -4,6 +4,7 @@ import type { Collection, GroupingStrategy, ImportOperationSummary, ReimportDiff
 export function ImportScreen({
   importText,
   importUrl,
+  importVariablesAsEnvironment,
   isFetchingUrl,
   grouping,
   importSummary,
@@ -25,10 +26,12 @@ export function ImportScreen({
   onGroupingChange,
   onPreview,
   onImport,
+  onImportVariablesAsEnvironmentChange,
   postmanFolderPath
 }: {
   importText: string;
   importUrl: string;
+  importVariablesAsEnvironment: boolean;
   isFetchingUrl: boolean;
   grouping: GroupingStrategy;
   importSummary: string;
@@ -50,6 +53,7 @@ export function ImportScreen({
   onGroupingChange(value: GroupingStrategy): void;
   onPreview(): void;
   onImport(): void;
+  onImportVariablesAsEnvironmentChange(value: boolean): void;
   postmanFolderPath: string;
 }) {
   const importDisabled =
@@ -134,6 +138,18 @@ export function ImportScreen({
             <span>{importDiff.matched} matched · {importDiff.added} new · {importDiff.retained} retained</span>
           </div>
         )}
+        <h3>Variables</h3>
+        <label className="check-row">
+          <input
+            checked={importVariablesAsEnvironment}
+            onChange={(event) => onImportVariablesAsEnvironmentChange(event.target.checked)}
+            type="checkbox"
+          />
+          <span>Import source variables as a new environment</span>
+        </label>
+        <p className="ops-hint">
+          Optional for Postman and compatible imports. Base URLs stay with the collection, and your active environment never changes automatically.
+        </p>
         <label className="radio-row">
           <input
             checked={grouping === "tags"}

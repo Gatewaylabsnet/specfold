@@ -32,6 +32,7 @@ export function useStudioState() {
   // Anchor index for Shift-click range selection in the import operations list.
   const lastImportIndexRef = useRef<number | null>(null);
   const [grouping, setGrouping] = useState<GroupingStrategy>("tags");
+  const [importVariablesAsEnvironment, setImportVariablesAsEnvironment] = useState(false);
   const [importError, setImportError] = useState("");
   const [importSummary, setImportSummary] = useState("");
   const [importWarnings, setImportWarnings] = useState<string[]>([]);
@@ -221,7 +222,8 @@ export function useStudioState() {
     postmanFolderSource, setPostmanFolderSource, postmanFolderPath, setPostmanFolderPath,
     importUrl, setImportUrl, isFetchingImport, setIsFetchingImport, importOperations,
     setImportOperations, selectedImportKeys, setSelectedImportKeys, lastImportIndexRef,
-    grouping, setGrouping, importError, setImportError, importSummary, setImportSummary, importWarnings, setImportWarnings,
+    grouping, setGrouping, importVariablesAsEnvironment, setImportVariablesAsEnvironment,
+    importError, setImportError, importSummary, setImportSummary, importWarnings, setImportWarnings,
     importTargetCollectionId, setImportTargetCollectionId, importDiff, setImportDiff,
     exportFormat, setExportFormat, exportFolderIds, setExportFolderIds, includeAllComponents,
     setIncludeAllComponents, includeExamples, setIncludeExamples, pruneUnusedComponents,

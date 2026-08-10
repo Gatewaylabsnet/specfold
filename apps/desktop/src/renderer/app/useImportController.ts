@@ -21,7 +21,8 @@ export function useImportController(state: StudioState, workspaceController: Wor
     postmanFolderSource, setPostmanFolderSource, postmanFolderPath, setPostmanFolderPath,
     importUrl, setImportUrl, isFetchingImport, setIsFetchingImport, importOperations,
     setImportOperations, selectedImportKeys, setSelectedImportKeys, lastImportIndexRef,
-    grouping, setGrouping, importError, setImportError, importSummary, setImportSummary, importWarnings, setImportWarnings,
+    grouping, setGrouping, importVariablesAsEnvironment, setImportVariablesAsEnvironment,
+    importError, setImportError, importSummary, setImportSummary, importWarnings, setImportWarnings,
     importTargetCollectionId, setImportTargetCollectionId, importDiff, setImportDiff,
     exportFormat, setExportFormat, exportFolderIds, setExportFolderIds, includeAllComponents,
     setIncludeAllComponents, includeExamples, setIncludeExamples, pruneUnusedComponents,
@@ -45,6 +46,7 @@ export function useImportController(state: StudioState, workspaceController: Wor
     if (result.content !== undefined) {
       setPostmanFolderSource(undefined);
       setPostmanFolderPath("");
+      setImportVariablesAsEnvironment(false);
       setImportText(result.content);
       setImportError("");
       setImportWarnings([]);
@@ -70,6 +72,7 @@ export function useImportController(state: StudioState, workspaceController: Wor
       setImportText("");
       setPostmanFolderSource(result.source);
       setPostmanFolderPath(result.folderPath ?? result.source.rootName);
+      setImportVariablesAsEnvironment(false);
       setImportError("");
       setImportWarnings([]);
       setImportDiff(undefined);
@@ -98,6 +101,7 @@ export function useImportController(state: StudioState, workspaceController: Wor
     if (result.ok && result.content !== undefined) {
       setPostmanFolderSource(undefined);
       setPostmanFolderPath("");
+      setImportVariablesAsEnvironment(false);
       setImportText(result.content);
       setImportSummary("Fetched document from URL. Review it, then press Import.");
     } else {
@@ -245,17 +249,15 @@ export function useImportController(state: StudioState, workspaceController: Wor
         : undefined;
       const canUpdate = Boolean(target && imported.collections.length === 1);
       const diff = canUpdate ? previewSafeReimport(target!, collection) : undefined;
+      const importedEnvironments = importVariablesAsEnvironment ? imported.environments : [];
       mutateWorkspace((draft) => {
         if (canUpdate) {
           const draftTarget = draft.collections.find((candidate) => candidate.id === target!.id);
           if (draftTarget) applySafeReimport(draftTarget, collection);
-          return;
+        } else {
+          draft.collections.push(...imported.collections);
         }
-        draft.collections.push(...imported.collections);
-        draft.environments.push(...imported.environments);
-        if (imported.environments[0]) {
-          draft.activeEnvironmentId = imported.environments[0].id;
-        }
+        draft.environments.push(...importedEnvironments);
       });
       setActiveCollectionId(canUpdate ? target!.id : collection.id);
       setSelectedFolderId(undefined);
@@ -274,8 +276,13 @@ export function useImportController(state: StudioState, workspaceController: Wor
         : imported.collections.length === 1
           ? `Imported ${collection.name}: ${importOutcome}.`
           : `Imported ${imported.collections.length} collections: ${importOutcome}.`;
-      setImportSummary(summary);
-      setNotice(`Import complete — ${summary}`);
+      const variableSummary = imported.environments.length === 0
+        ? ""
+        : importedEnvironments.length > 0
+          ? ` Added ${importedEnvironments.length} source environment${importedEnvironments.length === 1 ? "" : "s"}; the active environment was unchanged.`
+          : " Source variables were not added; import them as an environment if this collection needs token or client variables.";
+      setImportSummary(`${summary}${variableSummary}`);
+      setNotice(`Import complete — ${summary}${variableSummary}`);
       if (imported.warnings.length > 0) {
         setImportWarnings(imported.warnings);
         const visibleWarnings = imported.warnings.slice(0, 3).join(" ");

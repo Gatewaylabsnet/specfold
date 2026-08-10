@@ -39,7 +39,8 @@ export function App() {
     postmanFolderSource, setPostmanFolderSource, postmanFolderPath, setPostmanFolderPath,
     importUrl, setImportUrl, isFetchingImport, setIsFetchingImport, importOperations,
     setImportOperations, selectedImportKeys, setSelectedImportKeys, lastImportIndexRef,
-    grouping, setGrouping, importError, setImportError, importSummary, setImportSummary, importWarnings, setImportWarnings,
+    grouping, setGrouping, importVariablesAsEnvironment, setImportVariablesAsEnvironment,
+    importError, setImportError, importSummary, setImportSummary, importWarnings, setImportWarnings,
     importTargetCollectionId, setImportTargetCollectionId, importDiff, setImportDiff,
     exportFormat, setExportFormat, exportFolderIds, setExportFolderIds, includeAllComponents,
     setIncludeAllComponents, includeExamples, setIncludeExamples, pruneUnusedComponents,
@@ -187,7 +188,9 @@ export function App() {
             onFetchUrl={fetchImportUrl}
             onGroupingChange={setGrouping}
             onImport={handleImport}
+            importVariablesAsEnvironment={importVariablesAsEnvironment}
             onImportUrlChange={setImportUrl}
+            onImportVariablesAsEnvironmentChange={setImportVariablesAsEnvironment}
             onImportTargetChange={setImportTargetCollectionId}
             onOpenFile={openImportFile}
             onOpenPostmanFolder={openPostmanFolder}
@@ -195,6 +198,7 @@ export function App() {
             onTextChange={(value) => {
               setPostmanFolderSource(undefined);
               setPostmanFolderPath("");
+              setImportVariablesAsEnvironment(false);
               setImportWarnings([]);
               setImportDiff(undefined);
               setImportText(value);
