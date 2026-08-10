@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://gatewaylabs.net/specfold">gatewaylabs.net/specfold</a>
   /
-  <a href="https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.0">Download v1.9.0</a>
+  <a href="https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.1">Download v1.9.1</a>
   /
   <a href="docs/REDTEAM_REPORT.md">Security review</a>
 </p>
@@ -44,23 +44,23 @@ OpenAPI / Swagger / Postman / Insomnia / HAR / .http / cURL
 
 It is intentionally local-first. There is no account requirement, no cloud workspace, and no hosted sync layer. Your workspace, environments, request history, and secrets stay on the machine running the desktop app.
 
-> The published stable release is v1.9.0. It adds scoped base URL editing in Environments, connection checks, pinned requests, richer response inspection, clearer import results, local-data controls, and first-run guidance. See the [release notes](docs/RELEASE_NOTES_v1.9.0.md) and [desktop runtime decision](docs/DESKTOP_RUNTIME_DECISION.md).
+> The published stable release is v1.9.1. It keeps Postman and compatible source variables opt-in during import, preserves collection-level base URLs, and never switches the active environment automatically. See the [release notes](docs/RELEASE_NOTES_v1.9.1.md) and [desktop runtime decision](docs/DESKTOP_RUNTIME_DECISION.md).
 
-## Download v1.9.0
+## Download v1.9.1
 
 | Platform | Package | Download |
 | --- | --- | --- |
-| Windows x64 | Installer | [Specfold-1.9.0-x64.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/Specfold-1.9.0-x64.exe) |
-| Windows x64 | Portable app | [Specfold-1.9.0-x64-portable.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/Specfold-1.9.0-x64-portable.exe) |
-| macOS Apple Silicon | DMG | [Specfold-1.9.0-mac-arm64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/Specfold-1.9.0-mac-arm64.dmg) |
-| macOS Apple Silicon | ZIP | [Specfold-1.9.0-mac-arm64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/Specfold-1.9.0-mac-arm64.zip) |
-| macOS Intel | DMG | [Specfold-1.9.0-mac-x64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/Specfold-1.9.0-mac-x64.dmg) |
-| macOS Intel | ZIP | [Specfold-1.9.0-mac-x64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/Specfold-1.9.0-mac-x64.zip) |
-| Linux x64 | AppImage | [Specfold-1.9.0-linux-x86_64.AppImage](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/Specfold-1.9.0-linux-x86_64.AppImage) |
-| Linux x64 | Debian package | [Specfold-1.9.0-linux-amd64.deb](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/Specfold-1.9.0-linux-amd64.deb) |
-| All platforms | SHA-256 checksums | [SHA256SUMS.txt](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.0/SHA256SUMS.txt) |
+| Windows x64 | Installer | [Specfold-1.9.1-x64.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/Specfold-1.9.1-x64.exe) |
+| Windows x64 | Portable app | [Specfold-1.9.1-x64-portable.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/Specfold-1.9.1-x64-portable.exe) |
+| macOS Apple Silicon | DMG | [Specfold-1.9.1-mac-arm64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/Specfold-1.9.1-mac-arm64.dmg) |
+| macOS Apple Silicon | ZIP | [Specfold-1.9.1-mac-arm64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/Specfold-1.9.1-mac-arm64.zip) |
+| macOS Intel | DMG | [Specfold-1.9.1-mac-x64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/Specfold-1.9.1-mac-x64.dmg) |
+| macOS Intel | ZIP | [Specfold-1.9.1-mac-x64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/Specfold-1.9.1-mac-x64.zip) |
+| Linux x64 | AppImage | [Specfold-1.9.1-linux-x86_64.AppImage](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/Specfold-1.9.1-linux-x86_64.AppImage) |
+| Linux x64 | Debian package | [Specfold-1.9.1-linux-amd64.deb](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/Specfold-1.9.1-linux-amd64.deb) |
+| All platforms | SHA-256 checksums | [SHA256SUMS.txt](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/SHA256SUMS.txt) |
 
-Release page: [github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.0](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.0). Earlier releases remain available from the [release archive](https://github.com/Gatewaylabsnet/specfold/releases).
+Release page: [github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.1](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.1). Earlier releases remain available from the [release archive](https://github.com/Gatewaylabsnet/specfold/releases).
 
 Verify a downloaded package against the published checksums:
 
@@ -68,7 +68,7 @@ Verify a downloaded package against the published checksums:
 sha256sum -c SHA256SUMS.txt --ignore-missing
 ```
 
-On Windows PowerShell, compare `Get-FileHash .\Specfold-1.9.0-x64.exe -Algorithm SHA256` with the matching line in `SHA256SUMS.txt`.
+On Windows PowerShell, compare `Get-FileHash .\Specfold-1.9.1-x64.exe -Algorithm SHA256` with the matching line in `SHA256SUMS.txt`.
 
 Unsigned Windows builds may trigger SmartScreen. Unsigned and non-notarized macOS builds may require opening from Finder with **Open** to confirm the Gatekeeper prompt.
 
@@ -76,6 +76,12 @@ See the [Code signing policy](docs/CODE_SIGNING_POLICY.md) for signing scope,
 approval roles, build provenance, privacy, and the current SignPath Foundation
 application status. Release artifacts remain unsigned until that policy
 explicitly states that signing is active.
+
+### v1.9.1 Highlights
+
+- Postman and compatible import variables are now opt-in. Importing a collection does not create or activate an environment unless you choose **Import source variables as a new environment**.
+- A Postman `baseUrl` remains a collection route, so `{{baseUrl}}` still resolves without duplicating it into the active environment.
+- Import notices explain when source variables were intentionally left out, helping you add token or client variables only when the collection needs them.
 
 ### v1.9.0 Highlights
 
@@ -90,7 +96,7 @@ explicitly states that signing is active.
 ## What It Does
 
 - Imports OpenAPI 3.x, Swagger 2.0, Postman Collection v2.0/v2.1 JSON and v3 YAML folders, Insomnia JSON v4/v5, HAR 1.2, `.http`/`.rest`, Specfold Collection JSON, and `curl` commands.
-- Preserves portable collection folders, environment variables, supported auth modes, request bodies, and response examples where the source format provides them.
+- Preserves portable collection folders, supported auth modes, request bodies, and response examples. Source variables can be imported into a separate environment only with explicit opt-in.
 - Lets you select exactly which operations to import before creating requests.
 - Previews a safe re-import before merging new source changes; matched request IDs, custom auth, bodies, and saved examples are retained, and existing requests are never deleted.
 - Groups imported endpoints by tag, first path segment, or a single folder.
@@ -119,9 +125,9 @@ explicitly states that signing is active.
 | --- | --- | --- |
 | OpenAPI 3.0/3.1 | JSON, YAML | Local references, multipart schemas, and source-operation fidelity |
 | Swagger 2.0 | JSON, YAML | Request model conversion, including multipart `formData` |
-| Postman 2.0/2.1 | Collection JSON | Folders, variables, auth, bodies, multipart placeholders, examples |
-| Postman 3 | Multi-file YAML folder | Scripts and symlinks are skipped |
-| Insomnia 4/5 | Export JSON | Workspaces, folders, environments, multipart placeholders, responses |
+| Postman 2.0/2.1 | Collection JSON | Folders, collection base URL, optional source variables, auth, bodies, multipart placeholders, examples |
+| Postman 3 | Multi-file YAML folder | Optional source variables; scripts and symlinks are skipped |
+| Insomnia 4/5 | Export JSON | Workspaces, folders, optional environments, multipart placeholders, responses |
 | HAR 1.2 | JSON | Captured requests, multipart placeholders, and response examples |
 | HTTP files | `.http`, `.rest` | Declarative requests only; scripts are not executed |
 | Specfold | Collection JSON | Native portable collection |
@@ -144,6 +150,7 @@ Specfold separates environment defaults from collection- and folder-level routin
 - The request workspace shows the resolved effective URL and source beside the request without duplicating the routing fields.
 - Changing an environment `baseUrl` never changes collection or folder base URL overrides.
 - Imported OpenAPI/Swagger `servers` are mapped into collection base URL data.
+- A Postman collection `baseUrl` is mapped to the collection route. Other imported source variables are optional and never replace the selected environment.
 
 Effective precedence is: absolute request URL, nearest folder `baseUrl`, collection `baseUrl`, then environment `baseUrl`. This keeps two proxy folders isolated inside one collection.
 
@@ -222,21 +229,21 @@ Download the `.dmg` or `.zip` for your architecture:
 - Apple Silicon: `arm64`
 - Intel: `x64`
 
-Because v1.9.0 is not notarized, macOS may require opening the app from Finder with **Open**.
+Because v1.9.1 is not notarized, macOS may require opening the app from Finder with **Open**.
 
 ### Linux
 
 Download the `.AppImage` or `.deb`.
 
 ```bash
-chmod +x Specfold-1.9.0-linux-x86_64.AppImage
-./Specfold-1.9.0-linux-x86_64.AppImage
+chmod +x Specfold-1.9.1-linux-x86_64.AppImage
+./Specfold-1.9.1-linux-x86_64.AppImage
 ```
 
 For Debian-based distributions:
 
 ```bash
-sudo dpkg -i Specfold-1.9.0-linux-amd64.deb
+sudo dpkg -i Specfold-1.9.1-linux-amd64.deb
 sudo apt-get install -f
 ```
 
@@ -280,9 +287,9 @@ Artifacts are written to `apps/desktop/dist`.
 Run the release workflow manually first. `workflow_dispatch` builds and verifies every package plus `SHA256SUMS.txt` without creating a tag or release. Tag pushes run the same package gate and create a draft GitHub Release.
 
 ```bash
-git tag -a v1.9.0 -m "Specfold v1.9.0"
+git tag -a v1.9.1 -m "Specfold v1.9.1"
 git push origin main
-git push origin v1.9.0
+git push origin v1.9.1
 ```
 
 Public release assets are only the two Windows packages, four macOS packages, Linux AppImage/DEB, and `SHA256SUMS.txt`. Builder debug YAML, updater YAML, and blockmaps are excluded. The generated release stays draft until manual smoke tests pass.
@@ -293,7 +300,7 @@ Public release assets are only the two Windows packages, four macOS packages, Li
 - macOS builds are not notarized yet.
 - Complete backups are plaintext by design and may contain secrets.
 - Very large imports/exports can still use the renderer thread, within configured size limits.
-- Automatic update download and installation are not implemented in v1.9.0; use Help -> Check for Updates to check manually and download from the release page.
+- Automatic update download and installation are not implemented in v1.9.1; use Help -> Check for Updates to check manually and download from the release page.
 - SOCKS proxies are not supported; configure an HTTP(S) proxy for Specfold.
 - Multipart uploads are capped at 200 parts, 50 files, and 100 MB of file and text content per request; selected files must be chosen again after an app restart.
 
