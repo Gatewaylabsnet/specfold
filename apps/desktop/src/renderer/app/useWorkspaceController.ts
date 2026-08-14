@@ -17,7 +17,7 @@ export function useWorkspaceController(state: StudioState) {
     selectedRequestId, setSelectedRequestId, setRequestTab, setResponse,
     setPostmanFolderSource, setPostmanFolderPath, setSavedExportPath,
     setSavedBackupPath, setSaveStatus, setNotice, activeCollection,
-    activeEnvironment, mutateWorkspace } = state;
+    activeEnvironment, mutateWorkspace, resetWorkspaceSaveQueue } = state;
   const createNewWorkspace = () => {
     if (
       (workspace.collections.length > 0 || workspace.environments.length > 0) &&
@@ -28,6 +28,7 @@ export function useWorkspaceController(state: StudioState) {
       return;
     }
     const nextWorkspace = createEmptyWorkspace("New Workspace");
+    resetWorkspaceSaveQueue();
     setSaveStatus("dirty");
     setWorkspace(nextWorkspace);
     setActiveCollectionId(undefined);

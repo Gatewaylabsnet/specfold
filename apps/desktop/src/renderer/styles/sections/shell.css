@@ -127,6 +127,18 @@
   min-width: 0;
 }
 
+.topbar__environment-manage {
+  flex: none;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.topbar__environment-manage.is-active {
+  border-color: #7ba7dd;
+  color: #174a86;
+  background: #eaf3ff;
+}
+
 .topbar__actions {
   display: flex;
   align-items: center;

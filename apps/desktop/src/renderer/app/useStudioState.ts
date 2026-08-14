@@ -51,6 +51,9 @@ export function useStudioState() {
   const [notice, setNotice] = useState<string>();
   const [secureStorageAvailable, setSecureStorageAvailable] = useState(true);
   const saveTimer = useRef<number>();
+  // A late save must never overwrite a workspace that was just restored or
+  // deleted. The epoch also makes status updates from superseded saves inert.
+  const workspaceSaveEpoch = useRef(0);
 
   // Auto-dismiss transient banners (copied cURL, saved variable, etc.) so they
   // do not linger. The user can also close them with the x button.
@@ -92,13 +95,25 @@ export function useStudioState() {
     if (!loaded) {
       return;
     }
+    const saveEpoch = ++workspaceSaveEpoch.current;
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
+      if (saveEpoch !== workspaceSaveEpoch.current) {
+        return;
+      }
       setSaveStatus("saving");
       void window.studio
         .saveWorkspace(workspace)
-        .then(() => setSaveStatus("saved"))
-        .catch(() => setSaveStatus("error"));
+        .then(() => {
+          if (saveEpoch === workspaceSaveEpoch.current) {
+            setSaveStatus("saved");
+          }
+        })
+        .catch(() => {
+          if (saveEpoch === workspaceSaveEpoch.current) {
+            setSaveStatus("error");
+          }
+        });
     }, 350);
     return () => window.clearTimeout(saveTimer.current);
   }, [loaded, workspace]);
@@ -204,14 +219,24 @@ export function useStudioState() {
     });
   };
 
+  const resetWorkspaceSaveQueue = () => {
+    workspaceSaveEpoch.current += 1;
+    window.clearTimeout(saveTimer.current);
+  };
+
   const saveWorkspaceNow = async () => {
+    const saveEpoch = ++workspaceSaveEpoch.current;
     window.clearTimeout(saveTimer.current);
     setSaveStatus("saving");
     try {
       await window.studio.saveWorkspace(workspace);
-      setSaveStatus("saved");
+      if (saveEpoch === workspaceSaveEpoch.current) {
+        setSaveStatus("saved");
+      }
     } catch {
-      setSaveStatus("error");
+      if (saveEpoch === workspaceSaveEpoch.current) {
+        setSaveStatus("error");
+      }
     }
   };
 
@@ -231,7 +256,7 @@ export function useStudioState() {
     setSavedExportPath, savedBackupPath, setSavedBackupPath, saveStatus, setSaveStatus,
     settings, setSettings, notice, setNotice, activeCollection, activeRequestLocation,
     activeRequest, activeEnvironment, exportResult, exportContent, mutateWorkspace, saveWorkspaceNow,
-    saveTimer, secureStorageAvailable, setSecureStorageAvailable };
+    resetWorkspaceSaveQueue, secureStorageAvailable, setSecureStorageAvailable };
 }
 
 export type StudioState = ReturnType<typeof useStudioState>;

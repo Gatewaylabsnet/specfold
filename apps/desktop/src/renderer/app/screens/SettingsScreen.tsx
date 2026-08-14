@@ -12,6 +12,7 @@ export function SettingsScreen({
   onExportBackup,
   onRestoreBackup,
   onDeleteAllData,
+  isDeletingData,
   localDataInfo,
   onOpenLocalDataFolder,
   savedBackupPath
@@ -24,6 +25,7 @@ export function SettingsScreen({
   onExportBackup(): void;
   onRestoreBackup(): void;
   onDeleteAllData(): void;
+  isDeletingData: boolean;
   localDataInfo?: LocalDataInfo;
   onOpenLocalDataFolder(): void;
   savedBackupPath: string;
@@ -80,8 +82,8 @@ export function SettingsScreen({
             <Upload size={16} />
             Restore backup
           </button>
-          <button className="danger-button" onClick={onDeleteAllData} type="button">
-            Delete all data
+          <button className="danger-button" disabled={isDeletingData} onClick={onDeleteAllData} type="button">
+            {isDeletingData ? "Deleting local data..." : "Delete all data"}
           </button>
         </div>
         {localDataInfo && (

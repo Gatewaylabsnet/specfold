@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
-import { Settings } from "lucide-react";
+import { Boxes, Settings } from "lucide-react";
 import type { LocalDataInfo } from "../shared/contracts";
 import { findFolder, flattenFolders } from "@openapi-collection-studio/core";
 import { environmentBaseUrl, saveStatusLabel } from "./app/helpers";
@@ -53,8 +53,9 @@ export function App() {
     mutateCollection, openImportFile, openPostmanFolder, fetchImportUrl,
     toggleImportOperation, handlePreviewImport, handleImport, copyActiveRequestAsCurl,
     sendActiveRequest, updateEnvironment, updateEnvironmentBaseUrl, createNewEnvironment,
+    selectEnvironment, deleteEnvironment,
     updateSettings, assignResponseValue, saveResponseAsExample, saveExport, copyExportToClipboard, exportFullBackup,
-    restoreFullBackup, deleteAllData, treeActions
+    restoreFullBackup, deleteAllData, isDeletingData, treeActions
   } = useStudioController();
   const activeFolder =
     activeRequestLocation?.folder ??
@@ -102,11 +103,7 @@ export function App() {
           <label className="topbar__environment">
             <span>Environment</span>
             <select
-              onChange={(event) =>
-                mutateWorkspace((draft) => {
-                  draft.activeEnvironmentId = event.target.value || undefined;
-                })
-              }
+              onChange={(event) => event.target.value && selectEnvironment(event.target.value)}
               value={workspace.activeEnvironmentId ?? ""}
             >
               {workspace.environments.map((environment) => (
@@ -116,6 +113,16 @@ export function App() {
               ))}
             </select>
           </label>
+          <button
+            aria-label="Manage environments"
+            className={screen === "environments" ? "secondary-button topbar__environment-manage is-active" : "secondary-button topbar__environment-manage"}
+            onClick={() => setScreen("environments")}
+            title="Manage environments"
+            type="button"
+          >
+            <Boxes size={16} />
+            Manage
+          </button>
           <span className={`save-status save-status--${saveStatus}`}>{saveStatusLabel(saveStatus)}</span>
           <button
             aria-label="Settings"
@@ -272,6 +279,7 @@ export function App() {
             onDeleteAllData={() => {
               void deleteAllData().finally(refreshLocalDataInfo);
             }}
+            isDeletingData={isDeletingData}
             localDataInfo={localDataInfo}
             onOpenLocalDataFolder={() => {
               void window.studio.openLocalDataFolder().then((result) => {
@@ -296,18 +304,9 @@ export function App() {
               if (!window.confirm("Delete this environment and its variables? This cannot be undone.")) {
                 return;
               }
-              mutateWorkspace((draft) => {
-                draft.environments = draft.environments.filter((environment) => environment.id !== environmentId);
-                if (draft.activeEnvironmentId === environmentId) {
-                  draft.activeEnvironmentId = draft.environments[0]?.id;
-                }
-              });
+              deleteEnvironment(environmentId);
             }}
-            onSelectEnvironment={(environmentId) =>
-              mutateWorkspace((draft) => {
-                draft.activeEnvironmentId = environmentId;
-              })
-            }
+            onSelectEnvironment={selectEnvironment}
             onUpdateEnvironmentBaseUrl={updateEnvironmentBaseUrl}
             onUpdateCollection={(recipe) =>
               activeCollection && mutateCollection(activeCollection.id, recipe)

@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://gatewaylabs.net/specfold">gatewaylabs.net/specfold</a>
   /
-  <a href="https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.1">Download v1.9.1</a>
+  <a href="https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.2">Download v1.9.2</a>
   /
   <a href="docs/REDTEAM_REPORT.md">Security review</a>
 </p>
@@ -44,23 +44,23 @@ OpenAPI / Swagger / Postman / Insomnia / HAR / .http / cURL
 
 It is intentionally local-first. There is no account requirement, no cloud workspace, and no hosted sync layer. Your workspace, environments, request history, and secrets stay on the machine running the desktop app.
 
-> The published stable release is v1.9.1. It keeps Postman and compatible source variables opt-in during import, preserves collection-level base URLs, and never switches the active environment automatically. See the [release notes](docs/RELEASE_NOTES_v1.9.1.md) and [desktop runtime decision](docs/DESKTOP_RUNTIME_DECISION.md).
+> The published stable release is v1.9.2. It keeps environment editing responsive in large workspaces, opens profile management directly from the top bar, and prevents stale saves from restoring data after deletion. See the [release notes](docs/RELEASE_NOTES_v1.9.2.md) and [desktop runtime decision](docs/DESKTOP_RUNTIME_DECISION.md).
 
-## Download v1.9.1
+## Download v1.9.2
 
 | Platform | Package | Download |
 | --- | --- | --- |
-| Windows x64 | Installer | [Specfold-1.9.1-x64.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/Specfold-1.9.1-x64.exe) |
-| Windows x64 | Portable app | [Specfold-1.9.1-x64-portable.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/Specfold-1.9.1-x64-portable.exe) |
-| macOS Apple Silicon | DMG | [Specfold-1.9.1-mac-arm64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/Specfold-1.9.1-mac-arm64.dmg) |
-| macOS Apple Silicon | ZIP | [Specfold-1.9.1-mac-arm64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/Specfold-1.9.1-mac-arm64.zip) |
-| macOS Intel | DMG | [Specfold-1.9.1-mac-x64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/Specfold-1.9.1-mac-x64.dmg) |
-| macOS Intel | ZIP | [Specfold-1.9.1-mac-x64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/Specfold-1.9.1-mac-x64.zip) |
-| Linux x64 | AppImage | [Specfold-1.9.1-linux-x86_64.AppImage](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/Specfold-1.9.1-linux-x86_64.AppImage) |
-| Linux x64 | Debian package | [Specfold-1.9.1-linux-amd64.deb](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/Specfold-1.9.1-linux-amd64.deb) |
-| All platforms | SHA-256 checksums | [SHA256SUMS.txt](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.1/SHA256SUMS.txt) |
+| Windows x64 | Installer | [Specfold-1.9.2-x64.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.2/Specfold-1.9.2-x64.exe) |
+| Windows x64 | Portable app | [Specfold-1.9.2-x64-portable.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.2/Specfold-1.9.2-x64-portable.exe) |
+| macOS Apple Silicon | DMG | [Specfold-1.9.2-mac-arm64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.2/Specfold-1.9.2-mac-arm64.dmg) |
+| macOS Apple Silicon | ZIP | [Specfold-1.9.2-mac-arm64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.2/Specfold-1.9.2-mac-arm64.zip) |
+| macOS Intel | DMG | [Specfold-1.9.2-mac-x64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.2/Specfold-1.9.2-mac-x64.dmg) |
+| macOS Intel | ZIP | [Specfold-1.9.2-mac-x64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.2/Specfold-1.9.2-mac-x64.zip) |
+| Linux x64 | AppImage | [Specfold-1.9.2-linux-x86_64.AppImage](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.2/Specfold-1.9.2-linux-x86_64.AppImage) |
+| Linux x64 | Debian package | [Specfold-1.9.2-linux-amd64.deb](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.2/Specfold-1.9.2-linux-amd64.deb) |
+| All platforms | SHA-256 checksums | [SHA256SUMS.txt](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.9.2/SHA256SUMS.txt) |
 
-Release page: [github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.1](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.1). Earlier releases remain available from the [release archive](https://github.com/Gatewaylabsnet/specfold/releases).
+Release page: [github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.2](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.2). Earlier releases remain available from the [release archive](https://github.com/Gatewaylabsnet/specfold/releases).
 
 Verify a downloaded package against the published checksums:
 
@@ -68,7 +68,7 @@ Verify a downloaded package against the published checksums:
 sha256sum -c SHA256SUMS.txt --ignore-missing
 ```
 
-On Windows PowerShell, compare `Get-FileHash .\Specfold-1.9.1-x64.exe -Algorithm SHA256` with the matching line in `SHA256SUMS.txt`.
+On Windows PowerShell, compare `Get-FileHash .\Specfold-1.9.2-x64.exe -Algorithm SHA256` with the matching line in `SHA256SUMS.txt`.
 
 Unsigned Windows builds may trigger SmartScreen. Unsigned and non-notarized macOS builds may require opening from Finder with **Open** to confirm the Gatekeeper prompt.
 
@@ -76,6 +76,12 @@ See the [Code signing policy](docs/CODE_SIGNING_POLICY.md) for signing scope,
 approval roles, build provenance, privacy, and the current SignPath Foundation
 application status. Release artifacts remain unsigned until that policy
 explicitly states that signing is active.
+
+### v1.9.2 Highlights
+
+- The top-bar **Manage** action opens connection profiles directly, so switching from sending a request to editing an environment takes one clear step.
+- Environment name, variables, and scoped base URL edits stay local while you type and commit on blur or Enter. Large imported collection trees are not copied for each keystroke.
+- **Delete all data** disables the action while it runs, prevents queued stale saves from restoring deleted content, and returns to one fresh `Specfold` environment.
 
 ### v1.9.1 Highlights
 
@@ -212,7 +218,7 @@ Open **Settings -> Data management**:
 
 1. **Export backup** asks whether to include readable secrets, then writes the complete workspace and settings.
 2. **Restore backup** confirms replacement, validates the selected file, and reports the pre-restore safety-copy path on success.
-3. **Delete all data** requires both a warning confirmation and exact `DELETE ALL` text. It removes workspace, settings, rotating/safety backups, and quarantined workspace files, then creates a fresh `Specfold` environment.
+3. **Delete all data** requires both a warning confirmation and exact `DELETE ALL` text. It blocks stale queued saves, removes workspace, settings, rotating/safety backups, and quarantined workspace files, then creates a fresh `Specfold` environment.
 
 Backup files are sensitive because they intentionally include secrets. Store them in an encrypted location and delete copies you no longer need.
 
@@ -229,21 +235,21 @@ Download the `.dmg` or `.zip` for your architecture:
 - Apple Silicon: `arm64`
 - Intel: `x64`
 
-Because v1.9.1 is not notarized, macOS may require opening the app from Finder with **Open**.
+Because v1.9.2 is not notarized, macOS may require opening the app from Finder with **Open**.
 
 ### Linux
 
 Download the `.AppImage` or `.deb`.
 
 ```bash
-chmod +x Specfold-1.9.1-linux-x86_64.AppImage
-./Specfold-1.9.1-linux-x86_64.AppImage
+chmod +x Specfold-1.9.2-linux-x86_64.AppImage
+./Specfold-1.9.2-linux-x86_64.AppImage
 ```
 
 For Debian-based distributions:
 
 ```bash
-sudo dpkg -i Specfold-1.9.1-linux-amd64.deb
+sudo dpkg -i Specfold-1.9.2-linux-amd64.deb
 sudo apt-get install -f
 ```
 
@@ -287,7 +293,7 @@ Artifacts are written to `apps/desktop/dist`.
 Run the release workflow manually first. `workflow_dispatch` builds and verifies every package plus `SHA256SUMS.txt` without creating a tag or release. Tag pushes run the same package gate and create a draft GitHub Release.
 
 ```bash
-git tag -a v1.9.1 -m "Specfold v1.9.1"
+git tag -a v1.9.2 -m "Specfold v1.9.2"
 git push origin main
 git push origin v1.9.1
 ```
@@ -300,7 +306,7 @@ Public release assets are only the two Windows packages, four macOS packages, Li
 - macOS builds are not notarized yet.
 - Complete backups are plaintext by design and may contain secrets.
 - Very large imports/exports can still use the renderer thread, within configured size limits.
-- Automatic update download and installation are not implemented in v1.9.1; use Help -> Check for Updates to check manually and download from the release page.
+- Automatic update download and installation are not implemented in v1.9.2; use Help -> Check for Updates to check manually and download from the release page.
 - SOCKS proxies are not supported; configure an HTTP(S) proxy for Specfold.
 - Multipart uploads are capped at 200 parts, 50 files, and 100 MB of file and text content per request; selected files must be chosen again after an app restart.
 

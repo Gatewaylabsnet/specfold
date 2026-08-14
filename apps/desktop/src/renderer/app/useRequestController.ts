@@ -98,21 +98,29 @@ export function useRequestController(state: StudioState, workspaceController: Wo
   }, []);
 
   const updateEnvironment = (environmentId: string, recipe: (environment: Environment) => void) => {
-    mutateWorkspace((draft) => {
-      const environment = draft.environments.find((candidate) => candidate.id === environmentId);
-      if (environment) {
-        recipe(environment);
+    setSaveStatus("dirty");
+    setWorkspace((current) => {
+      const index = current.environments.findIndex((candidate) => candidate.id === environmentId);
+      if (index < 0) {
+        return current;
       }
+      // Environment edits should not clone a potentially large request tree.
+      // Keeping collections referentially stable also keeps the tree responsive.
+      const environment = {
+        ...current.environments[index],
+        variables: current.environments[index].variables.map((variable) => ({ ...variable }))
+      };
+      recipe(environment);
+      const environments = [...current.environments];
+      environments[index] = environment;
+      return { ...current, environments, updatedAt: new Date().toISOString() };
     });
   };
 
   const updateEnvironmentBaseUrl = (environmentId: string, value: string): boolean => {
     const nextValue = value.trim();
-    mutateWorkspace((draft) => {
-      const environment = draft.environments.find((candidate) => candidate.id === environmentId);
-      if (environment) {
-        upsertEnvironmentBaseUrl(environment, nextValue);
-      }
+    updateEnvironment(environmentId, (environment) => {
+      upsertEnvironmentBaseUrl(environment, nextValue);
     });
     return true;
   };
@@ -120,9 +128,48 @@ export function useRequestController(state: StudioState, workspaceController: Wo
   const createNewEnvironment = () => {
     const environment = createEnvironment(`Environment ${workspace.environments.length + 1}`);
     environment.variables = [createEnvironmentVariable("baseUrl", "")];
-    mutateWorkspace((draft) => {
-      draft.environments.push(environment);
-      draft.activeEnvironmentId = environment.id;
+    setSaveStatus("dirty");
+    setWorkspace((current) => {
+      if (current.environments.some((candidate) => candidate.id === environment.id)) {
+        return current;
+      }
+      return {
+        ...current,
+        environments: [...current.environments, environment],
+        activeEnvironmentId: environment.id,
+        updatedAt: new Date().toISOString()
+      };
+    });
+  };
+
+  const selectEnvironment = (environmentId: string) => {
+    setSaveStatus("dirty");
+    setWorkspace((current) => {
+      if (
+        current.activeEnvironmentId === environmentId ||
+        !current.environments.some((environment) => environment.id === environmentId)
+      ) {
+        return current;
+      }
+      return { ...current, activeEnvironmentId: environmentId, updatedAt: new Date().toISOString() };
+    });
+  };
+
+  const deleteEnvironment = (environmentId: string) => {
+    setSaveStatus("dirty");
+    setWorkspace((current) => {
+      if (current.environments.length <= 1 || !current.environments.some((environment) => environment.id === environmentId)) {
+        return current;
+      }
+      const environments = current.environments.filter((environment) => environment.id !== environmentId);
+      return {
+        ...current,
+        environments,
+        activeEnvironmentId: current.activeEnvironmentId === environmentId
+          ? environments[0]?.id
+          : current.activeEnvironmentId,
+        updatedAt: new Date().toISOString()
+      };
     });
   };
 
@@ -210,6 +257,7 @@ export function useRequestController(state: StudioState, workspaceController: Wo
 
   return {
     copyActiveRequestAsCurl, sendActiveRequest, updateEnvironment,
-    updateEnvironmentBaseUrl, createNewEnvironment, updateSettings, assignResponseValue, saveResponseAsExample
+    updateEnvironmentBaseUrl, createNewEnvironment, selectEnvironment, deleteEnvironment,
+    updateSettings, assignResponseValue, saveResponseAsExample
   };
 }

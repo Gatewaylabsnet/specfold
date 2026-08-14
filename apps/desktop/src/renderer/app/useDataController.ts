@@ -9,6 +9,7 @@ import {
   type ApiRequest, type Collection, type Environment, type ExportWarning, type GroupingStrategy,
   type ImportOperationSummary, type OpenApiCheckResult, type PostmanV3FolderSource, type Workspace
 } from "@openapi-collection-studio/core";
+import { useState } from "react";
 import type { TreeActions } from "../components/CollectionTree";
 import { firstRequestId, slug } from "./helpers";
 import { DEFAULT_SETTINGS } from "./types";
@@ -30,7 +31,8 @@ export function useDataController(state: StudioState, workspaceController: Works
     setSavedExportPath, savedBackupPath, setSavedBackupPath, saveStatus, setSaveStatus,
     settings, setSettings, notice, setNotice, activeCollection, activeRequestLocation,
     activeRequest, activeEnvironment, exportResult, exportContent, mutateWorkspace, saveWorkspaceNow,
-    saveTimer, secureStorageAvailable, setSecureStorageAvailable } = state;
+    resetWorkspaceSaveQueue, secureStorageAvailable, setSecureStorageAvailable } = state;
+  const [isDeletingData, setIsDeletingData] = useState(false);
   const {
     selectCollection, renameCollection, deleteCollection, renameFolder, deleteFolder,
     duplicateFolder, renameRequest, toggleRequestFavorite, deleteRequest, duplicateRequest, moveRequestTo, moveFolderTo
@@ -84,7 +86,7 @@ export function useDataController(state: StudioState, workspaceController: Works
     )) {
       return;
     }
-    window.clearTimeout(saveTimer.current);
+    resetWorkspaceSaveQueue();
     const result = await window.studio.restoreBackup();
     setSecureStorageAvailable(result.secureStorageAvailable);
     if (result.canceled) return;
@@ -122,12 +124,15 @@ export function useDataController(state: StudioState, workspaceController: Works
       return;
     }
 
-    window.clearTimeout(saveTimer.current);
+    resetWorkspaceSaveQueue();
+    setIsDeletingData(true);
     try {
       await window.studio.deleteAllData();
     } catch (error) {
       setNotice(`Local data could not be deleted: ${error instanceof Error ? error.message : String(error)}`);
       return;
+    } finally {
+      setIsDeletingData(false);
     }
     const nextWorkspace = createEmptyWorkspace();
     setWorkspace(nextWorkspace);
@@ -183,6 +188,7 @@ export function useDataController(state: StudioState, workspaceController: Works
     exportFullBackup,
     restoreFullBackup,
     deleteAllData,
+    isDeletingData,
     treeActions
   };
 }

@@ -36,7 +36,10 @@ export function EnvironmentScreen({
 }) {
   const active = environments.find((environment) => environment.id === activeEnvironmentId) ?? environments[0];
   const currentBaseUrl = active ? environmentBaseUrl(active) : "";
+  const customVariables = active?.variables.filter((variable) => !isBaseUrlVariable(variable)) ?? [];
+  const [nameDraft, setNameDraft] = useState(active?.name ?? "");
   const [baseUrlDraft, setBaseUrlDraft] = useState(currentBaseUrl);
+  const [variableDraft, setVariableDraft] = useState<EnvironmentVariable[]>(customVariables);
   const [connectionTest, setConnectionTest] = useState<ConnectionTestResult>();
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const selectedFolder = selectedFolderId
@@ -45,11 +48,27 @@ export function EnvironmentScreen({
   const routing = activeCollection
     ? baseUrlRouting(activeCollection, selectedFolder, folderOptions, currentBaseUrl, active?.name)
     : undefined;
-  const customVariables = active?.variables.filter((variable) => !isBaseUrlVariable(variable)) ?? [];
   useEffect(() => {
+    setNameDraft(active?.name ?? "");
     setBaseUrlDraft(currentBaseUrl);
+    setVariableDraft(customVariables);
     setConnectionTest(undefined);
-  }, [active?.id, currentBaseUrl]);
+    // Only selecting another profile should discard an in-progress edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active?.id]);
+
+  const commitName = () => {
+    if (!active) {
+      return;
+    }
+    const name = nameDraft.trim() || "Environment";
+    setNameDraft(name);
+    if (name !== active.name) {
+      onUpdateEnvironment(active.id, (environment) => {
+        environment.name = name;
+      });
+    }
+  };
 
   const commitBaseUrl = () => {
     if (!active) {
@@ -93,6 +112,15 @@ export function EnvironmentScreen({
     }
   };
 
+  const commitVariables = (variables = variableDraft) => {
+    if (!active || sameVariables(variables, customVariables)) {
+      return;
+    }
+    onUpdateEnvironment(active.id, (environment) => {
+      replaceEnvironmentCustomVariables(environment, variables);
+    });
+  };
+
   return (
     <section className="environment-layout">
       <aside className="side-panel">
@@ -120,17 +148,18 @@ export function EnvironmentScreen({
               <input
                 aria-label="Environment name"
                 className="title-input"
-                onBlur={() =>
-                  onUpdateEnvironment(active.id, (environment) => {
-                    environment.name = environment.name.trim() || "Environment";
-                  })
-                }
-                onChange={(event) =>
-                  onUpdateEnvironment(active.id, (environment) => {
-                    environment.name = event.target.value;
-                  })
-                }
-                value={active.name}
+                onBlur={commitName}
+                onChange={(event) => setNameDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.currentTarget.blur();
+                  }
+                  if (event.key === "Escape") {
+                    setNameDraft(active.name);
+                    event.currentTarget.blur();
+                  }
+                }}
+                value={nameDraft}
               />
               <button
                 className="secondary-button"
@@ -199,12 +228,9 @@ export function EnvironmentScreen({
               routing={routing}
             />
             <EnvironmentVariableEditor
-              variables={customVariables}
-              onChange={(variables) =>
-                onUpdateEnvironment(active.id, (environment) => {
-                  replaceEnvironmentCustomVariables(environment, variables);
-                })
-              }
+              variables={variableDraft}
+              onChange={setVariableDraft}
+              onCommit={commitVariables}
             />
           </>
         ) : (
@@ -238,9 +264,47 @@ function EnvironmentRoutingEditor({
   onUpdateFolder(folderId: string, recipe: (folder: Folder) => void): void;
   routing?: { effective: string; source: string };
 }) {
+  const [collectionBaseUrlDraft, setCollectionBaseUrlDraft] = useState(activeCollection?.baseUrl ?? "");
+  const [folderBaseUrlDraft, setFolderBaseUrlDraft] = useState(activeFolder?.baseUrl ?? "");
+
+  useEffect(() => {
+    setCollectionBaseUrlDraft(activeCollection?.baseUrl ?? "");
+    // Keep local typing intact until the user switches collections.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCollection?.id]);
+
+  useEffect(() => {
+    setFolderBaseUrlDraft(activeFolder?.baseUrl ?? "");
+    // Keep local typing intact until the selected folder changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFolder?.id]);
+
   if (!activeCollection) {
     return null;
   }
+
+  const commitCollectionBaseUrl = () => {
+    const baseUrl = collectionBaseUrlDraft.trim();
+    if (baseUrl === (activeCollection.baseUrl ?? "")) {
+      return;
+    }
+    onUpdateCollection((collection) => {
+      collection.baseUrl = baseUrl || undefined;
+    });
+  };
+
+  const commitFolderBaseUrl = () => {
+    if (!activeFolder) {
+      return;
+    }
+    const baseUrl = folderBaseUrlDraft.trim();
+    if (baseUrl === (activeFolder.baseUrl ?? "")) {
+      return;
+    }
+    onUpdateFolder(activeFolder.id, (folder) => {
+      folder.baseUrl = baseUrl || undefined;
+    });
+  };
 
   return (
     <section className="environment-routing" aria-label="Base URL routing">
@@ -260,35 +324,29 @@ function EnvironmentRoutingEditor({
           <span>Collection base URL</span>
           <input
             aria-label="Collection base URL"
-            onChange={(event) =>
-              onUpdateCollection((collection) => {
-                const value = event.target.value.trim();
-                collection.baseUrl = value || undefined;
-              })
-            }
+            onBlur={commitCollectionBaseUrl}
+            onChange={(event) => setCollectionBaseUrlDraft(event.target.value)}
+            onKeyDown={(event) => event.key === "Enter" && event.currentTarget.blur()}
             placeholder={activeEnvironmentBaseUrl || "https://api.example.com/service"}
-            value={activeCollection.baseUrl ?? ""}
+            value={collectionBaseUrlDraft}
           />
           <small>Overrides the environment default for this collection. Empty means use the environment base URL.</small>
         </label>
         {activeFolder && (
           <label className="field">
             <span>Selected folder base URL</span>
-            <input
-              aria-label="Folder base URL"
-              onChange={(event) =>
-                onUpdateFolder(activeFolder.id, (folder) => {
-                  const value = event.target.value.trim();
-                  folder.baseUrl = value || undefined;
-                })
-              }
+          <input
+            aria-label="Folder base URL"
+            onBlur={commitFolderBaseUrl}
+            onChange={(event) => setFolderBaseUrlDraft(event.target.value)}
+            onKeyDown={(event) => event.key === "Enter" && event.currentTarget.blur()}
               placeholder={inheritedBaseUrl(
                 activeCollection,
                 activeFolder,
                 folderOptions,
                 activeEnvironmentBaseUrl
               )}
-              value={activeFolder.baseUrl ?? ""}
+            value={folderBaseUrlDraft}
             />
             <small>{activeFolder.name} and its children use this route. Empty restores inheritance.</small>
           </label>
@@ -300,13 +358,17 @@ function EnvironmentRoutingEditor({
 
 export function EnvironmentVariableEditor({
   variables,
-  onChange
+  onChange,
+  onCommit
 }: {
   variables: EnvironmentVariable[];
   onChange(variables: EnvironmentVariable[]): void;
+  onCommit(variables: EnvironmentVariable[]): void;
 }) {
   const update = (id: string, patch: Partial<EnvironmentVariable>) => {
-    onChange(variables.map((variable) => (variable.id === id ? { ...variable, ...patch } : variable)));
+    const next = variables.map((variable) => (variable.id === id ? { ...variable, ...patch } : variable));
+    onChange(next);
+    return next;
   };
 
   return (
@@ -322,26 +384,32 @@ export function EnvironmentVariableEditor({
         <div className="env-table__row" key={variable.id}>
           <input
             checked={variable.enabled}
-            onChange={(event) => update(variable.id, { enabled: event.target.checked })}
+            onChange={(event) => onCommit(update(variable.id, { enabled: event.target.checked }))}
             type="checkbox"
           />
           <input
+            onBlur={() => onCommit(variables)}
             onChange={(event) => update(variable.id, { name: event.target.value })}
             value={variable.name}
           />
           <input
+            onBlur={() => onCommit(variables)}
             onChange={(event) => update(variable.id, { value: event.target.value })}
             type={variable.secret ? "password" : "text"}
             value={variable.value}
           />
           <input
             checked={Boolean(variable.secret)}
-            onChange={(event) => update(variable.id, { secret: event.target.checked })}
+            onChange={(event) => onCommit(update(variable.id, { secret: event.target.checked }))}
             type="checkbox"
           />
           <button
             className="icon-button"
-            onClick={() => onChange(variables.filter((candidate) => candidate.id !== variable.id))}
+            onClick={() => {
+              const next = variables.filter((candidate) => candidate.id !== variable.id);
+              onChange(next);
+              onCommit(next);
+            }}
             title="Remove variable"
             type="button"
           >
@@ -351,7 +419,11 @@ export function EnvironmentVariableEditor({
       ))}
       <button
         className="secondary-button"
-        onClick={() => onChange([...variables, createEnvironmentVariable("", "")])}
+        onClick={() => {
+          const next = [...variables, createEnvironmentVariable("", "")];
+          onChange(next);
+          onCommit(next);
+        }}
         type="button"
       >
         <Plus size={16} />
@@ -359,4 +431,16 @@ export function EnvironmentVariableEditor({
       </button>
     </div>
   );
+}
+
+function sameVariables(left: EnvironmentVariable[], right: EnvironmentVariable[]): boolean {
+  return left.length === right.length && left.every((variable, index) => {
+    const candidate = right[index];
+    return candidate !== undefined &&
+      variable.id === candidate.id &&
+      variable.name === candidate.name &&
+      variable.value === candidate.value &&
+      variable.enabled === candidate.enabled &&
+      Boolean(variable.secret) === Boolean(candidate.secret);
+  });
 }
