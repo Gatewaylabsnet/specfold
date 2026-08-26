@@ -24,9 +24,10 @@ describe("environment management", () => {
     const { user } = await renderApp(api);
     await user.click(screen.getByRole("button", { name: "Manage environments" }));
     const name = await screen.findByRole("textbox", { name: "Environment name" });
+    const saveWorkspace = vi.mocked(api.saveWorkspace);
     await user.clear(name);
     await user.type(name, "Staging");
-    expect(api.saveWorkspace.mock.calls.some(([workspace]) =>
+    expect(saveWorkspace.mock.calls.some(([workspace]) =>
       workspace.environments.some((environment) => environment.name === "Staging")
     )).toBe(false);
     await user.tab();
