@@ -8,5 +8,9 @@ export default defineConfig({
     alias: {
       "@openapi-collection-studio/core": resolve(__dirname, "../../packages/core/src/index.ts")
     }
+  },
+  test: {
+    // Packaged application scenarios run only through Playwright's own runner.
+    exclude: ["e2e/**"]
   }
 });

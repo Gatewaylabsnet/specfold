@@ -165,6 +165,33 @@ describe("renderer workflows", () => {
     });
   });
 
+  it("uses a collection route for Postman-style baseURL placeholders", async () => {
+    const workspace = createEmptyWorkspace("Base URL alias workspace");
+    const collection = createCollection("Production API");
+    collection.baseUrl = "https://api.tarimorman.gov.tr/ureticikayit";
+    collection.requests.push(createRequest({ name: "List permits", method: "GET", url: "{{baseURL}}/permits" }));
+    workspace.collections.push(collection);
+
+    await renderApp(studioMock(workspace));
+
+    expect(await screen.findByText("Will send")).toBeTruthy();
+    expect(screen.getByText("https://api.tarimorman.gov.tr/ureticikayit/permits")).toBeTruthy();
+    expect(screen.queryByText("Needs values")).toBeNull();
+  });
+
+  it("guides the user to enter an empty JWT token endpoint", async () => {
+    const workspace = createEmptyWorkspace("JWT workspace");
+    const collection = createCollection("Auth API");
+    collection.requests.push(createRequest({ name: "JWT token", method: "POST", url: "" }));
+    workspace.collections.push(collection);
+
+    const { user } = await renderApp(studioMock(workspace));
+
+    expect(screen.getByRole("alert").textContent).toMatch(/token endpoint needs a url/i);
+    await user.click(screen.getByRole("button", { name: "Enter token URL" }));
+    expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "Request URL" }));
+  });
+
   it("keeps request name editing responsive across multiple folders and commits on blur", async () => {
     const workspace = createEmptyWorkspace("Multi-folder workspace");
     const collection = createCollection("Demo API");

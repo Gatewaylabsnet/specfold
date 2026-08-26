@@ -23,7 +23,7 @@ export function activeRequestFolderId(collection: Collection | undefined, reques
 }
 
 export function isBaseUrlVariable(variable: Pick<EnvironmentVariable, "name">): boolean {
-  return variable.name.trim() === "baseUrl";
+  return /^base(?:_|-)?url$/i.test(variable.name.trim());
 }
 
 export function environmentBaseUrl(environment: Environment): string {

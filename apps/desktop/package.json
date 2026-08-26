@@ -1,6 +1,6 @@
 {
   "name": "@openapi-collection-studio/desktop",
-  "version": "1.9.2",
+  "version": "1.9.3",
   "private": true,
   "description": "Desktop shell for Specfold.",
   "desktopName": "Specfold.desktop",
@@ -17,6 +17,8 @@
     "dev": "electron-vite dev",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
+    "test:e2e": "playwright test -c e2e/playwright.config.ts",
+    "test:e2e:packaged": "npm run package:win:portable && npm run test:e2e",
     "build": "electron-vite build",
     "package:win:portable": "npm run build && electron-builder --win portable --x64 -p never",
     "package:win:installer": "npm run build && electron-builder --win nsis --x64 -p never",
@@ -26,7 +28,8 @@
     "icon": "node build/generate-icon.mjs"
   },
   "devDependencies": {
-    "@openapi-collection-studio/core": "1.9.2",
+    "@openapi-collection-studio/core": "1.9.3",
+    "@playwright/test": "^1.62.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20.14.10",

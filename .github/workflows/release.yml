@@ -79,6 +79,13 @@ jobs:
       - name: Package ${{ matrix.platform }}
         run: ${{ matrix.package-command }}
 
+      - name: Exercise packaged Electron workflows
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        env:
+          SPECFOLD_E2E_EXECUTABLE: dist/win-unpacked/Specfold.exe
+        run: npm run test:e2e --workspace @openapi-collection-studio/desktop
+
       - name: List built artifacts
         shell: bash
         run: ls -la apps/desktop/dist

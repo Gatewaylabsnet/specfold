@@ -24,3 +24,34 @@ jobs:
 
       - name: Release checks
         run: npm run release:check
+
+  packaged-e2e-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows portable package
+        run: npm run package:win:portable --workspace @openapi-collection-studio/desktop
+
+      - name: Exercise packaged Electron workflows
+        env:
+          SPECFOLD_E2E_EXECUTABLE: dist/win-unpacked/Specfold.exe
+        run: npm run test:e2e --workspace @openapi-collection-studio/desktop
+
+      - name: Upload packaged E2E diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: specfold-packaged-e2e-diagnostics
+          path: |
+            apps/desktop/e2e/artifacts
+            apps/desktop/playwright-report
+          if-no-files-found: ignore

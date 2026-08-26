@@ -1,0 +1,33 @@
+.token-endpoint-guidance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 10px 0;
+  padding: 9px 12px;
+  border: 1px solid #f0c36d;
+  border-radius: 8px;
+  color: #714b00;
+  background: #fff8e8;
+  font-size: 12px;
+}
+
+.token-endpoint-guidance > div {
+  display: grid;
+  flex: 1 1 320px;
+  gap: 3px;
+}
+
+.token-endpoint-guidance strong {
+  font-size: 12px;
+}
+
+.token-endpoint-guidance code {
+  color: #5c3b00;
+}
+
+.token-endpoint-guidance .secondary-button {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}

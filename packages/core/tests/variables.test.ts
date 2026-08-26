@@ -47,6 +47,19 @@ describe("variable resolver", () => {
     expect(prepared.url).toBe("https://collection.example.com/orders");
   });
 
+  it("resolves base URL aliases with the same collection and folder precedence", () => {
+    const collection = createCollection("Orders API");
+    collection.baseUrl = "https://collection.example.com";
+    const request = createRequest({ name: "List orders", url: "{{baseURL}}/orders" });
+    const environment = createEnvironment("Production");
+    environment.variables = [
+      { id: "var_baseURL", name: "baseURL", value: "https://environment.example.com", enabled: true }
+    ];
+
+    expect(prepareHttpRequest(request, environment, collection).url)
+      .toBe("https://collection.example.com/orders");
+  });
+
   it("lets the collection base URL override the environment base URL", () => {
     const collection = createCollection("Orders API");
     collection.baseUrl = "https://collection.example.com";

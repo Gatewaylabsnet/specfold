@@ -10,6 +10,11 @@ const PRODUCT_NAME = "Specfold";
 const APP_ID = "net.gatewaylabs.specfold";
 
 registerAppProtocolScheme();
+// The packaged E2E suite supplies an isolated profile. Keep this opt-in so
+// local and released applications continue to use Electron's normal location.
+if (process.env.SPECFOLD_E2E_USER_DATA_PATH) {
+  app.setPath("userData", process.env.SPECFOLD_E2E_USER_DATA_PATH);
+}
 app.setName(PRODUCT_NAME);
 if (process.platform === "win32") app.setAppUserModelId(APP_ID);
 

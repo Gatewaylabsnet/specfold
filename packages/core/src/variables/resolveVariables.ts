@@ -19,6 +19,11 @@ export interface ResolvedRequest {
 }
 
 const VARIABLE_PATTERN = /\{\{\s*([A-Za-z_][A-Za-z0-9_.-]*)\s*\}\}/g;
+const BASE_URL_VARIABLE_PATTERN = /^base(?:_|-)?url$/i;
+
+function isBaseUrlVariableName(name: string): boolean {
+  return BASE_URL_VARIABLE_PATTERN.test(name.trim());
+}
 
 export function environmentToMap(
   environment?: Environment,
@@ -29,10 +34,13 @@ export function environmentToMap(
   for (const variable of environment?.variables ?? []) {
     const name = variable.name.trim();
     if (variable.enabled && name) {
-      if (name === "baseUrl" && !variable.value.trim()) {
+      if (isBaseUrlVariableName(name) && !variable.value.trim()) {
         continue;
       }
       map[name] = variable.value;
+      if (isBaseUrlVariableName(name)) {
+        map.baseUrl = variable.value;
+      }
     }
   }
   const collectionBaseUrl = collection?.baseUrl?.trim();
@@ -62,6 +70,13 @@ export function resolveVariablesInText(
     let replaced = false;
     missing.clear();
     value = value.replace(VARIABLE_PATTERN, (match, name: string) => {
+      // Postman collections commonly use {{baseURL}}, {{base_url}}, or a
+      // different casing. Treat these as the routed base URL so collection and
+      // folder overrides keep their documented precedence.
+      if (isBaseUrlVariableName(name) && Object.prototype.hasOwnProperty.call(variables, "baseUrl")) {
+        replaced = true;
+        return variables.baseUrl;
+      }
       if (Object.prototype.hasOwnProperty.call(variables, name)) {
         replaced = true;
         return variables[name];

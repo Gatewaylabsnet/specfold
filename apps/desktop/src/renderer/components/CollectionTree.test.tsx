@@ -102,4 +102,35 @@ describe("collection tree", () => {
     await user.type(renameInput, "Renamed API{Enter}");
     expect(onRenameCollection).toHaveBeenCalledWith(second.id, "Renamed API");
   });
+
+  it("collapses an active collection from its row as well as its disclosure button", async () => {
+    const collection = createCollection("Active API");
+    collection.requests.push(createRequest({ name: "List records", method: "GET", url: "/records" }));
+    const noop = vi.fn();
+    const user = userEvent.setup();
+    render(<CollectionTree
+      activeCollectionId={collection.id}
+      collections={[collection]}
+      onDeleteCollection={noop}
+      onDeleteFolder={noop}
+      onDeleteRequest={noop}
+      onDuplicateFolder={noop}
+      onDuplicateRequest={noop}
+      onMoveFolderTo={noop}
+      onMoveRequestTo={noop}
+      onRenameCollection={noop}
+      onRenameFolder={noop}
+      onRenameRequest={noop}
+      onToggleRequestFavorite={noop}
+      onSelectCollection={noop}
+      onSelectFolder={noop}
+      onSelectRequest={noop}
+    />);
+
+    await user.click(screen.getByRole("button", { name: "Active API" }));
+
+    expect(screen.getByRole("button", { name: "Expand Active API" })).toBeTruthy();
+    expect(screen.queryByText("List records")).toBeNull();
+    expect(noop).not.toHaveBeenCalled();
+  });
 });

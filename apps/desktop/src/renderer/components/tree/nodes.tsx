@@ -59,7 +59,11 @@ export function CollectionNode({
           context.setDropHint(undefined);
         }}
         onSelect={() => {
-          context.onSelectCollection(collection.id);
+          if (isActive) {
+            onToggleExpanded();
+          } else {
+            context.onSelectCollection(collection.id);
+          }
         }}
         onToggleExpanded={onToggleExpanded}
         onRename={(name) => context.onRenameCollection(collection.id, name)}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Copy, Plus, Send, Terminal, Wand2 } from "lucide-react";
 import { flattenFolders, folderAccessTokenVariable, type ApiRequest, type AuthConfig, type Collection, type Environment, type Folder, type HttpMethod } from "@openapi-collection-studio/core";
 import { KeyValueEditor } from "../../components/KeyValueEditor";
@@ -60,6 +60,7 @@ export function RequestWorkspace({
   onSaveResponseExample(response: ResponseState): void;
   environmentVariableNames: string[];
 }) {
+  const requestUrlInputRef = useRef<HTMLInputElement>(null);
   const requestFolderId = activeRequest ? activeRequestFolderId(activeCollection, activeRequest.id) : undefined;
   const requestFolder = requestFolderId
     ? folderOptions.find((option) => option.folder.id === requestFolderId)?.folder
@@ -84,6 +85,14 @@ export function RequestWorkspace({
   const routePreview = activeRequest
     ? resolveRoutePreview(activeRequest, activeEnvironment, activeCollection, routingFolder, folderOptions)
     : undefined;
+  const isTokenRequest = activeRequest ? isTokenEndpointRequest(activeRequest) : false;
+  const tokenEndpointNeedsAttention = Boolean(
+    isTokenRequest && activeRequest && (
+      !activeRequest.url.trim() ||
+      routePreview?.missing.length ||
+      (!isAbsoluteUrl(activeRequest.url) && !routing?.effective)
+    )
+  );
   const requestAuthSummary = activeRequest
     ? authSummary(activeRequest.auth, inheritedTokenVariable)
     : "No request selected";
@@ -129,11 +138,13 @@ export function RequestWorkspace({
               </select>
               <input
                 aria-label="Request URL"
+                placeholder={isTokenRequest ? "https://auth.example.com/token or {{baseUrl}}/auth/token" : "https://api.example.com/path"}
                 onChange={(event) =>
                   onUpdateRequest((request) => {
                     request.url = event.target.value;
                   })
                 }
+                ref={requestUrlInputRef}
                 value={activeRequest.url}
               />
               <button className="primary-button" disabled={isSending} onClick={onSend} type="button">
@@ -141,6 +152,22 @@ export function RequestWorkspace({
                 {isSending ? "Sending" : "Send"}
               </button>
             </div>
+            {tokenEndpointNeedsAttention && (
+              <div className="token-endpoint-guidance" role="alert">
+                <div>
+                  <strong>Token endpoint needs a URL</strong>
+                  <span>Enter the full token URL, or configure a base URL and use a path such as <code>{"{{baseUrl}}/auth/token"}</code>.</span>
+                </div>
+                <button className="secondary-button" onClick={() => requestUrlInputRef.current?.focus()} type="button">
+                  {activeRequest.url.trim() ? "Edit token URL" : "Enter token URL"}
+                </button>
+                {!isAbsoluteUrl(activeRequest.url) && !routing?.effective && (
+                  <button className="secondary-button" onClick={onConfigureRouting} type="button">
+                    Configure route
+                  </button>
+                )}
+              </div>
+            )}
             {routePreview && (
               <div className={routePreview.missing.length ? "request-route request-route--warning" : "request-route"} role="status">
                 <span>{routePreview.missing.length ? "Needs values" : "Will send"}</span>
@@ -254,6 +281,14 @@ function authSummary(auth: AuthConfig, inheritedTokenVariable?: string): string 
   const folderReference = inheritedTokenVariable ? `{{${inheritedTokenVariable}}}` : undefined;
   if (folderReference && auth.token === folderReference) return `Bearer · folder token (${inheritedTokenVariable})`;
   return auth.token.trim() ? "Bearer token" : "Bearer · missing token";
+}
+
+function isTokenEndpointRequest(request: ApiRequest): boolean {
+  return /(jwt|oauth|token)/i.test(`${request.name} ${request.url}`);
+}
+
+function isAbsoluteUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value.trim());
 }
 
 function RequestNameInput({ name, onCommit }: { name: string; onCommit(name: string): void }) {

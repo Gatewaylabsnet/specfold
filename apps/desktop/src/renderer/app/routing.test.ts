@@ -41,6 +41,26 @@ describe("resolveRoutePreview", () => {
     });
   });
 
+  it("does not warn when a base URL alias is missing", () => {
+    const request = createRequest({ name: "Get", method: "GET", url: "{{baseURL}}/users" });
+
+    expect(resolveRoutePreview(request, undefined, undefined, undefined, [])).toEqual({
+      url: "{{baseURL}}/users",
+      missing: []
+    });
+  });
+
+  it("resolves the Postman-style baseURL alias from a collection route", () => {
+    const collection = createCollection("Gateway");
+    collection.baseUrl = "https://api.tarimorman.gov.tr/ureticikayit";
+    const request = createRequest({ name: "List", method: "GET", url: "{{baseURL}}/ruhsat" });
+
+    expect(resolveRoutePreview(request, undefined, collection, undefined, [])).toEqual({
+      url: "https://api.tarimorman.gov.tr/ureticikayit/ruhsat",
+      missing: []
+    });
+  });
+
   it("accepts an inherited environment base URL for a relative request", () => {
     const collection = createCollection("Gateway");
     collection.baseUrl = "   ";
