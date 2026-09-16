@@ -62,7 +62,7 @@ describe("collection tree", () => {
     expect(screen.queryByText("Find order")).toBeNull();
 
     await user.click(accountsButton);
-    expect(onSelectFolder).toHaveBeenCalledWith(accounts.id);
+    expect(onSelectFolder).toHaveBeenCalledWith(accounts.id, collection.id);
   });
 
   it("supports selection, search, and inline rename", async () => {
@@ -132,5 +132,43 @@ describe("collection tree", () => {
     expect(screen.getByRole("button", { name: "Expand Active API" })).toBeTruthy();
     expect(screen.queryByText("List records")).toBeNull();
     expect(noop).not.toHaveBeenCalled();
+  });
+
+  it("fires selected folder row actions without treating them as row selection", async () => {
+    const collection = createCollection("Action API");
+    const folder = createFolder("New Folder");
+    collection.folders.push(folder);
+    const onDeleteFolder = vi.fn();
+    const onDuplicateFolder = vi.fn();
+    const onSelectFolder = vi.fn();
+    const noop = vi.fn();
+    const user = userEvent.setup();
+
+    render(<CollectionTree
+      activeCollectionId={collection.id}
+      collections={[collection]}
+      selectedFolderId={folder.id}
+      onDeleteCollection={noop}
+      onDeleteFolder={onDeleteFolder}
+      onDeleteRequest={noop}
+      onDuplicateFolder={onDuplicateFolder}
+      onDuplicateRequest={noop}
+      onMoveFolderTo={noop}
+      onMoveRequestTo={noop}
+      onRenameCollection={noop}
+      onRenameFolder={noop}
+      onRenameRequest={noop}
+      onToggleRequestFavorite={noop}
+      onSelectCollection={noop}
+      onSelectFolder={onSelectFolder}
+      onSelectRequest={noop}
+    />);
+
+    await user.click(screen.getByTitle("Duplicate New Folder"));
+    await user.click(screen.getByTitle("Delete New Folder"));
+
+    expect(onDuplicateFolder).toHaveBeenCalledWith(folder.id);
+    expect(onDeleteFolder).toHaveBeenCalledWith(folder.id);
+    expect(onSelectFolder).not.toHaveBeenCalled();
   });
 });

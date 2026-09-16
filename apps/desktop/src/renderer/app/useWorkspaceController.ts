@@ -85,6 +85,9 @@ export function useWorkspaceController(state: StudioState) {
       }
     });
     setSelectedFolderId(folder.id);
+    setSelectedRequestId(undefined);
+    setResponse(undefined);
+    setScreen("editor");
   };
 
   const addRequest = (kind: "blank" | "jwt" | "apinizer-jwt" | "oauth-client" | "oauth-password") => {
@@ -232,10 +235,11 @@ export function useWorkspaceController(state: StudioState) {
   };
 
   const renameFolder = (folderId: string, name: string) => {
-    if (!activeCollection) {
+    const sourceCollection = workspace.collections.find((collection) => findFolder(collection, folderId));
+    if (!sourceCollection) {
       return;
     }
-    mutateCollection(activeCollection.id, (collection) => {
+    mutateCollection(sourceCollection.id, (collection) => {
       const folder = findFolder(collection, folderId);
       if (folder) {
         folder.name = name;
@@ -244,10 +248,11 @@ export function useWorkspaceController(state: StudioState) {
   };
 
   const deleteFolder = (folderId: string) => {
-    if (!activeCollection) {
+    const sourceCollection = workspace.collections.find((collection) => findFolder(collection, folderId));
+    if (!sourceCollection) {
       return;
     }
-    const folder = findFolder(activeCollection, folderId);
+    const folder = findFolder(sourceCollection, folderId);
     if (!folder) {
       return;
     }
@@ -260,31 +265,34 @@ export function useWorkspaceController(state: StudioState) {
       return;
     }
     const selectedLocation = selectedRequestId
-      ? findRequest(activeCollection, selectedRequestId)
+      ? findRequest(sourceCollection, selectedRequestId)
       : undefined;
     const selectionInFolder =
       selectedLocation?.folderPath.some((candidate) => candidate.id === folderId) ?? false;
     const selectedFolderInSubtree =
       selectedFolderId !== undefined &&
-      (selectedFolderId === folderId || Boolean(findFolder({ ...activeCollection, folders: [folder], requests: [] }, selectedFolderId)));
+      (selectedFolderId === folderId || Boolean(findFolder({ ...sourceCollection, folders: [folder], requests: [] }, selectedFolderId)));
 
-    mutateCollection(activeCollection.id, (collection) => {
+    mutateCollection(sourceCollection.id, (collection) => {
       removeFolder(collection, folderId);
     });
     if (selectedFolderInSubtree) {
+      setActiveCollectionId(sourceCollection.id);
       setSelectedFolderId(undefined);
     }
     if (selectionInFolder) {
+      setActiveCollectionId(sourceCollection.id);
       setSelectedRequestId(undefined);
       setResponse(undefined);
     }
   };
 
   const duplicateFolder = (folderId: string) => {
-    if (!activeCollection) {
+    const sourceCollection = workspace.collections.find((collection) => findFolder(collection, folderId));
+    if (!sourceCollection) {
       return;
     }
-    mutateCollection(activeCollection.id, (collection) => {
+    mutateCollection(sourceCollection.id, (collection) => {
       const source = findFolder(collection, folderId);
       if (!source) {
         return;
@@ -303,13 +311,15 @@ export function useWorkspaceController(state: StudioState) {
         }
       }
     });
+    setActiveCollectionId(sourceCollection.id);
   };
 
   const renameRequest = (requestId: string, name: string) => {
-    if (!activeCollection) {
+    const sourceCollection = workspace.collections.find((collection) => findRequest(collection, requestId));
+    if (!sourceCollection) {
       return;
     }
-    mutateCollection(activeCollection.id, (collection) => {
+    mutateCollection(sourceCollection.id, (collection) => {
       const location = findRequest(collection, requestId);
       if (location) {
         location.request.name = name;
@@ -328,37 +338,40 @@ export function useWorkspaceController(state: StudioState) {
   };
 
   const deleteRequest = (requestId: string) => {
-    if (!activeCollection) {
+    const sourceCollection = workspace.collections.find((collection) => findRequest(collection, requestId));
+    if (!sourceCollection) {
       return;
     }
-    const location = findRequest(activeCollection, requestId);
+    const location = findRequest(sourceCollection, requestId);
     if (!location) {
       return;
     }
     if (!window.confirm(`Delete request "${location.request.name}"? This cannot be undone.`)) {
       return;
     }
-    mutateCollection(activeCollection.id, (collection) => {
+    mutateCollection(sourceCollection.id, (collection) => {
       removeRequest(collection, requestId);
     });
     if (selectedRequestId === requestId) {
+      setActiveCollectionId(sourceCollection.id);
       setSelectedRequestId(undefined);
       setResponse(undefined);
     }
   };
 
   const duplicateRequest = (requestId: string) => {
-    if (!activeCollection) {
+    const sourceCollection = workspace.collections.find((collection) => findRequest(collection, requestId));
+    if (!sourceCollection) {
       return;
     }
     // Clone outside the state updater: React defers updater execution, so an
     // id captured inside the recipe would not be available here yet.
-    const source = findRequest(activeCollection, requestId);
+    const source = findRequest(sourceCollection, requestId);
     if (!source) {
       return;
     }
     const copy = cloneRequest(source.request);
-    mutateCollection(activeCollection.id, (collection) => {
+    mutateCollection(sourceCollection.id, (collection) => {
       const location = findRequest(collection, requestId);
       if (!location) {
         return;
@@ -367,6 +380,8 @@ export function useWorkspaceController(state: StudioState) {
       const index = container.findIndex((candidate) => candidate.id === requestId);
       container.splice(index + 1, 0, copy);
     });
+    setActiveCollectionId(sourceCollection.id);
+    setSelectedFolderId(source.folder?.id);
     setSelectedRequestId(copy.id);
     setResponse(undefined);
   };

@@ -228,6 +228,8 @@ export function App() {
               isSending={isSending}
               onAddJwtRequest={() => addRequest("jwt")}
               onAddRequest={() => addRequest("blank")}
+              onDeleteFolder={treeActions.onDeleteFolder}
+              onDuplicateFolder={treeActions.onDuplicateFolder}
               onMoveRequest={moveActiveRequest}
               onRequestTabChange={setRequestTab}
               onSend={sendActiveRequest}

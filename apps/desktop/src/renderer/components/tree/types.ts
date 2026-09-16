@@ -11,8 +11,8 @@ export interface DropTarget {
 
 export interface TreeActions {
   onSelectCollection(collectionId: string): void;
-  onSelectFolder(folderId: string): void;
-  onSelectRequest(requestId: string): void;
+  onSelectFolder(folderId: string, collectionId: string): void;
+  onSelectRequest(requestId: string, collectionId: string): void;
   onRenameCollection(collectionId: string, name: string): void;
   onDeleteCollection(collectionId: string): void;
   onRenameFolder(folderId: string, name: string): void;

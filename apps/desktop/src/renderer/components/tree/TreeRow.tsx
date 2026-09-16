@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from "react";
 import { ChevronDown, ChevronRight, Copy, Pencil, Star, Trash2 } from "lucide-react";
 import type { TreeContext } from "./types";
 
@@ -48,6 +48,7 @@ export function TreeRow({
   onDuplicate?(): void;
 }) {
   const isEditing = context.editingId === id;
+  const isSelected = /\bis-(active|selected)\b/.test(className);
   const [draft, setDraft] = useState(label);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -66,18 +67,30 @@ export function TreeRow({
     }
     context.setEditingId(undefined);
   };
+  const stopActionPointer = (event: PointerEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+  };
+  const runAction = (event: MouseEvent<HTMLButtonElement>, action: () => void) => {
+    event.stopPropagation();
+    action();
+  };
 
   return (
     <div
       className={[
         "tree-row",
         onToggleExpanded ? "tree-row--expandable" : "",
+        isSelected ? "tree-row--selected" : "",
         dropClass ?? ""
       ].filter(Boolean).join(" ")}
       draggable={draggable && !isEditing}
       onDragStart={
         onDragStart
           ? (event) => {
+              if ((event.target as HTMLElement).closest(".tree-row__actions, .tree-row__toggle")) {
+                event.preventDefault();
+                return;
+              }
               event.dataTransfer.effectAllowed = "move";
               // Firefox requires data to be set for a drag to start.
               event.dataTransfer.setData("text/plain", id);
@@ -103,7 +116,13 @@ export function TreeRow({
             }
           : undefined
       }
-      style={indent ? { paddingLeft: `${indent}px` } : undefined}
+      style={
+        indent
+          ? ({
+              ["--tree-row-indent" as string]: `${indent}px`
+            } as CSSProperties)
+          : undefined
+      }
     >
       {onToggleExpanded && (
         <button
@@ -146,15 +165,26 @@ export function TreeRow({
           </button>
           <div className="tree-row__actions">
             <button
+              aria-label="Rename item"
               className="tree-action"
-              onClick={() => context.setEditingId(id)}
-              title="Rename"
+              draggable={false}
+              onClick={(event) => runAction(event, () => context.setEditingId(id))}
+              onPointerDown={stopActionPointer}
+              title={`Rename ${label}`}
               type="button"
             >
               <Pencil size={13} />
             </button>
             {onDuplicate && (
-              <button className="tree-action" onClick={onDuplicate} title="Duplicate" type="button">
+              <button
+                aria-label="Duplicate item"
+                className="tree-action"
+                draggable={false}
+                onClick={(event) => runAction(event, onDuplicate)}
+                onPointerDown={stopActionPointer}
+                title={`Duplicate ${label}`}
+                type="button"
+              >
                 <Copy size={13} />
               </button>
             )}
@@ -162,14 +192,24 @@ export function TreeRow({
               <button
                 aria-label={favorite ? "Unpin request" : "Pin request"}
                 className={favorite ? "tree-action is-favorite" : "tree-action"}
-                onClick={onToggleFavorite}
+                draggable={false}
+                onClick={(event) => runAction(event, onToggleFavorite)}
+                onPointerDown={stopActionPointer}
                 title={favorite ? "Unpin request" : "Pin request"}
                 type="button"
               >
                 <Star fill={favorite ? "currentColor" : "none"} size={13} />
               </button>
             )}
-            <button className="tree-action tree-action--danger" onClick={onDelete} title="Delete" type="button">
+            <button
+              aria-label="Delete item"
+              className="tree-action tree-action--danger"
+              draggable={false}
+              onClick={(event) => runAction(event, onDelete)}
+              onPointerDown={stopActionPointer}
+              title={`Delete ${label}`}
+              type="button"
+            >
               <Trash2 size={13} />
             </button>
           </div>

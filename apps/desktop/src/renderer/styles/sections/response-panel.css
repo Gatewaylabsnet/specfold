@@ -96,6 +96,12 @@
   font-size: 20px;
 }
 
+.empty-state__hint {
+  margin: -4px 0 0;
+  color: #607086;
+  font-size: 13px;
+}
+
 .list-button {
   display: flex;
   align-items: center;

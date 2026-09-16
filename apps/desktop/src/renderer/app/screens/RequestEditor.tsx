@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Copy, Plus, Send, Terminal, Wand2 } from "lucide-react";
+import { Copy, Plus, Send, Terminal, Trash2, Wand2 } from "lucide-react";
 import { flattenFolders, folderAccessTokenVariable, type ApiRequest, type AuthConfig, type Collection, type Environment, type Folder, type HttpMethod } from "@openapi-collection-studio/core";
 import { KeyValueEditor } from "../../components/KeyValueEditor";
 import { HorizontalSplitPane } from "../../components/HorizontalSplitPane";
@@ -24,6 +24,8 @@ export function RequestWorkspace({
   isSending,
   onAddRequest,
   onAddJwtRequest,
+  onDeleteFolder,
+  onDuplicateFolder,
   onUpdateRequest,
   onUpdateFolderTokenVariable,
   onMoveRequest,
@@ -49,6 +51,8 @@ export function RequestWorkspace({
   responseHistory: ResponseHistoryEntry[];
   onAddRequest(): void;
   onAddJwtRequest(): void;
+  onDeleteFolder(folderId: string): void;
+  onDuplicateFolder(folderId: string): void;
   onUpdateRequest(recipe: (request: ApiRequest) => void): void;
   onUpdateFolderTokenVariable(folderId: string, variableName: string): void;
   onMoveRequest(folderId: string): void;
@@ -244,7 +248,12 @@ export function RequestWorkspace({
           </>
         ) : (
           <div className="empty-state">
-            <h2>No request selected</h2>
+            <h2>{activeFolder ? activeFolder.name : "No request selected"}</h2>
+            {activeFolder && (
+              <p className="empty-state__hint">
+                Folder selected. Add a request here or manage the folder.
+              </p>
+            )}
             <div className="button-row">
               <button className="primary-button" disabled={!activeCollection} onClick={onAddRequest} type="button">
                 <Plus size={16} />
@@ -254,6 +263,18 @@ export function RequestWorkspace({
                 <Wand2 size={16} />
                 JWT request
               </button>
+              {activeFolder && (
+                <>
+                  <button className="secondary-button" onClick={() => onDuplicateFolder(activeFolder.id)} type="button">
+                    <Copy size={16} />
+                    Duplicate folder
+                  </button>
+                  <button className="danger-button" onClick={() => onDeleteFolder(activeFolder.id)} type="button">
+                    <Trash2 size={16} />
+                    Delete folder
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}

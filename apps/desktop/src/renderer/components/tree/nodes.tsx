@@ -154,7 +154,7 @@ function FolderNode({
           context.setDropHint(undefined);
         }}
         onSelect={() => {
-          context.onSelectFolder(folder.id);
+          context.onSelectFolder(folder.id, collectionId);
         }}
         onToggleExpanded={hasChildren ? () => context.toggleFolderExpanded(folder.id) : undefined}
         onRename={(name) => context.onRenameFolder(folder.id, name)}
@@ -241,7 +241,7 @@ function RequestNode({
         context.setDrag(undefined);
         context.setDropHint(undefined);
       }}
-      onSelect={() => context.onSelectRequest(request.id)}
+      onSelect={() => context.onSelectRequest(request.id, collectionId)}
       onRename={(name) => context.onRenameRequest(request.id, name)}
       favorite={Boolean(request.favorite)}
       onToggleFavorite={() => context.onToggleRequestFavorite(request.id)}
