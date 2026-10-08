@@ -2,7 +2,7 @@ import { test, expect, _electron } from "@playwright/test";
 import { createServer } from "node:http";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,7 +13,9 @@ const electronExecutable: string = createRequire(import.meta.url)("electron");
 const command = promisify(execFile);
 test("actual desktop blocks agent writes and approves/redacts a separate local network request", async () => {
   test.setTimeout(90_000);
-  const root = await mkdtemp(join(tmpdir(), "specfold-desktop-agent-"));
+  // Hosted Windows runners may expose TEMP through an 8.3 path alias.
+  // Use the canonical fixture path; the production unsafe-path guard stays strict.
+  const root = await realpath(await mkdtemp(join(tmpdir(), "specfold-desktop-agent-")));
   let calls = 0, authorization = "";
   const server = createServer((request, response) => {
     calls++; authorization = request.headers.authorization ?? "";
@@ -52,9 +54,14 @@ test("actual desktop blocks agent writes and approves/redacts a separate local n
     const atRest = await readFile(join(root, "workspace.json"), "utf8");
     expect(atRest).not.toContain("LOCAL_TEST_SECRET");
     expect(atRest).toContain("enc:v1:");
-    const listed = JSON.parse((await run("list")).stdout);
+    const listedResult = await run("list");
+    expect(listedResult.stderr).toBe("");
+    expect(listedResult.stdout).not.toBe("");
+    const listed = JSON.parse(listedResult.stdout);
     expect(listed.collections[0].name).toBe("Local API");
-    const preview = JSON.parse((await run("preview", "--file", join(repository, "packages/agent/fixtures/tarimkredi.synthetic.openapi.yaml"), "--apinizer")).stdout);
+    const previewResult = await run("preview", "--file", join(repository, "packages/agent/fixtures/tarimkredi.synthetic.openapi.yaml"), "--apinizer");
+    expect(previewResult.stderr).toBe("");
+    const preview = JSON.parse(previewResult.stdout);
     const apply = await run("apply", "--allow-apply", "--plan", preview.planId, "--revision", preview.expectedRevision);
     expect(JSON.parse(apply.stderr).code).toBe("WORKSPACE_BUSY");
     expect(await readFile(join(root, "workspace.json"), "utf8")).toBe(atRest);
