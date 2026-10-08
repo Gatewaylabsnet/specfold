@@ -258,12 +258,19 @@ describe("storage service", () => {
     await writeFile(join(userData, "workspace.corrupt-old.json"), "corrupt", "utf8");
     const unrelated = join(userData, "keep-me.txt");
     await writeFile(unrelated, "keep", "utf8");
+    await mkdir(join(userData, ".agent"));
+    await writeFile(join(userData, ".agent", "plan-key"), "key");
+    await writeFile(join(userData, ".agent", "sample.plan.json"), "sanitized plan");
+    await writeFile(join(userData, ".agent", "network-endpoint.json"), "live session");
 
     await service.deleteAllLocalData();
     expect(await readFile(unrelated, "utf8")).toBe("keep");
     await expect(stat(paths.workspace)).rejects.toMatchObject({ code: "ENOENT" });
     await expect(stat(paths.settings)).rejects.toMatchObject({ code: "ENOENT" });
     await expect(stat(paths.backups)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(stat(join(userData, ".agent", "plan-key"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(stat(join(userData, ".agent", "sample.plan.json"))).rejects.toMatchObject({ code: "ENOENT" });
+    expect(await readFile(join(userData, ".agent", "network-endpoint.json"), "utf8")).toBe("live session");
   });
 
   it("reports the local data location and latest automatic safety backup", async () => {
@@ -273,12 +280,13 @@ describe("storage service", () => {
     await mkdir(paths.backups, { recursive: true });
     await writeFile(join(paths.backups, "workspace-2026-08-04.json"), "backup", "utf8");
     await writeFile(join(paths.backups, "restore-safety-2026-08-05.workspace.json"), "backup", "utf8");
+    await writeFile(join(paths.backups, "agent-safety-test.workspace.json"), "backup", "utf8");
     await writeFile(join(paths.backups, "unrelated.json"), "backup", "utf8");
 
     const info = await service.getLocalDataInfo();
 
     expect(info.dataPath).toBe(userData);
-    expect(info.backupCount).toBe(2);
+    expect(info.backupCount).toBe(3);
     expect(info.latestBackupAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 });

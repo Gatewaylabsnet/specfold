@@ -1,7 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const roots = ["apps/desktop/src", "packages/core/src"];
+const roots = ["apps/desktop/src", "packages/core/src", "packages/agent/src"];
 const extensions = new Set([".ts", ".tsx", ".css"]);
 const limit = 500;
 const failures = [];

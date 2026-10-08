@@ -20,6 +20,10 @@ Local `$ref` values are resolved where practical. Remote `$ref` values are retai
 
 Preview runs Import Doctor. Its warnings identify skipped, unsupported, or manual-completion items before the user imports; Preview never writes a collection. When a user explicitly chooses an existing collection as the import destination, safe re-import reports matched, added, and retained requests. It updates matches without deleting existing requests and retains their ID, auth, body, and saved examples.
 
+OpenAPI diagnostics additionally warn about non-empty OAuth scopes on HTTP bearer schemes, schema/example type mismatches, and sensitive example data. Agent imports use these same warnings and redact credential-like/personal examples (including source metadata) before creating a signed plan. Desktop's ordinary import fidelity is unchanged; warnings are non-blocking. Neither import path executes requests or fetches remote references.
+
+The optional [local agent](LOCAL_AGENT.md) accepts OpenAPI/Swagger JSON/YAML only, not arbitrary portable formats. Its mutation previews produce a diff and exact workspace revision, require interactive human approval, and apply only with the desktop closed and a matching revision. Auto-targeting repeated imports uses collection title/base URL and stable method/path identities; explicit collection ID selection is recommended after renaming or rerouting. No credential value or new environment is invented by the Apinizer recipe.
+
 Multipart text values remain editable. File paths from imported OpenAPI/Swagger/Postman/Insomnia/HAR/cURL content are untrusted: only the base filename is retained as a disabled placeholder and the user must choose the file again through the native picker. Upload IDs, absolute paths, and file bytes are excluded from Collection JSON, OpenAPI, workspace persistence, and complete backups.
 
 ## URL And Environment Rules

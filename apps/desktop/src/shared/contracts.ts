@@ -17,6 +17,7 @@ export interface AppSettings {
   allowInsecureTls: boolean;
   theme: ThemePreference;
   fontSize: FontSizePreference;
+  agentNetworkEnabled?: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -24,7 +25,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   maxResponseBytes: 10 * 1024 * 1024,
   allowInsecureTls: false,
   theme: "system",
-  fontSize: "compact"
+  fontSize: "compact",
+  agentNetworkEnabled: false
 };
 
 export interface SendRequestPayload {

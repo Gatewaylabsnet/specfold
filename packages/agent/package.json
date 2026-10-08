@@ -1,0 +1,26 @@
+{
+  "name": "@specfold/agent",
+  "version": "1.9.4",
+  "private": true,
+  "type": "module",
+  "description": "Local, approval-gated Specfold MCP server and CLI",
+  "bin": { "specfold-agent": "dist/index.js" },
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node build.mjs && vitest run",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@openapi-collection-studio/core": "1.9.4",
+    "zod": "^4.3.6",
+    "yaml": "^2.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "esbuild": "^0.27.0",
+    "typescript": "^5.5.4",
+    "vitest": "^4.1.10"
+  }
+}

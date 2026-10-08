@@ -107,6 +107,14 @@ export function SettingsScreen({
         <div className="status-box status-box--warning">
           Restoring replaces the current workspace after creating a local safety copy. Deleting data is permanent.
         </div>
+        <h3>Local agents</h3>
+        <p>Agents can inspect saved collections and propose imports. Close Specfold before applying a CLI-approved plan.</p>
+        <label className="check-row">
+          <input type="checkbox" checked={settings.agentNetworkEnabled === true}
+            onChange={(event) => onChange({ agentNetworkEnabled: event.target.checked })} />
+          <span>Allow local agents to request network access (ask me before every request)</span>
+        </label>
+        <p>Off by default. Enabling this does not permit automatic execution: a native confirmation is always required.</p>
         <h3>Requests</h3>
         <label className="field">
           <span>Request timeout (ms)</span>

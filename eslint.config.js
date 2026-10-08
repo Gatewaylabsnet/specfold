@@ -35,7 +35,7 @@ export default tseslint.config(
     }
   },
   {
-    files: ["apps/desktop/src/main/**/*.ts", "apps/desktop/src/preload/**/*.ts", "scripts/**/*.mjs"],
+    files: ["apps/desktop/src/main/**/*.ts", "apps/desktop/src/preload/**/*.ts", "packages/agent/**/*.{ts,mjs}", "scripts/**/*.mjs"],
     languageOptions: {
       globals: { ...globals.node }
     }

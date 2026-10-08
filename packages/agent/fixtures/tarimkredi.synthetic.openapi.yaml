@@ -1,0 +1,83 @@
+# Synthetic acceptance fixture, NOT the Ministry's production specification.
+# No real credentials, personal records or network calls are involved.
+openapi: 3.0.3
+info:
+  title: TarimKredi Synthetic Acceptance
+  version: 1.0.0
+servers:
+  - url: https://api.tarimorman.gov.tr/tarimkredi
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Input:
+      type: object
+      properties:
+        recordId:
+          type: integer
+          example: '42'
+        tckn:
+          type: string
+          example: '11111111111'
+    Output:
+      type: object
+      properties:
+        success:
+          type: boolean
+  requestBodies:
+    Input:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Input'
+          example:
+            recordId: '42'
+            tckn: '11111111111'
+  responses:
+    Success:
+      description: Synthetic success
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Output'
+          example:
+            success: true
+security:
+  - bearer: [read]
+paths:
+  /SyntheticMethod01:
+    post: {operationId: method01, tags: [Service], requestBody: {$ref: '#/components/requestBodies/Input'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /SyntheticMethod02:
+    post: {operationId: method02, tags: [Service], requestBody: {$ref: '#/components/requestBodies/Input'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /SyntheticMethod03:
+    post: {operationId: method03, tags: [Service], requestBody: {$ref: '#/components/requestBodies/Input'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /SyntheticMethod04:
+    post: {operationId: method04, tags: [Service], requestBody: {$ref: '#/components/requestBodies/Input'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /SyntheticMethod05:
+    post: {operationId: method05, tags: [Service], requestBody: {$ref: '#/components/requestBodies/Input'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /SyntheticMethod06:
+    post: {operationId: method06, tags: [Service], requestBody: {$ref: '#/components/requestBodies/Input'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /SyntheticMethod07:
+    post: {operationId: method07, tags: [Service], requestBody: {$ref: '#/components/requestBodies/Input'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /SyntheticMethod08:
+    post: {operationId: method08, tags: [Service], requestBody: {$ref: '#/components/requestBodies/Input'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /SyntheticMethod09:
+    post: {operationId: method09, tags: [Service], requestBody: {$ref: '#/components/requestBodies/Input'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /SyntheticMethod10:
+    post: {operationId: method10, tags: [Service], requestBody: {$ref: '#/components/requestBodies/Input'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /SyntheticMethod11:
+    post: {operationId: method11, tags: [Service], requestBody: {$ref: '#/components/requestBodies/Input'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /SyntheticMethod12:
+    post: {operationId: method12, tags: [Service], requestBody: {$ref: '#/components/requestBodies/Input'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /SyntheticMethod13:
+    post: {operationId: method13, tags: [Service], requestBody: {$ref: '#/components/requestBodies/Input'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /SyntheticMethod14:
+    post: {operationId: method14, tags: [Service], requestBody: {$ref: '#/components/requestBodies/Input'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /SyntheticMethod15:
+    post: {operationId: method15, tags: [Service], requestBody: {$ref: '#/components/requestBodies/Input'}, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /SyntheticMethod16:
+    post: {operationId: method16, tags: [Service], requestBody: {$ref: '#/components/requestBodies/Input'}, responses: {'200': {$ref: '#/components/responses/Success'}}}

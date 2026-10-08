@@ -2,15 +2,18 @@ import {
   chmod,
   copyFile,
   mkdir,
+  lstat,
   readdir,
   readFile,
   rename,
   rm,
+  rmdir,
   stat,
-  unlink,
-  writeFile
+  unlink
 } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { atomicWriteFile } from "../../../../packages/agent/src/atomicFile";
+export { atomicWriteFile } from "../../../../packages/agent/src/atomicFile";
 import {
   createEmptyWorkspace,
   ensureWorkspaceEnvironment,
@@ -65,19 +68,6 @@ export function storagePaths(userData: string): StoragePaths {
     settings: join(userData, "app-settings.json"),
     backups: join(userData, "backups")
   };
-}
-
-export async function atomicWriteFile(path: string, content: string, mode = 0o600): Promise<void> {
-  await mkdir(dirname(path), { recursive: true });
-  const tempPath = `${path}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  try {
-    await writeFile(tempPath, content, { encoding: "utf8", mode });
-    await rename(tempPath, path);
-    await chmod(path, mode).catch(() => undefined);
-  } catch (error) {
-    await unlink(tempPath).catch(() => undefined);
-    throw error;
-  }
 }
 
 export function createStorageService(options: StorageServiceOptions) {
@@ -395,6 +385,19 @@ export function createStorageService(options: StorageServiceOptions) {
       unlink(paths.settings).catch(() => undefined),
       rm(paths.backups, { recursive: true, force: true })
     ]);
+    // Clear user plans/approvals/keys, retaining only the live session bridge.
+    const agentState = join(paths.userData, ".agent");
+    const agentInfo = await lstat(agentState).catch(() => undefined);
+    if (agentInfo?.isSymbolicLink()) await unlink(agentState);
+    else if (agentInfo?.isDirectory()) {
+      for (const name of await readdir(agentState)) {
+        if (name === "network-endpoint.json" || name === "network.sock") continue;
+        const target = resolve(agentState, name);
+        if (dirname(target) !== resolve(agentState)) throw new Error("Unsafe agent data path.");
+        await rm(target, { recursive: true, force: true });
+      }
+      await rmdir(agentState).catch(() => undefined);
+    }
     const entries = await readdir(paths.userData).catch(() => [] as string[]);
     await Promise.all(entries
       .filter((name) => /^workspace\.(?:corrupt-|json\.tmp-)/i.test(name))
@@ -403,7 +406,7 @@ export function createStorageService(options: StorageServiceOptions) {
 
   const getLocalDataInfo = async (): Promise<LocalDataInfo> => {
     const entries = await readdir(paths.backups).catch(() => [] as string[]);
-    const backupEntries = entries.filter((name) => /^(workspace-|restore-safety-).*\.json$/i.test(name));
+    const backupEntries = entries.filter((name) => /^(workspace-|restore-safety-|agent-safety-).*\.json$/i.test(name));
     const datedBackups = await Promise.all(
       backupEntries.map(async (name) => {
         try {

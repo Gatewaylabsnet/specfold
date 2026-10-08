@@ -17,6 +17,8 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace @openapi-collection-studio/desktop",
+    "agent": "node packages/agent/dist/index.js",
+    "agent:build": "npm run build --workspace @specfold/agent",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
     "test": "npm run test --workspaces --if-present",

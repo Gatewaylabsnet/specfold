@@ -13,3 +13,7 @@ export * from "./variables/resolveVariables";
 export * from "./http/prepareHttpRequest";
 export * from "./curl/curl";
 export * from "./storage/storage";
+export * from "./agent/types";
+export * from "./agent/redaction";
+export * from "./agent/openApiWarnings";
+export * from "./agent/operations";

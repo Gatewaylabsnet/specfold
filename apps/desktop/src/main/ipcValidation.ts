@@ -19,6 +19,7 @@ export function validateIpcSettings(value: unknown): AppSettings {
       !isFiniteNumber(value.requestTimeoutMs) || value.requestTimeoutMs < 0 ||
       !isFiniteNumber(value.maxResponseBytes) || value.maxResponseBytes <= 0 ||
       typeof value.allowInsecureTls !== "boolean" ||
+      (value.agentNetworkEnabled !== undefined && typeof value.agentNetworkEnabled !== "boolean") ||
       !isOneOf(value.theme, ["system", "light", "dark"]) ||
       !isOneOf(value.fontSize, ["compact", "default", "large"])) {
     throw new Error("Invalid settings payload.");

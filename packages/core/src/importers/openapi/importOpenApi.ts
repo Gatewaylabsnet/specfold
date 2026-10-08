@@ -30,6 +30,7 @@ import type {
   RequestBody
 } from "../../model/types";
 import type { ImportOptions, ImportPreview, ImportResult, ParsedApiDocument } from "../types";
+import { agentOpenApiWarnings } from "../../agent/openApiWarnings";
 
 export function importOpenApiText(text: string, options: ImportOptions): ImportResult {
   const parsed = parseApiText(text);
@@ -69,7 +70,7 @@ export function importOpenApiDocument(
   };
 
   const folderMap = new Map<string, Folder>();
-  const warnings: string[] = [];
+  const warnings: string[] = agentOpenApiWarnings(document);
   const paths = getRecord(document, "paths");
   const securitySchemes = collectSecuritySchemes(document);
   const selectedKeys = options.operationKeys ? new Set(options.operationKeys) : undefined;

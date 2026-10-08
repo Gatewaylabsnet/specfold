@@ -10,9 +10,12 @@ const proxyAgents = new ProxyAgentCache();
 
 export async function sendHttpRequest(
   payload: SendRequestPayload,
-  uploadOwnerId = -1
+  uploadOwnerId = -1,
+  limits?: { maxResponseBytes: number; timeoutMs: number; allowInsecureTls: boolean; redirect: "error" | "follow" | "manual" }
 ): Promise<SendRequestResult> {
-  const settings = await loadSettings();
+  const settings = { ...await loadSettings(), ...(limits ? {
+    maxResponseBytes: limits.maxResponseBytes, requestTimeoutMs: limits.timeoutMs, allowInsecureTls: limits.allowInsecureTls
+  } : {}) };
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), settings.requestTimeoutMs);
   const previousTlsSetting = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
@@ -45,6 +48,7 @@ export async function sendHttpRequest(
         method: prepared.method,
         headers: requestHeaders,
         body: requestBody,
+        redirect: limits?.redirect,
         signal: controller.signal
       },
       (url) => session.defaultSession.resolveProxy(url),

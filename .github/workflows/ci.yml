@@ -44,7 +44,9 @@ jobs:
       - name: Exercise packaged Electron workflows
         env:
           SPECFOLD_E2E_EXECUTABLE: dist/win-unpacked/Specfold.exe
-        run: npm run test:e2e --workspace @openapi-collection-studio/desktop
+        run: |
+          npm run build --workspace @specfold/agent
+          npm run test:e2e --workspace @openapi-collection-studio/desktop
 
       - name: Upload packaged E2E diagnostics
         if: failure()

@@ -32,7 +32,8 @@ export function normalizeSettings(value: unknown): AppSettings {
     theme: input.theme === "light" || input.theme === "dark" || input.theme === "system"
       ? input.theme : DEFAULT_SETTINGS.theme,
     fontSize: input.fontSize === "compact" || input.fontSize === "default" || input.fontSize === "large"
-      ? input.fontSize : DEFAULT_SETTINGS.fontSize
+      ? input.fontSize : DEFAULT_SETTINGS.fontSize,
+    agentNetworkEnabled: input.agentNetworkEnabled === true
   };
 }
 

@@ -8,6 +8,7 @@
 4. React controller hooks own workspace, import, request, export, data-management, and safe re-import workflows.
 5. React screens and tree components render editor, import, environments, export, and settings views.
 6. Core pure functions own the model, importers, exporters, variables, cURL conversion, and HTTP preparation.
+7. Optional CLI and stdio MCP adapters in `packages/agent` call a shared revision/approval service and the same core proposal/merge operations. They read opaque saved state, not decrypted environment values. Desktop and agent share the atomic persistence primitive and a cooperative exclusive writer lease.
 
 Production TypeScript, TSX, and CSS source files are kept below 500 lines. Generated output under `out` and `dist` is excluded.
 ESLint, strict TypeScript checks, tests, source-size checks, and production builds run through `npm run release:check`. Renderer routes that are not needed for the initial editor load are lazy-loaded, while React, icons, and core logic are emitted as stable build chunks.
@@ -23,6 +24,7 @@ apps/desktop/src/main
   security.ts           trusted main-frame IPC and renderer checks
   storage.ts            Electron dialogs and storage adapter
   storageService.ts     testable atomic persistence, backup, restore, rollback
+  agentNetwork.ts       default-off native-consent local agent network bridge
   http.ts               request and import-URL HTTP clients
   uploadFiles.ts        session-only upload grants and bounded FormData assembly
   importSources.ts      bounded Postman v3 folder traversal
@@ -37,16 +39,27 @@ apps/desktop/src/renderer
   components/HorizontalSplitPane.tsx accessible request/response resizing
   styles/sections       cascade-ordered style modules
 packages/core/src
+  agent                proposals, redaction, validation and shared import diagnostics
   importers/portable    Postman v2/v3, Insomnia, HAR, HTTP
   importers/reimport.ts non-destructive operation diff and merge
   exporters/openapi/export
   exporters/portable    Postman v2.1 and .http output
   model, variables, curl, http
+packages/agent/src
+  service.ts           signed preview/apply plans, human approvals and receipts
+  repository.ts        opaque snapshots, revision checks, safety backups and rollback
+  workspaceLock.ts     desktop-lifetime / agent-transaction single-writer lease
+  atomicFile.ts         shared atomic persistence primitive
+  cli.ts, mcp.ts        small transport adapters; no duplicate business logic
+  networkTransport.ts  authenticated same-user named-pipe / Unix-socket bridge
+  networkPolicy.ts     default-off execution, native consent and response redaction
 ```
 
 ## Data Flow
 
 The renderer calls pure core import/export functions directly. Persistence, native file access, and outgoing HTTP cross the sandboxed preload bridge. IPC payloads and native-menu events use shared contracts. IPC requests are accepted only from the trusted main frame; main also validates and bounds payloads at runtime before using them. Workspace mutations are serialized in main, while renderer autosave is debounced.
+
+The desktop holds `.specfold-writer.lock` for its lifetime. Agent mutation attempts while it is open fail explicitly; no external workspace file writes or live renderer replacement occur. Offline agent apply holds the same lease, requires the preview's exact disk revision and a signed interactive-CLI approval, and backs up/atomically replaces the saved state. Agent network execution is a separate main-process IPC capability with explicit settings opt-in and per-request native consent; only main resolves secrets. See [LOCAL_AGENT](LOCAL_AGENT.md) for protocol details and limits. Workspace schema and existing native/backup formats are unchanged.
 
 Multipart file bytes remain in the main-process boundary. A native picker registers a canonical local file under a random, session-only upload ID; the renderer receives only that ID plus display metadata. `Send` resolves approved IDs, revalidates the file, applies upload limits, and creates `FormData`. Imported or persisted IDs are not trusted, and multipart `Content-Type` is left to the fetch implementation so its boundary always matches the encoded body.
 
