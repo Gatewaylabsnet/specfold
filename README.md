@@ -16,6 +16,8 @@
   <a href="https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.4">Download v1.9.4</a>
   /
   <a href="docs/REDTEAM_REPORT.md">Security review</a>
+  /
+  <a href="docs/LOCAL_AGENT.md">Local MCP &amp; CLI preview</a>
 </p>
 
 <p align="center">
@@ -45,6 +47,42 @@ OpenAPI / Swagger / Postman / Insomnia / HAR / .http / cURL
 It is intentionally local-first. There is no account requirement, no cloud workspace, and no hosted sync layer. Your workspace, environments, request history, and secrets stay on the machine running the desktop app.
 
 > The published stable release is v1.9.4. It keeps folder and request actions attached to their owning collection, exposes clear actions when a folder is selected, and prevents tree-row controls from triggering drag or selection by accident. See the [release notes](docs/RELEASE_NOTES_v1.9.4.md) and [desktop runtime decision](docs/DESKTOP_RUNTIME_DECISION.md).
+
+## Local MCP server and CLI (source preview)
+
+An optional local stdio MCP server and CLI can inspect saved collections, preview OpenAPI imports, show diffs, bind token **variable names**, create Apinizer JWT recipes, validate collections, and apply human-approved revision-bound plans. Writes are disabled by default and are blocked while desktop is open. Network execution is separate, off by default, and requires native consent per request. Secrets remain opaque to the agent; responses and plans redact common sensitive fields.
+
+This integration is not yet in the published v1.9.4 packages. See [Local agent setup, MCP configuration, commands and security boundaries](docs/LOCAL_AGENT.md).
+
+Build from source with Node.js >=20.19 and npm >=10:
+
+```bash
+git clone https://github.com/Gatewaylabsnet/specfold.git
+cd specfold
+npm ci
+npm run agent:build
+node packages/agent/dist/index.js help
+```
+
+Use a saved sample profile from the **updated desktop source**, then configure a trusted MCP client's stdio command:
+
+```json
+{
+  "mcpServers": {
+    "specfold": {
+      "command": "node",
+      "args": [
+        "/absolute/path/to/specfold/packages/agent/dist/index.js",
+        "mcp", "--data-dir", "/absolute/path/to/Specfold-sample-profile"
+      ]
+    }
+  }
+}
+```
+
+This default enables inspection and previews, **not writes or network execution**. An operator must approve a plan in an interactive CLI terminal before opt-in apply; close the desktop first. Never use an older desktop without the writer lease against that profile concurrently. Redaction is heuristic, not guaranteed anonymization; a cloud-backed client may transmit even redacted structure outside your machine. [Read the complete safety and recovery guide](docs/LOCAL_AGENT.md#safety-backups-recovery-and-boundaries) before using real data.
+
+Example agent task: “List my collections, preview this OpenAPI document, show the diff and warnings, then stop. Bind bearer authentication to the `apinizerAuthAccessToken` variable name without requesting its value.”
 
 ## Download v1.9.4
 
