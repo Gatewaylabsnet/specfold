@@ -50,7 +50,9 @@ It is intentionally local-first. There is no account requirement, no cloud works
 
 ## Local MCP server and CLI (source preview)
 
-An optional local stdio MCP server and CLI can inspect saved collections, preview OpenAPI imports, show diffs, bind token **variable names**, create Apinizer JWT recipes, validate collections, and apply human-approved revision-bound plans. Writes are disabled by default and are blocked while desktop is open. Network execution is separate, off by default, and requires native consent per request. Secrets remain opaque to the agent; responses and plans redact common sensitive fields.
+Connect a trusted MCP client from **Settings → AI connections**: enable the optional connection, copy its JSON or Codex TOML configuration, and test it. The bundled helper uses Specfold's runtime; packaged users do not need a separate Node.js installation. The agent can inspect collections, preview OpenAPI imports, bind token **variable names**, create Apinizer JWT recipes and request a review. You approve or cancel the diff inside Specfold while it stays open. Main remains the only workspace writer; stale previews must be refreshed and repeated applies do not duplicate requests.
+
+Agent request sending is a separate, default-off permission. Choose native confirmation for each request or approve selected requests for a temporary session (15 minutes / 20 sends), with **Stop session** always available. Only main resolves credentials. JWT responses can update the existing encrypted `apinizerAuthAccessToken` without returning its value. Agents can read masked responses to prepare documentation; **Preview documentation draft** shows observed versus untested requests before export. Responses are untrusted data and cannot grant permission or publish a document.
 
 This integration is not yet in the published v1.9.4 packages. See [Local agent setup, MCP configuration, commands and security boundaries](docs/LOCAL_AGENT.md).
 
@@ -61,26 +63,19 @@ git clone https://github.com/Gatewaylabsnet/specfold.git
 cd specfold
 npm ci
 npm run agent:build
+npm run dev
+```
+
+Use a separate sample profile. In the updated desktop, open **Settings → AI connections → Enable AI connections**, choose your client format, then **Copy configuration** and **Test connection**. Keep Specfold open. The generated configuration contains your executable and profile paths; do not guess them.
+
+For advanced CLI use with the open desktop:
+
+```bash
+node packages/agent/dist/index.js list --desktop --data-dir /absolute/path/to/sample-profile
 node packages/agent/dist/index.js help
 ```
 
-Use a saved sample profile from the **updated desktop source**, then configure a trusted MCP client's stdio command:
-
-```json
-{
-  "mcpServers": {
-    "specfold": {
-      "command": "node",
-      "args": [
-        "/absolute/path/to/specfold/packages/agent/dist/index.js",
-        "mcp", "--data-dir", "/absolute/path/to/Specfold-sample-profile"
-      ]
-    }
-  }
-}
-```
-
-This default enables inspection and previews, **not writes or network execution**. An operator must approve a plan in an interactive CLI terminal before opt-in apply; close the desktop first. Never use an older desktop without the writer lease against that profile concurrently. Redaction is heuristic, not guaranteed anonymization; a cloud-backed client may transmit even redacted structure outside your machine. [Read the complete safety and recovery guide](docs/LOCAL_AGENT.md#safety-backups-recovery-and-boundaries) before using real data.
+AI connections and request execution both default to off. Redaction is heuristic, not guaranteed anonymization; a cloud-backed client may transmit even redacted structure outside your machine. The advanced offline CLI retains interactive terminal approval and rejects writes while desktop owns the profile. Never use an older desktop without the writer lease concurrently. [Read the complete safety and recovery guide](docs/LOCAL_AGENT.md#safety-backups-recovery-and-boundaries) before using real data.
 
 Example agent task: “List my collections, preview this OpenAPI document, show the diff and warnings, then stop. Bind bearer authentication to the `apinizerAuthAccessToken` variable name without requesting its value.”
 

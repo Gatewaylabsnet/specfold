@@ -1,7 +1,9 @@
 import { app, BrowserWindow, nativeImage, nativeTheme, session } from "electron";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { ThemePreference } from "../shared/contracts";
 import { isTrustedWebContents } from "./security";
+const mainDirectory = dirname(fileURLToPath(import.meta.url));
 
 function windowBackgroundColor(): string {
   return nativeTheme.shouldUseDarkColors ? "#111827" : "#f6f7f9";
@@ -19,7 +21,7 @@ export function resolveWindowIcon(): Electron.NativeImage | undefined {
   // file icon is separate and needs rcedit/winCodeSign, which isn't available
   // on this build path). Dev: apps/desktop/build; packaged: bundled in asar.
   const iconPath = process.env.ELECTRON_RENDERER_URL
-    ? join(__dirname, "../../build/icon.png")
+    ? join(mainDirectory, "../../build/icon.png")
     : join(app.getAppPath(), "build/icon.png");
   const image = nativeImage.createFromPath(iconPath);
   return image.isEmpty() ? undefined : image;
@@ -35,7 +37,7 @@ export function createWindow(): void {
     icon: resolveWindowIcon(),
     backgroundColor: windowBackgroundColor(),
     webPreferences: {
-      preload: join(__dirname, "../preload/index.cjs"),
+      preload: join(mainDirectory, "../preload/index.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true

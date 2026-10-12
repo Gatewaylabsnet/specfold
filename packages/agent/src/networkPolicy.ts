@@ -7,7 +7,8 @@ interface NetworkDependencies {
   enabled(): Promise<boolean>;
   snapshot(): Promise<{ workspace: Workspace; revision: string }>;
   confirm(summary: { method: string; route: string }): Promise<boolean>;
-  execute(payload: Parameters<typeof prepareHttpRequest>): Promise<unknown>;
+  execute(payload: Parameters<typeof prepareHttpRequest>, expectedRevision: string): Promise<unknown>;
+  additionalSecrets?(): string[];
 }
 
 /** The desktop owns secret resolution, native consent and HTTP execution. */
@@ -29,10 +30,10 @@ export async function executeApprovedNetwork(call: AgentNetworkCall, deps: Netwo
   if (!await deps.confirm(summary)) throw new AgentError("NETWORK_APPROVAL_DENIED");
   if (!await deps.enabled()) throw new AgentError("NETWORK_DISABLED");
   if ((await deps.snapshot()).revision !== revision) throw new AgentError("REVISION_CONFLICT");
-  const result = await deps.execute(payload);
+  const result = await deps.execute(payload, revision);
   // Error strings can contain reflected input; expose a generic error instead.
   if (result && typeof result === "object" && "error" in result && result.error) return { error: "Network request failed; inspect configuration in Specfold." };
   const resolvedSecrets = Object.entries(prepared.headers).filter(([name]) => isCredentialName(name)).flatMap(([, value]) =>
     [value, value.replace(/^(?:Bearer|Basic)\s+/i, "")]);
-  return redactAgentValue(result, [...secrets, ...resolvedSecrets].filter(Boolean));
+  return redactAgentValue(result, [...secrets, ...resolvedSecrets, ...deps.additionalSecrets?.() ?? []].filter(Boolean));
 }

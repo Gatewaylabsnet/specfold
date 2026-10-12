@@ -34,6 +34,12 @@ Users choose OpenAPI YAML, OpenAPI JSON, Collection JSON, Postman v2.1, or `.htt
 
 Export backup, Restore backup, and Delete all data are grouped together. Export warns that readable secrets are included. Restore confirms replacement and reports the local safety-copy path. Delete requires a warning plus exact `DELETE ALL` text. Request timeout, response cap, insecure TLS, workspace name, and new-workspace actions remain on the same screen. Settings uses a wider content column up to 960 px and falls back to one fluid column on narrow windows.
 
+## AI Connections (source preview)
+
+Settings reveals AI options only after **Enable AI connections**. JSON/Codex TOML configuration can be copied, inspected and tested; readiness and last connection are shown. **Review changes** appears in the top bar only for pending proposals. Its keyboard-accessible dialog displays route, counts, warnings and token references; stale proposals require **Refresh preview** before Apply. Cancel rejects the proposal; closing retains it for later review.
+
+Request execution requires a separate setting. Choose native consent per request or select collection/requests for a 15-minute / 20-send session with environment and destination confirmation, remaining count and **Stop session**. Documentation uses **Preview documentation draft** before native export, marks untested operations and warns that returned data is untrusted and masking heuristic. No automatic publication or model download occurs.
+
 ## Responsive Gate
 
 Desktop and narrow layouts must avoid horizontal viewport overflow. Release QA checks at least 1100x720, 1366x768, and 1920x1080, including long tree labels, Import, Settings, and response content.

@@ -2,6 +2,8 @@ import type { AppSettings } from "../types";
 import type { LocalDataInfo } from "../../../shared/contracts";
 import { Download, FolderOpen, Plus, Upload } from "lucide-react";
 import { formatHistoryTime } from "../helpers";
+import type { Workspace } from "@openapi-collection-studio/core";
+import { AIConnections } from "./AIConnections";
 
 export function SettingsScreen({
   settings,
@@ -15,7 +17,8 @@ export function SettingsScreen({
   isDeletingData,
   localDataInfo,
   onOpenLocalDataFolder,
-  savedBackupPath
+  savedBackupPath,
+  workspace
 }: {
   settings: AppSettings;
   onChange(patch: Partial<AppSettings>): void;
@@ -29,6 +32,7 @@ export function SettingsScreen({
   localDataInfo?: LocalDataInfo;
   onOpenLocalDataFolder(): void;
   savedBackupPath: string;
+  workspace?: Workspace;
 }) {
   return (
     <section className="settings-layout">
@@ -107,14 +111,7 @@ export function SettingsScreen({
         <div className="status-box status-box--warning">
           Restoring replaces the current workspace after creating a local safety copy. Deleting data is permanent.
         </div>
-        <h3>Local agents</h3>
-        <p>Agents can inspect saved collections and propose imports. Close Specfold before applying a CLI-approved plan.</p>
-        <label className="check-row">
-          <input type="checkbox" checked={settings.agentNetworkEnabled === true}
-            onChange={(event) => onChange({ agentNetworkEnabled: event.target.checked })} />
-          <span>Allow local agents to request network access (ask me before every request)</span>
-        </label>
-        <p>Off by default. Enabling this does not permit automatic execution: a native confirmation is always required.</p>
+        <AIConnections settings={settings} onChange={onChange} workspace={workspace} />
         <h3>Requests</h3>
         <label className="field">
           <span>Request timeout (ms)</span>

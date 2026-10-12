@@ -46,7 +46,7 @@ if (!gotSingleInstanceLock) {
     installAppProtocol();
     applyContentSecurityPolicy();
     registerIpcHandlers();
-    // Failure disables the optional agent network bridge, not the existing UI.
+    // Failure disables optional AI connections; the existing UI stays available.
     try { closeAgentNetworkHost = await installAgentNetworkHost(); } catch { /* Fail closed. */ }
     installApplicationMenu();
     createWindow();

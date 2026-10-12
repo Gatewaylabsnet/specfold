@@ -10,13 +10,7 @@ export type SaveStatus = "saved" | "dirty" | "saving" | "error";
 export type AppSettings = SharedAppSettings;
 export type { FontSizePreference, ThemePreference };
 
-export const DEFAULT_SETTINGS: AppSettings = {
-  requestTimeoutMs: 30_000,
-  maxResponseBytes: 10 * 1024 * 1024,
-  allowInsecureTls: false,
-  theme: "system",
-  fontSize: "compact"
-};
+export { DEFAULT_SETTINGS } from "../../shared/contracts";
 
 export interface ResponseState {
   status: number;

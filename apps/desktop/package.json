@@ -19,7 +19,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test -c e2e/playwright.config.ts",
     "test:e2e:packaged": "npm run package:win:portable && npm run test:e2e",
-    "build": "electron-vite build",
+    "build": "npm run build --workspace @specfold/agent && electron-vite build",
     "package:win:portable": "npm run build && electron-builder --win portable --x64 -p never",
     "package:win:installer": "npm run build && electron-builder --win nsis --x64 -p never",
     "package:win": "npm run build && electron-builder --win nsis portable --x64 -p never",
@@ -66,6 +66,7 @@
       "package.json"
     ],
     "asar": true,
+    "extraResources": [{ "from": "../../packages/agent/dist/desktop.cjs", "to": "agent.cjs" }],
     "win": {
       "icon": "build/icon.ico",
       "artifactName": "${productName}-${version}-${arch}.${ext}",

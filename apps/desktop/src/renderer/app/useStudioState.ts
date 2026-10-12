@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   checkOpenApiDocument, collectCollectionSecretWarnings, createEmptyWorkspace,
   exportCollectionToHttpFile, exportCollectionToOpenApiResult, exportCollectionToPostman,
@@ -10,6 +10,7 @@ import { firstRequestId } from "./helpers";
 import { DEFAULT_SETTINGS } from "./types";
 import { applyFontSizePreference, applyThemePreference, observeThemePreference } from "./theme";
 import type { AppSettings, ExportFormat, RequestTab, ResponseHistoryEntry, ResponseState, SaveStatus, Screen } from "./types";
+import type { WorkspaceLoadResult } from "../../shared/contracts";
 
 export function useStudioState() {
   const [workspace, setWorkspace] = useState<Workspace>(() => createEmptyWorkspace());
@@ -54,6 +55,10 @@ export function useStudioState() {
   // A late save must never overwrite a workspace that was just restored or
   // deleted. The epoch also makes status updates from superseded saves inert.
   const workspaceSaveEpoch = useRef(0);
+  const generation = useRef(0);
+  const skipNextSave = useRef(false);
+  const needsSave = useRef(false);
+  const inFlightSave = useRef<Promise<void>>(Promise.resolve());
 
   // Auto-dismiss transient banners (copied cURL, saved variable, etc.) so they
   // do not linger. The user can also close them with the x button.
@@ -67,6 +72,7 @@ export function useStudioState() {
 
   useEffect(() => {
     window.studio.loadWorkspace().then((result) => {
+      generation.current = result.generation ?? 0;
       setWorkspace(result.workspace);
       setSecureStorageAvailable(result.secureStorageAvailable);
       if (result.recovered && result.message) {
@@ -95,6 +101,8 @@ export function useStudioState() {
     if (!loaded) {
       return;
     }
+    if (skipNextSave.current) { skipNextSave.current = false; return; }
+    needsSave.current = true;
     const saveEpoch = ++workspaceSaveEpoch.current;
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
@@ -102,18 +110,22 @@ export function useStudioState() {
         return;
       }
       setSaveStatus("saving");
-      void window.studio
-        .saveWorkspace(workspace)
+      const pending = window.studio
+        .saveWorkspace(workspace, generation.current)
         .then(() => {
           if (saveEpoch === workspaceSaveEpoch.current) {
+            needsSave.current = false;
             setSaveStatus("saved");
           }
         })
-        .catch(() => {
+        .catch((error) => {
           if (saveEpoch === workspaceSaveEpoch.current) {
             setSaveStatus("error");
           }
+          throw error;
         });
+      inFlightSave.current = pending;
+      void pending.catch(() => undefined);
     }, 350);
     return () => window.clearTimeout(saveTimer.current);
   }, [loaded, workspace]);
@@ -210,6 +222,7 @@ export function useStudioState() {
   const exportContent = exportResult.content;
 
   const mutateWorkspace = (recipe: (draft: Workspace) => void) => {
+    needsSave.current = true;
     setSaveStatus("dirty");
     setWorkspace((current) => {
       const draft = structuredClone(current) as Workspace;
@@ -219,26 +232,46 @@ export function useStudioState() {
     });
   };
 
-  const resetWorkspaceSaveQueue = () => {
+  const resetWorkspaceSaveQueue = useCallback(() => {
     workspaceSaveEpoch.current += 1;
     window.clearTimeout(saveTimer.current);
-  };
+  }, []);
 
-  const saveWorkspaceNow = async () => {
+  const replaceSavedWorkspace = useCallback((result: WorkspaceLoadResult, persist = false) => {
+    resetWorkspaceSaveQueue();
+    generation.current = result.generation ?? generation.current;
+    skipNextSave.current = !persist;
+    needsSave.current = persist;
+    setWorkspace(result.workspace);
+    setSecureStorageAvailable(result.secureStorageAvailable);
+    setSaveStatus("saved");
+  }, [resetWorkspaceSaveQueue]);
+
+  const saveWorkspaceNow = useCallback(async () => {
+    if (!needsSave.current) { await inFlightSave.current; return; }
     const saveEpoch = ++workspaceSaveEpoch.current;
     window.clearTimeout(saveTimer.current);
     setSaveStatus("saving");
     try {
-      await window.studio.saveWorkspace(workspace);
+      const pending = window.studio.saveWorkspace(workspace, generation.current);
+      inFlightSave.current = pending;
+      await pending;
       if (saveEpoch === workspaceSaveEpoch.current) {
+        needsSave.current = false;
         setSaveStatus("saved");
       }
-    } catch {
+    } catch (error) {
       if (saveEpoch === workspaceSaveEpoch.current) {
         setSaveStatus("error");
       }
+      throw error;
     }
-  };
+  }, [workspace]);
+
+  useEffect(() => window.studio.onAgentFlush?.(saveWorkspaceNow), [saveWorkspaceNow]);
+  useEffect(() => window.studio.onAgentEvent?.((event) => {
+    if (event === "changed") void window.studio.loadWorkspace().then((result) => replaceSavedWorkspace(result));
+  }), [replaceSavedWorkspace]);
 
   return { workspace, setWorkspace, loaded, setLoaded, screen, setScreen,
     activeCollectionId, setActiveCollectionId, selectedFolderId, setSelectedFolderId,
@@ -256,7 +289,7 @@ export function useStudioState() {
     setSavedExportPath, savedBackupPath, setSavedBackupPath, saveStatus, setSaveStatus,
     settings, setSettings, notice, setNotice, activeCollection, activeRequestLocation,
     activeRequest, activeEnvironment, exportResult, exportContent, mutateWorkspace, saveWorkspaceNow,
-    resetWorkspaceSaveQueue, secureStorageAvailable, setSecureStorageAvailable };
+    resetWorkspaceSaveQueue, replaceSavedWorkspace, secureStorageAvailable, setSecureStorageAvailable };
 }
 
 export type StudioState = ReturnType<typeof useStudioState>;

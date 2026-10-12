@@ -10,6 +10,8 @@ import { clearUploadFiles, registerUploadFile, releaseUploadFile, retainUploadFi
 import { applyNativeTheme } from "./window";
 import { openTrustedExternal } from "./external";
 import { assertTrustedIpcSender } from "./security";
+import { bumpWorkspaceGeneration, checkWorkspaceGeneration, workspaceGeneration } from "./workspaceGeneration";
+import { registerAgentIpc, resetAgentState, revokeAgentSession } from "./agentDesktop";
 import {
   validateExportPayload,
   validateIpcSettings,
@@ -22,6 +24,7 @@ import {
 const uploadOwnersWithCleanup = new Set<number>();
 
 export function registerIpcHandlers(): void {
+  registerAgentIpc();
   handleTrusted("app:info", () => ({
     name: "Specfold",
     version: app.getVersion(),
@@ -35,17 +38,26 @@ export function registerIpcHandlers(): void {
   handleTrusted("app:openExternal", async (_event, value: unknown) => {
     await openTrustedExternal(validateUrl(value));
   });
-  handleTrusted("workspace:load", () => loadWorkspace());
-  handleTrusted("workspace:save", (event, value: unknown) => {
+  handleTrusted("workspace:load", () => serializeStorageMutation(async () => ({ ...await loadWorkspace(), generation: workspaceGeneration() })));
+  handleTrusted("workspace:save", (event, value: unknown, expected?: number) => {
     const workspace = validateIpcWorkspace(value);
     registerUploadOwnerCleanup(event.sender);
     retainUploadFiles(event.sender.id, uploadIdsInWorkspace(workspace));
-    return serializeStorageMutation(() => saveWorkspace(workspace));
+    return serializeStorageMutation(() => {
+      if (expected !== undefined && (!Number.isSafeInteger(expected) || expected < 0)) throw new Error("Invalid workspace generation.");
+      checkWorkspaceGeneration(expected);
+      return saveWorkspace(workspace);
+    });
   });
   handleTrusted("settings:load", () => loadSettings());
   handleTrusted("settings:save", async (_event, value: unknown) => {
     const settings = validateIpcSettings(value);
-    const saved = await serializeStorageMutation(() => saveSettings(settings));
+    const saved = await serializeStorageMutation(async () => {
+      const previous = await loadSettings();
+      if (previous.agentEnabled !== settings.agentEnabled || previous.agentNetworkEnabled !== settings.agentNetworkEnabled ||
+        previous.agentNetworkMode !== settings.agentNetworkMode) revokeAgentSession();
+      return saveSettings(settings);
+    });
     applyNativeTheme(saved.theme);
     return saved;
   });
@@ -116,16 +128,23 @@ export function registerIpcHandlers(): void {
   handleTrusted("file:exportBackup", (_event, value: unknown) =>
     exportFullBackup(validateIpcWorkspace(value)));
   handleTrusted("file:restoreBackup", async () => {
-    const result = await serializeStorageMutation(restoreBackup);
+    const result = await serializeStorageMutation(async () => {
+      const restored = await restoreBackup();
+      if (restored.restored) bumpWorkspaceGeneration();
+      return restored;
+    });
     if (result.restored) {
+      resetAgentState();
       clearUploadFiles();
       applyNativeTheme(result.settings?.theme ?? DEFAULT_SETTINGS.theme);
     }
-    return result;
+    return { ...result, generation: workspaceGeneration() };
   });
   handleTrusted("data:deleteAll", () => serializeStorageMutation(async () => {
     clearUploadFiles();
     await deleteAllLocalData();
+    bumpWorkspaceGeneration();
+    resetAgentState();
     applyNativeTheme(DEFAULT_SETTINGS.theme);
   }));
   handleTrusted("data:info", () => getLocalDataInfo());

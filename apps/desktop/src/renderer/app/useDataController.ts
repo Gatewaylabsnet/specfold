@@ -95,7 +95,7 @@ export function useDataController(state: StudioState, workspaceController: Works
       return;
     }
     const firstCollection = result.workspace.collections[0];
-    setWorkspace(result.workspace);
+    state.replaceSavedWorkspace({ workspace: result.workspace, generation: result.generation, recovered: false, secureStorageAvailable: result.secureStorageAvailable });
     setSettings(result.settings);
     setActiveCollectionId(firstCollection?.id);
     setSelectedFolderId(undefined);
@@ -134,8 +134,8 @@ export function useDataController(state: StudioState, workspaceController: Works
     } finally {
       setIsDeletingData(false);
     }
-    const nextWorkspace = createEmptyWorkspace();
-    setWorkspace(nextWorkspace);
+    const fresh = await window.studio.loadWorkspace();
+    state.replaceSavedWorkspace(fresh, true);
     setSettings(DEFAULT_SETTINGS);
     setActiveCollectionId(undefined);
     setSelectedFolderId(undefined);

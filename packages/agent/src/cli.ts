@@ -3,7 +3,7 @@ import { AgentError } from "./errors";
 import { readBoundedFile } from "./repository";
 import type { AgentService } from "./service";
 
-export const HELP = `Specfold local agent (saved data only)
+export const HELP = `Specfold local agent
   list
   inspect --collection ID --request ID
   preview --file openapi.json [--base-url URL] [--collection ID] [--apinizer]
@@ -13,15 +13,19 @@ export const HELP = `Specfold local agent (saved data only)
   validate --collection ID
   approve --plan PLAN_ID --revision REVISION  (interactive human approval)
   apply --plan PLAN_ID --revision REVISION    (requires --allow-apply and approval)
+  review --plan PLAN_ID --revision REVISION   (request review in the open desktop)
+  status --plan PLAN_ID                      (read the user's decision)
+  documentation --collection ID             (redacted definitions and observed responses)
   send --collection ID --request ID          (requires --allow-network + desktop native consent)
   mcp                                       (stdio MCP transport)
-Global: --data-dir DIRECTORY (required), --allow-apply and --allow-network (off by default)
-Only reads saved workspace.json. Close desktop before apply. No token arguments.`;
+Global: --data-dir DIRECTORY (required), --desktop (use the open desktop's single writer)
+--allow-apply and --allow-network are off by default.
+Use review with --desktop for in-app human approval. Offline apply requires desktop closed. No token arguments.`;
 
 export function parseArguments(argv: string[]): { command: string; options: Record<string, string | true> } {
   const options: Record<string, string | true> = Object.create(null);
   let command = "help";
-  const flags = new Set(["apinizer", "allow-apply", "allow-network", "help"]);
+  const flags = new Set(["apinizer", "allow-apply", "allow-network", "desktop", "help"]);
   const valued = new Set(["data-dir", "collection", "request", "folder", "file", "base-url", "variable", "plan", "revision"]);
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -53,6 +57,9 @@ export async function runCli(service: AgentService, command: string, options: Re
     case "apinizer": return service.preview({ kind: "create-apinizer", collectionId: required("collection"), baseUrl: optional("base-url") });
     case "validate": return service.validateCollection(required("collection"));
     case "apply": return service.apply(required("plan"), required("revision"));
+    case "review": return service.requestReview(required("plan"), required("revision"));
+    case "status": return service.planStatus(required("plan"));
+    case "documentation": return service.documentation(required("collection"));
     case "send": return service.sendRequest(required("collection"), required("request"));
     case "approve": {
       if (!process.stdin.isTTY || !process.stderr.isTTY) throw new AgentError("APPROVAL_REQUIRED");

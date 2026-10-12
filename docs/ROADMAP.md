@@ -25,6 +25,14 @@
 
 Acceptance criteria and release gates: [v1.3.1-v1.5 delivery plan](V1_3_TO_V1_5_DELIVERY_PLAN.md).
 
+## Local Agent Usability — Source Preview
+
+Implemented: copied JSON/Codex setup, bundled runtime, real connection test, open-desktop human review/apply, serialized single writer with editor flush/revision/generation guards, stale-preview refresh/cancel, selected-request consent expiry/count/revocation, encrypted JWT capture, masked observations and documentation preview/export.
+
+Engineering acceptance: synthetic 16 POST + separate JWT + bearer references, no duplicate apply, no import HTTP calls, old renderer-save rejection, stale revision refresh, default-off execution and redacted documentation tested on Windows. Stable packages remain v1.9.4; no publication is implied by this source work.
+
+Remaining launch evidence: multi-platform package/checksum verification, actual client UI checks, and five human testers (four self-service connections; three repeat uses within two weeks). Automated tests do not complete the usability pilot.
+
 ## Later
 
 - Windows code signing.

@@ -28,6 +28,18 @@ if (browserPreview && typeof window.studio === "undefined") {
   workspace.collections.push(previewCollection);
   window.studio = {
     onAppMenuAction: () => () => undefined,
+    onAgentEvent: () => () => undefined,
+    onAgentFlush: () => () => undefined,
+    getAgentConnection: async () => ({ available: false, configuration: { command: "Specfold", args: [] }, pending: [] }),
+    testAgentConnection: async () => ({ ok: false, message: "AI connections require the desktop app." }),
+    reviewAgentPlan: async () => { throw new Error("AI connections require the desktop app."); },
+    refreshAgentPlan: async () => { throw new Error("AI connections require the desktop app."); },
+    applyAgentPlan: async () => { throw new Error("AI connections require the desktop app."); },
+    rejectAgentPlan: async () => undefined,
+    startAgentSession: async () => { throw new Error("AI connections require the desktop app."); },
+    stopAgentSession: async () => undefined,
+    exportAgentDocumentation: async () => ({ canceled: true }),
+    previewAgentDocumentation: async () => "Documentation preview requires the desktop application.",
     getAppInfo: async () => ({
       name: "Specfold",
       version: "browser-preview",

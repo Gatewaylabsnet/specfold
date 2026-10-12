@@ -1,0 +1,22 @@
+.ai-connections {
+  margin: 24px 0;
+  padding: 16px;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  background: var(--surface-primary);
+}
+.ai-connections h3 { margin-top: 0; }
+.ai-connections p, .agent-review p { color: var(--text-secondary); line-height: 1.5; }
+.ai-connections details { margin: 12px 0; }
+.agent-config { max-height: 180px; overflow: auto; padding: 12px; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.agent-request-list { max-height: 220px; overflow: auto; margin-bottom: 12px; padding: 8px; border: 1px solid var(--border-default); border-radius: 6px; }
+.agent-request-list .check-row { align-items: flex-start; }
+.agent-request-list span { min-width: 0; overflow-wrap: anywhere; }
+.agent-documentation { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-default); }
+.agent-documentation-preview { max-height: 360px; background: var(--surface-secondary); }
+.agent-review { width: min(720px, 100%); }
+.agent-route { overflow-wrap: anywhere; }
+.agent-summary { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; padding: 12px; background: var(--surface-secondary); border-radius: 8px; }
+.agent-review details { margin: 14px 0; }
+.agent-review li { overflow-wrap: anywhere; margin-bottom: 6px; }
+.agent-review__actions { justify-content: flex-end; margin-top: 20px; }

@@ -33,7 +33,9 @@ export function normalizeSettings(value: unknown): AppSettings {
       ? input.theme : DEFAULT_SETTINGS.theme,
     fontSize: input.fontSize === "compact" || input.fontSize === "default" || input.fontSize === "large"
       ? input.fontSize : DEFAULT_SETTINGS.fontSize,
-    agentNetworkEnabled: input.agentNetworkEnabled === true
+    agentNetworkEnabled: input.agentNetworkEnabled === true,
+    agentEnabled: input.agentEnabled === true,
+    agentNetworkMode: input.agentNetworkMode === "session" ? "session" : "ask"
   };
 }
 

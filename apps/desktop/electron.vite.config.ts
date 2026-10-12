@@ -6,7 +6,7 @@ const coreEntry = resolve(__dirname, "../../packages/core/src/index.ts");
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin({ exclude: ["@openapi-collection-studio/core"] })],
+    plugins: [externalizeDepsPlugin({ exclude: ["@openapi-collection-studio/core", "@modelcontextprotocol/sdk", "zod", "yaml"] })],
     resolve: {
       alias: {
         "@openapi-collection-studio/core": coreEntry

@@ -10,8 +10,10 @@ import { atomicWriteFile } from "./atomicFile";
 import { AgentError } from "./errors";
 import { AgentRepository, readBoundedFile, revisionOf } from "./repository";
 import { mutationSchema } from "./validation";
-import { callNetworkHost } from "./networkTransport";
+import { callDesktopHost, callNetworkHost } from "./networkTransport";
 import { assertOpaqueCredentialStorage } from "./secretGuard";
+import type { AgentPlanDiff, AgentPreview } from "./desktopContracts";
+import type { ApiRequest } from "@openapi-collection-studio/core";
 
 interface StoredPlan {
   schema: "specfold.agent-plan.v1";
@@ -27,9 +29,13 @@ const PLAN_TTL_MS = 24 * 60 * 60 * 1000;
 const checkId = (id: string) => { if (!/^[a-f0-9]{64}$/.test(id)) throw new AgentError("INVALID_PLAN"); };
 
 export class AgentService {
-  constructor(readonly repository: AgentRepository, readonly allowApply = false, readonly allowNetwork = false) {}
+  constructor(readonly repository: AgentRepository, readonly allowApply = false, readonly allowNetwork = false,
+    readonly desktopOnly = false) {}
 
-  async listCollections() {
+  async listCollections(): Promise<{ revision: string; collections: Array<{ id: string; name: string; baseUrl?: string;
+    requests: Array<{ id: string; name: string; method: string; path: string; folders: Array<{ id: string; name: string }> }> }>;
+    variables: Array<{ id: string; name: string; variables: Array<{ name: string; enabled: boolean; secret: boolean }> }> }> {
+    if (this.desktopOnly) return callDesktopHost(this.repository.root, { operation: "list" });
     const { workspace, revision } = await this.repository.snapshot();
     return redactAgentValue({ revision, collections: workspace.collections.map((collection) => ({
       id: collection.id, name: collection.name, baseUrl: collection.baseUrl,
@@ -42,7 +48,8 @@ export class AgentService {
     })) }, workspaceSecrets(workspace));
   }
 
-  async inspectRequest(collectionId: string, requestId: string) {
+  async inspectRequest(collectionId: string, requestId: string): Promise<{ revision: string; request: ApiRequest; folderPath: Array<{ id: string; name: string; baseUrl?: string }> }> {
+    if (this.desktopOnly) return callDesktopHost(this.repository.root, { operation: "inspect", collectionId, requestId });
     const { workspace, revision } = await this.repository.snapshot();
     const location = findRequest(requireAgentCollection(workspace, collectionId), requestId);
     if (!location) throw new AgentError("REQUEST_NOT_FOUND");
@@ -50,7 +57,8 @@ export class AgentService {
       folderPath: location.folderPath.map(({ id, name, baseUrl }) => ({ id, name, baseUrl })) }, workspaceSecrets(workspace));
   }
 
-  async validateCollection(collectionId: string) {
+  async validateCollection(collectionId: string): Promise<{ revision: string; valid: boolean; issues: string[]; requestCount: number }> {
+    if (this.desktopOnly) return callDesktopHost(this.repository.root, { operation: "validate", collectionId });
     const { workspace, revision } = await this.repository.snapshot();
     return { revision, ...validateAgentCollection(workspace, collectionId) };
   }
@@ -70,9 +78,10 @@ export class AgentService {
     return createHmac("sha256", await this.key()).update(JSON.stringify(payload)).digest("hex");
   }
 
-  async preview(input: unknown) {
+  async preview(input: unknown): Promise<AgentPreview> {
     const parsed = mutationSchema.safeParse(input);
     if (!parsed.success) throw new AgentError("INVALID_PLAN");
+    if (this.desktopOnly) return callDesktopHost(this.repository.root, { operation: "preview", action: parsed.data });
     const { workspace, revision } = await this.repository.snapshot();
     let action = parsed.data;
     let proposal;
@@ -121,17 +130,20 @@ export class AgentService {
     } catch { throw new AgentError("INVALID_PLAN"); }
   }
 
-  async showDiff(planId: string) {
+  async showDiff(planId: string): Promise<AgentPlanDiff> {
+    if (this.desktopOnly) return callDesktopHost(this.repository.root, { operation: "diff", planId });
     const plan = await this.loadPlan(planId);
     const { workspace, revision } = await this.repository.snapshot();
     if (revision !== plan.expectedRevision) throw new AgentError("REVISION_CONFLICT");
     const proposal = previewAgentMutation(workspace, plan.action);
     return redactAgentValue({ planId, expectedRevision: revision, diff: proposal.diff,
+      collection: { name: proposal.collection.name, baseUrl: proposal.collection.baseUrl },
       warnings: plan.warnings, intent: this.intent(plan.action) }, workspaceSecrets(workspace));
   }
 
-  /** Called only by the interactive CLI after a human types the exact challenge. */
+  /** Called only after interactive CLI or trusted desktop human approval. */
   async approve(planId: string, expectedRevision: string) {
+    if (this.desktopOnly) throw new AgentError("APPROVAL_REQUIRED");
     const plan = await this.loadPlan(planId);
     const { revision } = await this.repository.snapshot();
     if (plan.expectedRevision !== expectedRevision || revision !== expectedRevision) throw new AgentError("REVISION_CONFLICT");
@@ -142,6 +154,16 @@ export class AgentService {
   }
 
   async apply(planId: string, expectedRevision: string): Promise<{ planId: string; revision: string; collectionId: string; alreadyApplied: boolean; safetyBackup?: string }> {
+    if (this.desktopOnly) throw new AgentError("WRITES_DISABLED");
+    return this.applyLocally(planId, expectedRevision, false);
+  }
+
+  /** Only the trusted desktop UI calls this. No MCP approval tool exists. */
+  async approveAndApply(planId: string, expectedRevision: string) {
+    return this.applyLocally(planId, expectedRevision, true);
+  }
+
+  private async applyLocally(planId: string, expectedRevision: string, desktopApproval: boolean) {
     if (!this.allowApply) throw new AgentError("WRITES_DISABLED");
     const plan = await this.loadPlan(planId);
     if (expectedRevision !== plan.expectedRevision) throw new AgentError("REVISION_CONFLICT");
@@ -158,29 +180,43 @@ export class AgentService {
       } catch { /* An absent receipt does not grant permission. */ }
       if (snapshot.revision !== expectedRevision) throw new AgentError("REVISION_CONFLICT");
       assertOpaqueCredentialStorage(snapshot.workspace);
+      const approvalPath = join(directory, `${planId}.approval.json`);
       try {
-        const approval = JSON.parse(await readBoundedFile(join(directory, `${planId}.approval.json`), 4096));
-        if (approval.planId !== planId || approval.expectedRevision !== expectedRevision ||
-            approval.planSignature !== plan.signature ||
-            approval.signature !== await this.sign({ planId, expectedRevision, planSignature: plan.signature })) throw new AgentError("APPROVAL_REQUIRED");
-      } catch { throw new AgentError("APPROVAL_REQUIRED"); }
-      const proposal = previewAgentMutation(snapshot.workspace, plan.action);
-      if (!proposal.targetCollectionId) proposal.collection.id = plan.collectionId;
-      const workspace = applyAgentProposal(snapshot.workspace, proposal);
-      assertOpaqueCredentialStorage(workspace);
-      const revision = revisionOf(JSON.stringify(workspace, null, 2));
-      const receiptPayload = { planId, revision, collectionId: proposal.collection.id };
-      const receipt = { ...receiptPayload, signature: await this.sign(receiptPayload) };
-      const safetyBackup = await this.repository.commit(workspace, snapshot.raw, receiptPath, receipt);
-      await unlink(join(directory, `${planId}.approval.json`)).catch(() => undefined);
-      return { ...receiptPayload, alreadyApplied: false, safetyBackup };
+        if (desktopApproval) await this.approve(planId, expectedRevision);
+        try {
+          const approval = JSON.parse(await readBoundedFile(approvalPath, 4096));
+          if (approval.planId !== planId || approval.expectedRevision !== expectedRevision ||
+              approval.planSignature !== plan.signature ||
+              approval.signature !== await this.sign({ planId, expectedRevision, planSignature: plan.signature })) throw new AgentError("APPROVAL_REQUIRED");
+        } catch { throw new AgentError("APPROVAL_REQUIRED"); }
+        const proposal = previewAgentMutation(snapshot.workspace, plan.action);
+        if (!proposal.targetCollectionId) proposal.collection.id = plan.collectionId;
+        const workspace = applyAgentProposal(snapshot.workspace, proposal);
+        assertOpaqueCredentialStorage(workspace);
+        const revision = revisionOf(JSON.stringify(workspace, null, 2));
+        const receiptPayload = { planId, revision, collectionId: proposal.collection.id };
+        const receipt = { ...receiptPayload, signature: await this.sign(receiptPayload) };
+        const safetyBackup = await this.repository.commit(workspace, snapshot.raw, receiptPath, receipt);
+        await unlink(approvalPath).catch(() => undefined);
+        return { ...receiptPayload, alreadyApplied: false, safetyBackup };
+      } finally {
+        if (desktopApproval) await unlink(approvalPath).catch(() => undefined);
+      }
     });
   }
 
   async sendRequest(collectionId: string, requestId: string): Promise<unknown> {
     if (!this.allowNetwork) throw new AgentError("NETWORK_DISABLED");
-    return callNetworkHost(this.repository.root, { collectionId, requestId });
+    return this.desktopOnly ? callDesktopHost(this.repository.root, { operation: "send", collectionId, requestId })
+      : callNetworkHost(this.repository.root, { collectionId, requestId });
   }
+
+  async requestReview(planId: string, expectedRevision: string) {
+    return callDesktopHost(this.repository.root, { operation: "review", planId, expectedRevision });
+  }
+
+  async planStatus(planId: string) { return callDesktopHost(this.repository.root, { operation: "status", planId }); }
+  async documentation(collectionId: string) { return callDesktopHost(this.repository.root, { operation: "documentation", collectionId }); }
 
   private intent(action: AgentMutation) {
     if (action.kind === "import-openapi") return { kind: action.kind, targetCollectionId: action.targetCollectionId, apinizer: action.apinizer === true,

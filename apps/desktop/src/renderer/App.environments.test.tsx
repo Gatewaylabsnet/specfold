@@ -34,7 +34,7 @@ describe("environment management", () => {
 
     await waitFor(() => expect(api.saveWorkspace).toHaveBeenCalledWith(expect.objectContaining({
       environments: [expect.objectContaining({ name: "Staging" })]
-    })));
+    }), 0));
   });
 
   it("shows deletion progress and resets the workspace after confirmation", async () => {

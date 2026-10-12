@@ -1,6 +1,6 @@
 import { net, protocol } from "electron";
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolveRendererAssetPath } from "./protocolPaths";
 
 const APP_SCHEME = "specfold";
@@ -21,7 +21,7 @@ export function registerAppProtocolScheme(): void {
 }
 
 export function installAppProtocol(): void {
-  const rendererRoot = join(__dirname, "../renderer");
+  const rendererRoot = join(dirname(fileURLToPath(import.meta.url)), "../renderer");
   protocol.handle(APP_SCHEME, (request) => {
     const requestUrl = new URL(request.url);
     if (requestUrl.host !== APP_HOST) {

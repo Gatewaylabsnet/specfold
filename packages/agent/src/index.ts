@@ -9,7 +9,7 @@ try {
   if (command === "help" || options.help) process.stdout.write(`${HELP}\n`);
   else {
     if (typeof options["data-dir"] !== "string") throw new Error("DATA_DIRECTORY_REQUIRED");
-    const service = new AgentService(new AgentRepository(options["data-dir"]), options["allow-apply"] === true, options["allow-network"] === true);
+    const service = new AgentService(new AgentRepository(options["data-dir"]), options["allow-apply"] === true, options["allow-network"] === true, options.desktop === true);
     if (command === "mcp") await startMcp(service);
     else process.stdout.write(`${JSON.stringify(await runCli(service, command, options), null, 2)}\n`);
   }

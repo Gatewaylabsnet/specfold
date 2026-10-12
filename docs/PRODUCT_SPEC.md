@@ -18,6 +18,8 @@ Specfold is a simple, local-first desktop REST API collection studio for develop
 - OAuth recipes start with only required fields enabled; optional scope can be enabled when the provider requires it.
 - Export, validate, and restore a complete local backup; delete every local Specfold data file with strong confirmation.
 - Show installed version metadata and manually check GitHub Releases for newer versions.
+- Optionally connect a trusted MCP agent with copied configuration and a connection test; review/import/bearer proposals inside the open desktop. This remains a source preview, not part of stable v1.9.4.
+- Explicitly permit agent sends per request or selected-request temporary session, read masked responses and prepare observed/untested documentation drafts for human review.
 
 ## Product Principles
 
@@ -27,6 +29,7 @@ Specfold is a simple, local-first desktop REST API collection studio for develop
 - Safe persistence: atomic writes, encryption at rest, restore rollback, and no plaintext fallback for secrets.
 - Explicit file access: imported documents can describe file fields but can never make Specfold read a local path; every upload file requires a native picker grant for the current session.
 - Progressive disclosure: Import Doctor, route resolution, and response tools surface the next action without adding a scripting language or cloud workflow.
+- Optional AI: connection and execution are off by default; no model account/setup is required for ordinary API work. Only desktop main writes or resolves credentials.
 
 ## Non-Goals
 

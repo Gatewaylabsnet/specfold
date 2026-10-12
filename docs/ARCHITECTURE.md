@@ -25,6 +25,10 @@ apps/desktop/src/main
   storage.ts            Electron dialogs and storage adapter
   storageService.ts     testable atomic persistence, backup, restore, rollback
   agentNetwork.ts       default-off native-consent local agent network bridge
+  agentDesktop.ts       typed live-agent calls and trusted human review actions
+  agentWorkspace.ts     shared storage queue, editor flush and generation guard
+  agentExecution.ts     consent sessions, main-only JWT capture and observations
+  agentConnection.ts    bundled helper configuration and real stdio connection test
   http.ts               request and import-URL HTTP clients
   uploadFiles.ts        session-only upload grants and bounded FormData assembly
   importSources.ts      bounded Postman v3 folder traversal
@@ -53,13 +57,16 @@ packages/agent/src
   cli.ts, mcp.ts        small transport adapters; no duplicate business logic
   networkTransport.ts  authenticated same-user named-pipe / Unix-socket bridge
   networkPolicy.ts     default-off execution, native consent and response redaction
+  networkSession.ts    exact request/environment fingerprints, expiry and send count
+  documentation.ts     bounded redacted observed/untested context and Markdown draft
+  desktopEntry.ts      bundled stdio proxy, no workspace writes or secret resolution
 ```
 
 ## Data Flow
 
 The renderer calls pure core import/export functions directly. Persistence, native file access, and outgoing HTTP cross the sandboxed preload bridge. IPC payloads and native-menu events use shared contracts. IPC requests are accepted only from the trusted main frame; main also validates and bounds payloads at runtime before using them. Workspace mutations are serialized in main, while renderer autosave is debounced.
 
-The desktop holds `.specfold-writer.lock` for its lifetime. Agent mutation attempts while it is open fail explicitly; no external workspace file writes or live renderer replacement occur. Offline agent apply holds the same lease, requires the preview's exact disk revision and a signed interactive-CLI approval, and backs up/atomically replaces the saved state. Agent network execution is a separate main-process IPC capability with explicit settings opt-in and per-request native consent; only main resolves secrets. See [LOCAL_AGENT](LOCAL_AGENT.md) for protocol details and limits. Workspace schema and existing native/backup formats are unchanged.
+The desktop holds `.specfold-writer.lock` for its lifetime. Its authenticated local bridge calls the shared agent service inside main; an external MCP helper never writes the workspace. Main flushes renderer edits, queues mutations with storage, checks revision, creates a rollback snapshot/receipt, and increments a renderer generation so an old queued save cannot undo a change. Human review/apply is a trusted UI action, not an MCP approval tool. Advanced offline apply retains interactive CLI approval and fails while the lifetime lease is held. Agent network execution is a separate default-off capability with native per-request consent or bounded selected-request sessions; only main resolves secrets and captures JWT tokens. Redacted observations feed bounded documentation context/drafts without automatic publication. See [LOCAL_AGENT](LOCAL_AGENT.md). Workspace/native/backup formats are unchanged.
 
 Multipart file bytes remain in the main-process boundary. A native picker registers a canonical local file under a random, session-only upload ID; the renderer receives only that ID plus display metadata. `Send` resolves approved IDs, revalidates the file, applies upload limits, and creates `FormData`. Imported or persisted IDs are not trusted, and multipart `Content-Type` is left to the fetch implementation so its boundary always matches the encoded body.
 

@@ -17,6 +17,18 @@ function sampleWorkspace(): Workspace {
 export function studioMock(workspace = sampleWorkspace()): StudioApi {
   return {
     onAppMenuAction: vi.fn(() => () => undefined),
+    onAgentEvent: vi.fn(() => () => undefined),
+    onAgentFlush: vi.fn(() => () => undefined),
+    getAgentConnection: vi.fn(async () => ({ available: false, configuration: { command: "Specfold.exe", args: [] }, pending: [] })),
+    testAgentConnection: vi.fn(async () => ({ ok: true, message: "Connected" })),
+    reviewAgentPlan: vi.fn(async () => { throw new Error("No pending plan"); }),
+    refreshAgentPlan: vi.fn(async () => { throw new Error("No pending plan"); }),
+    applyAgentPlan: vi.fn(async () => { throw new Error("No pending plan"); }),
+    rejectAgentPlan: vi.fn(async () => undefined),
+    startAgentSession: vi.fn(async () => ({ available: true, configuration: { command: "Specfold.exe", args: [] }, pending: [] })),
+    stopAgentSession: vi.fn(async () => undefined),
+    exportAgentDocumentation: vi.fn(async () => ({ canceled: true })),
+    previewAgentDocumentation: vi.fn(async () => "# Documentation draft"),
     getAppInfo: vi.fn(async () => ({
       name: "Specfold", version: "1.6.0", platform: "win32", arch: "x64",
       releaseUrl: "https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.6.0",

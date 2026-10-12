@@ -16,8 +16,32 @@ const studioApi: StudioApi = {
   checkForUpdates: () => ipcRenderer.invoke("app:checkForUpdates"),
   openExternal: (url: string) => ipcRenderer.invoke("app:openExternal", url),
   loadWorkspace: () => ipcRenderer.invoke("workspace:load"),
-  saveWorkspace: (workspace: Workspace) =>
-    ipcRenderer.invoke("workspace:save", workspace) as Promise<void>,
+  saveWorkspace: (workspace: Workspace, generation?: number) =>
+    ipcRenderer.invoke("workspace:save", workspace, generation) as Promise<void>,
+  onAgentEvent: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, value: unknown) => {
+      if (value === "changed" || value === "review") listener(value);
+    };
+    ipcRenderer.on("agent:event", handler);
+    return () => ipcRenderer.removeListener("agent:event", handler);
+  },
+  onAgentFlush: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, id: string) => {
+      void listener().then(() => ipcRenderer.send("agent:flushed", id, true), () => ipcRenderer.send("agent:flushed", id, false));
+    };
+    ipcRenderer.on("agent:flush", handler);
+    return () => ipcRenderer.removeListener("agent:flush", handler);
+  },
+  getAgentConnection: () => ipcRenderer.invoke("agent:connection"),
+  testAgentConnection: () => ipcRenderer.invoke("agent:test"),
+  reviewAgentPlan: (id) => ipcRenderer.invoke("agent:review", id),
+  refreshAgentPlan: (id) => ipcRenderer.invoke("agent:refresh", id),
+  applyAgentPlan: (id, revision) => ipcRenderer.invoke("agent:apply", id, revision),
+  rejectAgentPlan: (id) => ipcRenderer.invoke("agent:reject", id),
+  startAgentSession: (selection) => ipcRenderer.invoke("agent:session", selection),
+  stopAgentSession: () => ipcRenderer.invoke("agent:stopSession"),
+  exportAgentDocumentation: (id) => ipcRenderer.invoke("agent:exportDocumentation", id),
+  previewAgentDocumentation: (id) => ipcRenderer.invoke("agent:previewDocumentation", id),
   loadSettings: () => ipcRenderer.invoke("settings:load"),
   saveSettings: (settings: unknown) => ipcRenderer.invoke("settings:save", settings),
   testConnection: (url: string) => ipcRenderer.invoke("environment:testConnection", url),

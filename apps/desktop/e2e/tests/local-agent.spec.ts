@@ -69,7 +69,7 @@ test("actual desktop blocks agent writes and approves/redacts a separate local n
     expect(JSON.parse(denied.stderr).code).toBe("NETWORK_DISABLED"); expect(calls).toBe(0);
     await page.evaluate(async () => {
       const settings = await window.studio.loadSettings();
-      await window.studio.saveSettings({ ...settings, agentNetworkEnabled: true });
+      await window.studio.saveSettings({ ...settings, agentEnabled: true, agentNetworkEnabled: true });
     });
     // Test only: simulate native user choices, not an MCP approval parameter.
     await app.evaluate(({ dialog }) => {

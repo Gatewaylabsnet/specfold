@@ -148,6 +148,9 @@ describe("two-phase local agent", () => {
     await expect(failing.apply(plan.planId, plan.expectedRevision)).rejects.toThrow("simulated failure");
     expect(await readFile(join(root, "workspace.json"), "utf8")).toBe(before);
     expect((await readdir(join(root, "backups"))).some((name) => name.startsWith("agent-safety-"))).toBe(true);
+    await expect(failing.approveAndApply(plan.planId, plan.expectedRevision)).rejects.toThrow("simulated failure");
+    expect(await readFile(join(root, "workspace.json"), "utf8")).toBe(before);
+    expect(await readdir(join(root, ".agent"))).not.toContain(`${plan.planId}.approval.json`);
   });
 
   it("rejects tampered plans and path traversal", async () => {

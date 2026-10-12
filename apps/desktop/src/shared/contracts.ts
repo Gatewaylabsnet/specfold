@@ -1,4 +1,6 @@
 import type { ApiRequest, Collection, Environment, Folder, PostmanV3FolderSource, Workspace } from "@openapi-collection-studio/core";
+import type { AgentConnectionInfo, AgentPlanReview, AgentSessionSelection } from "../../../../packages/agent/src/desktopContracts";
+export type { AgentConnectionInfo, AgentPlanReview, AgentSessionSelection };
 
 export type ThemePreference = "system" | "light" | "dark";
 export type FontSizePreference = "compact" | "default" | "large";
@@ -18,6 +20,8 @@ export interface AppSettings {
   theme: ThemePreference;
   fontSize: FontSizePreference;
   agentNetworkEnabled?: boolean;
+  agentEnabled?: boolean;
+  agentNetworkMode?: "ask" | "session";
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -26,7 +30,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   allowInsecureTls: false,
   theme: "system",
   fontSize: "compact",
-  agentNetworkEnabled: false
+  agentNetworkEnabled: false,
+  agentEnabled: false,
+  agentNetworkMode: "ask"
 };
 
 export interface SendRequestPayload {
@@ -53,6 +59,7 @@ export interface WorkspaceLoadResult {
   recovered: boolean;
   secureStorageAvailable: boolean;
   message?: string;
+  generation?: number;
 }
 
 export interface RestoreBackupResult {
@@ -63,6 +70,7 @@ export interface RestoreBackupResult {
   settings?: AppSettings;
   safetyBackupPath?: string;
   error?: string;
+  generation?: number;
 }
 
 export interface FileActionResult {
@@ -143,7 +151,19 @@ export interface StudioApi {
   checkForUpdates(): Promise<UpdateCheckResult>;
   openExternal(url: string): Promise<void>;
   loadWorkspace(): Promise<WorkspaceLoadResult>;
-  saveWorkspace(workspace: Workspace): Promise<void>;
+  saveWorkspace(workspace: Workspace, generation?: number): Promise<void>;
+  onAgentEvent(listener: (event: "changed" | "review") => void): () => void;
+  onAgentFlush(listener: () => Promise<void>): () => void;
+  getAgentConnection(): Promise<AgentConnectionInfo>;
+  testAgentConnection(): Promise<{ ok: boolean; message: string }>;
+  reviewAgentPlan(planId: string): Promise<AgentPlanReview>;
+  refreshAgentPlan(planId: string): Promise<AgentPlanReview>;
+  applyAgentPlan(planId: string, expectedRevision: string): Promise<WorkspaceLoadResult & { collectionId: string }>;
+  rejectAgentPlan(planId: string): Promise<void>;
+  startAgentSession(selection: AgentSessionSelection): Promise<AgentConnectionInfo>;
+  stopAgentSession(): Promise<void>;
+  previewAgentDocumentation(collectionId: string): Promise<string>;
+  exportAgentDocumentation(collectionId: string): Promise<FileActionResult>;
   loadSettings(): Promise<AppSettings>;
   saveSettings(settings: AppSettings): Promise<AppSettings>;
   testConnection(url: string): Promise<ConnectionTestResult>;

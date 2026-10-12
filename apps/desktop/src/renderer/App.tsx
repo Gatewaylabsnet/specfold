@@ -7,6 +7,7 @@ import { CollectionsSidebar, WelcomeMain } from "./app/screens/CollectionsSideba
 import { RequestWorkspace } from "./app/screens/RequestEditor";
 import { useStudioController } from "./app/useStudioController";
 import { useEditorShortcuts, useUnsavedExitWarning } from "./app/useEditorShortcuts";
+import { AgentReviewDialog } from "./app/AgentReviewDialog";
 
 const AboutDialog = lazy(() =>
   import("./app/AboutDialog").then((module) => ({ default: module.AboutDialog }))
@@ -55,7 +56,9 @@ export function App() {
     sendActiveRequest, updateEnvironment, updateEnvironmentBaseUrl, createNewEnvironment,
     selectEnvironment, deleteEnvironment,
     updateSettings, assignResponseValue, saveResponseAsExample, saveExport, copyExportToClipboard, exportFullBackup,
-    restoreFullBackup, deleteAllData, isDeletingData, treeActions
+    restoreFullBackup, deleteAllData, isDeletingData, treeActions,
+    agentConnection, agentReview, agentBusy, agentError, openAgentReview, applyAgentReview,
+    rejectAgentReview, refreshAgentReview, closeAgentReview
   } = useStudioController();
   const activeFolder =
     activeRequestLocation?.folder ??
@@ -124,6 +127,8 @@ export function App() {
             Manage
           </button>
           <span className={`save-status save-status--${saveStatus}`}>{saveStatusLabel(saveStatus)}</span>
+          {!!agentConnection?.pending.length && <button className="secondary-button" type="button"
+            onClick={() => void openAgentReview(agentConnection.pending[0].planId)}>Review changes ({agentConnection.pending.length})</button>}
           <button
             aria-label="Settings"
             className={screen === "settings" ? "icon-button is-active" : "icon-button"}
@@ -263,6 +268,7 @@ export function App() {
           ))}
         {screen === "settings" && (
           <SettingsScreen
+            workspace={workspace}
             settings={settings}
             onChange={updateSettings}
             workspaceName={workspace.name}
@@ -360,6 +366,10 @@ export function App() {
           />
         </Suspense>
       )}
+      {agentReview && <AgentReviewDialog review={agentReview} busy={agentBusy} error={agentError}
+        onApply={() => void applyAgentReview()} onReject={() => void rejectAgentReview()}
+        onRefresh={() => void refreshAgentReview()} onClose={closeAgentReview} />}
+      {!agentReview && agentError && <div className="notice-banner" role="alert">{agentError}</div>}
     </div>
   );
 }

@@ -36,6 +36,14 @@ Atomic workspace writes, rotating backups, corrupt-file quarantine, single-insta
 - **Copied cURL local-file reads:** Blocked. Text parts use `--form-string`; only explicit file placeholders use cURL's `--form @file` syntax, and conflicting framing headers are omitted.
 - **Upload resource exhaustion:** Bounded to 200 total parts, 50 file parts, and 100 MB of file and text content per request. Response and timeout limits remain in force.
 
+## Local Agent Source Preview — 2026-10-08
+
+- External MCP helpers only forward typed local calls. Desktop main owns writes, flushes pending editor saves, checks revision and rejects pre-mutation renderer generations; safety backups and atomic receipt rollback remain shared with the offline CLI.
+- UI review is the only live approval path. Agents cannot approve themselves; stale plans require a refreshed diff and repeated plans do not duplicate records.
+- Connection/network defaults are off. Network approval is per-request or exact selected-request/environment session (15 minutes / 20 sends), revocable. Changes invalidate permission; controlled encrypted JWT capture alone refreshes approved fingerprints. POST consent does not imply read-only safety.
+- Main resolves tokens and masks outputs. Observations are untrusted, session-only and bounded; documentation labels untested behavior and requires human review. No agent backup export or automatic publication exists.
+- Residual risks: same-user malware/administrators, heuristic masking gaps and model-provider disclosure of returned API structure. Packaged helper depends on Electron RunAsNode being available. Windows SDK/Electron tests do not establish vendor-client UI or macOS/Linux GUI coverage. Human usability pilot and full release gates remain pending.
+
 ## Remaining Risks
 
 - Windows builds are unsigned and may trigger SmartScreen.
