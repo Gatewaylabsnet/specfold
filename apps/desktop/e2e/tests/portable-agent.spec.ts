@@ -3,7 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { spawn, execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,7 +12,7 @@ test.skip(process.platform !== "win32", "Windows portable launcher integration")
 test("portable desktop configuration uses its extracted runtime for real stdio", async () => {
   test.setTimeout(60_000);
   const repository = fileURLToPath(new URL("../../../../", import.meta.url));
-  const root = await mkdtemp(join(tmpdir(), "specfold-portable-agent-"));
+  const root = await realpath(await mkdtemp(join(tmpdir(), "specfold-portable-agent-")));
   const version = JSON.parse(await readFile(join(repository, "package.json"), "utf8")).version;
   const executable = resolve(repository, `apps/desktop/dist/Specfold-${version}-x64-portable.exe`);
   const child = spawn(executable, ["--remote-debugging-port=0", "--disable-gpu"], {
@@ -27,7 +27,7 @@ test("portable desktop configuration uses its extracted runtime for real stdio",
     await expect(page.locator(".save-status")).toHaveText("Saved");
     await page.getByRole("button", { name: "Settings", exact: true }).click();
     await page.getByLabel("Enable AI connections").check();
-    await expect.poll(async () => JSON.parse(await readFile(join(root, "app-settings.json"), "utf8")).agentEnabled).toBe(true);
+    await expect.poll(async () => page.evaluate(async () => (await window.studio.loadSettings()).agentEnabled)).toBe(true);
     await page.getByRole("button", { name: "Test connection", exact: true }).click();
     await expect(page.getByText("The bundled agent connected successfully.", { exact: false })).toBeVisible();
     const info = await page.evaluate(() => window.studio.getAgentConnection());

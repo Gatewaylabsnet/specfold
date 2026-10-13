@@ -45,7 +45,7 @@ test("bundled MCP reviews live imports, uses bounded sessions and prepares redac
     await page.evaluate(async (value) => { await window.studio.saveWorkspace(value.workspace, value.generation); }, saved);
     await page.getByRole("button", { name: "Settings", exact: true }).click();
     await page.getByLabel("Enable AI connections").check();
-    await expect.poll(async () => JSON.parse(await readFile(join(root, "app-settings.json"), "utf8")).agentEnabled).toBe(true);
+    await expect.poll(async () => page.evaluate(async () => (await window.studio.loadSettings()).agentEnabled)).toBe(true);
     await page.getByRole("button", { name: "Test connection", exact: true }).click();
     await expect(page.getByText("The bundled agent connected successfully.", { exact: false })).toBeVisible({ timeout: 20_000 });
     const info = await page.evaluate(() => window.studio.getAgentConnection());
