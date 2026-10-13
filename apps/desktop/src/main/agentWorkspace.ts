@@ -5,6 +5,7 @@ import { assertTrustedIpcSender } from "./security";
 import { serializeStorageMutation } from "./storage";
 import { bumpWorkspaceGeneration } from "./workspaceGeneration";
 import type { Workspace } from "@openapi-collection-studio/core";
+import type { AgentEvent } from "../shared/contracts";
 
 export class DesktopAgentRepository extends AgentRepository {
   override locked<T>(operation: () => Promise<T>): Promise<T> { return serializeStorageMutation(operation); }
@@ -15,7 +16,7 @@ export class DesktopAgentRepository extends AgentRepository {
   }
 }
 
-export function agentEvent(event: "changed" | "review"): void {
+export function agentEvent(event: AgentEvent): void {
   for (const window of BrowserWindow.getAllWindows()) window.webContents.send("agent:event", event);
 }
 

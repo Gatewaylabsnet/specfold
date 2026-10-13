@@ -25,11 +25,13 @@
 
 Acceptance criteria and release gates: [v1.3.1-v1.5 delivery plan](V1_3_TO_V1_5_DELIVERY_PLAN.md).
 
-## Local Agent Usability — Source Preview
+## v1.10.0 Local Agent — Release Preparation
 
 Implemented: copied JSON/Codex setup, bundled runtime, real connection test, open-desktop human review/apply, serialized single writer with editor flush/revision/generation guards, stale-preview refresh/cancel, selected-request consent expiry/count/revocation, encrypted JWT capture, masked observations and documentation preview/export.
 
 Engineering acceptance: synthetic 16 POST + separate JWT + bearer references, no duplicate apply, no import HTTP calls, old renderer-save rejection, stale revision refresh, default-off execution and redacted documentation tested on Windows. Stable packages remain v1.9.4; no publication is implied by this source work.
+
+Release preparation adds semantic literal-credential masking, isolated TLS connection pools, JWT capture that preserves pending/manual editor changes, cancellation from MCP through consent and HTTP, and authenticated expired-plan cleanup. The [draft release notes](RELEASE_NOTES_v1.10.0.md) track these changes. Current local source-size/lint/typecheck/build, 263 unit/renderer/agent tests, three source Electron/SDK scenarios and all seven Windows packaged E2E scenarios pass. The unsigned Windows portable v1.10.0 package matches its built source; production dependency audit reports zero vulnerabilities. Multi-platform CI/release verification remains pending; results must be tied to the release commit before publication.
 
 Remaining launch evidence: multi-platform package/checksum verification, actual client UI checks, and five human testers (four self-service connections; three repeat uses within two weeks). Automated tests do not complete the usability pilot.
 

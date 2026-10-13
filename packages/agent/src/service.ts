@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { join } from "node:path";
-import { open, readdir, unlink } from "node:fs/promises";
+import { lstat, open, readdir, unlink } from "node:fs/promises";
+import type { Stats } from "node:fs";
 import {
   applyAgentProposal, findRequest, flattenRequests, parseApiText, previewAgentMutation,
   redactAgentValue, requireAgentCollection, validateAgentCollection, workspaceSecrets,
@@ -12,6 +13,7 @@ import { AgentRepository, readBoundedFile, revisionOf } from "./repository";
 import { mutationSchema } from "./validation";
 import { callDesktopHost, callNetworkHost } from "./networkTransport";
 import { assertOpaqueCredentialStorage } from "./secretGuard";
+import { acquireWorkspaceLease } from "./workspaceLock";
 import type { AgentPlanDiff, AgentPreview } from "./desktopContracts";
 import type { ApiRequest } from "@openapi-collection-studio/core";
 
@@ -96,38 +98,89 @@ export class AgentService {
       action = { ...action, text: JSON.stringify(redactAgentValue(document, workspaceSecrets(workspace))) };
     }
     const id = revisionOf(JSON.stringify({ revision, action }));
-    const payload = { schema: "specfold.agent-plan.v1" as const, id, expectedRevision: revision,
-      action, collectionId: proposal.collection.id, warnings: proposal.warnings, createdAt: Date.now() };
-    const plan: StoredPlan = { ...payload, signature: await this.sign(payload) };
-    const path = join(await this.repository.stateDirectory(), `${id}.plan.json`);
-    // Reuse an existing signed plan so repeated previews do not invalidate approval.
-    try { await this.loadPlan(id); }
-    catch {
-      const entries = await readdir(await this.repository.stateDirectory());
-      if (entries.filter((name) => name.endsWith(".plan.json")).length >= 128 && !entries.includes(`${id}.plan.json`)) {
-        throw new AgentError("PLAN_LIMIT");
+    const directory = await this.repository.stateDirectory();
+    // A separate state lease permits desktop-owned previews while serializing
+    // expiry/replacement across services and processes. Never force a stale lease.
+    const release = acquireWorkspaceLease(directory, "agent");
+    try {
+      // Reuse an existing signed plan so repeated previews do not invalidate approval.
+      try { await this.loadPlan(id); }
+      catch {
+        const path = join(directory, `${id}.plan.json`);
+        const existing = await lstat(path).catch((error: NodeJS.ErrnoException) => {
+          if (error.code === "ENOENT") return undefined;
+          throw error;
+        });
+        // A failed read is not permission to replace an unrelated or unsafe file.
+        if (existing && !await this.expirePlan(directory, id)) throw new AgentError("INVALID_PLAN");
+        let entries = await readdir(directory);
+        if (entries.filter((name) => name.endsWith(".plan.json")).length >= 128) {
+          for (const name of entries.filter((name) => /^[a-f0-9]{64}\.plan\.json$/.test(name)).slice(0, 128)) {
+            await this.expirePlan(directory, name.slice(0, 64));
+          }
+          entries = await readdir(directory);
+        }
+        if (entries.filter((name) => name.endsWith(".plan.json")).length >= 128) throw new AgentError("PLAN_LIMIT");
+        const payload = { schema: "specfold.agent-plan.v1" as const, id, expectedRevision: revision,
+          action, collectionId: proposal.collection.id, warnings: proposal.warnings, createdAt: Date.now() };
+        const plan: StoredPlan = { ...payload, signature: await this.sign(payload) };
+        await atomicWriteFile(path, JSON.stringify(plan));
       }
-      await atomicWriteFile(path, JSON.stringify(plan));
-    }
+    } finally { release(); }
     return redactAgentValue({ planId: id, expectedRevision: revision, diff: proposal.diff,
       warnings: [...new Set(proposal.warnings)], collection: { name: proposal.collection.name, baseUrl: proposal.collection.baseUrl },
       intent: this.intent(action), approvalRequired: true, expiresAfterHours: 24, networkRequests: 0 }, workspaceSecrets(workspace));
   }
 
   async loadPlan(id: string): Promise<StoredPlan> {
+    return this.readPlan(id, false);
+  }
+
+  private async readPlan(id: string, allowExpired: boolean): Promise<StoredPlan> {
     checkId(id);
     try {
       const path = join(await this.repository.stateDirectory(), `${id}.plan.json`);
       const plan: StoredPlan = JSON.parse(await readBoundedFile(path, 12 * 1024 * 1024));
       const { signature, ...payload } = plan;
       if (plan.schema !== "specfold.agent-plan.v1" || plan.id !== id ||
-          typeof plan.createdAt !== "number" || Date.now() - plan.createdAt > PLAN_TTL_MS ||
+          typeof plan.createdAt !== "number" || !Number.isFinite(plan.createdAt) ||
+          (!allowExpired && Date.now() - plan.createdAt > PLAN_TTL_MS) ||
           plan.createdAt > Date.now() + 1000 || !mutationSchema.safeParse(plan.action).success ||
           typeof signature !== "string" || !/^[a-f0-9]{64}$/.test(signature)) throw new AgentError("INVALID_PLAN");
       const expected = await this.sign(payload);
       if (!timingSafeEqual(Buffer.from(signature, "hex"), Buffer.from(expected, "hex"))) throw new AgentError("INVALID_PLAN");
       return plan;
     } catch { throw new AgentError("INVALID_PLAN"); }
+  }
+
+  private async expirePlan(directory: string, id: string): Promise<boolean> {
+    const path = join(directory, `${id}.plan.json`);
+    try {
+      const info = await lstat(path);
+      const plan = await this.readPlan(id, true);
+      if (Date.now() - plan.createdAt <= PLAN_TTL_MS || !await this.unlinkUnchangedFile(path, info)) return false;
+      // Receipts are historical idempotency evidence and are never expired here.
+      const approvalPath = join(directory, `${id}.approval.json`);
+      try {
+        const approvalInfo = await lstat(approvalPath);
+        const approval = JSON.parse(await readBoundedFile(approvalPath, 4096));
+        const payload = { planId: id, expectedRevision: plan.expectedRevision, planSignature: plan.signature };
+        if (approval.planId === id && approval.expectedRevision === plan.expectedRevision &&
+            approval.planSignature === plan.signature && approval.signature === await this.sign(payload)) {
+          await this.unlinkUnchangedFile(approvalPath, approvalInfo);
+        }
+      } catch { /* Unrecognized approval state is not ours to delete. */ }
+      return true;
+    } catch { return false; }
+  }
+
+  private async unlinkUnchangedFile(path: string, before: Stats): Promise<boolean> {
+    const current = await lstat(path);
+    if (!before.isFile() || before.isSymbolicLink() || !current.isFile() || current.isSymbolicLink() ||
+        current.ino !== before.ino || current.dev !== before.dev || current.size !== before.size ||
+        current.mtimeMs !== before.mtimeMs || current.ctimeMs !== before.ctimeMs) return false;
+    await unlink(path);
+    return true;
   }
 
   async showDiff(planId: string): Promise<AgentPlanDiff> {
@@ -205,10 +258,10 @@ export class AgentService {
     });
   }
 
-  async sendRequest(collectionId: string, requestId: string): Promise<unknown> {
+  async sendRequest(collectionId: string, requestId: string, signal?: AbortSignal): Promise<unknown> {
     if (!this.allowNetwork) throw new AgentError("NETWORK_DISABLED");
-    return this.desktopOnly ? callDesktopHost(this.repository.root, { operation: "send", collectionId, requestId })
-      : callNetworkHost(this.repository.root, { collectionId, requestId });
+    return this.desktopOnly ? callDesktopHost(this.repository.root, { operation: "send", collectionId, requestId }, signal)
+      : callNetworkHost(this.repository.root, { collectionId, requestId }, signal);
   }
 
   async requestReview(planId: string, expectedRevision: string) {

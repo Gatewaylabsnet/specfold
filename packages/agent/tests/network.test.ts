@@ -57,7 +57,7 @@ describe("same-user local network IPC", () => {
     const execute = vi.fn(async (ids) => ({ status: 200, ids }));
     close = await startNetworkHost(root, execute);
     expect(await callNetworkHost(root, call)).toEqual({ status: 200, ids: call });
-    expect(execute).toHaveBeenCalledWith(call);
+    expect(execute).toHaveBeenCalledWith(call, expect.any(AbortSignal));
   });
   it("rejects an incorrect session capability token without executing", async () => {
     const execute = vi.fn(); close = await startNetworkHost(root, execute);

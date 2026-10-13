@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { ApiRequest, Collection, Environment, Folder, Workspace } from "@openapi-collection-studio/core";
-import { APP_MENU_ACTIONS, type AppMenuAction, type StudioApi } from "../shared/contracts";
+import { APP_MENU_ACTIONS, type AgentTokenCapture, type AppMenuAction, type StudioApi } from "../shared/contracts";
 
 const studioApi: StudioApi = {
   onAppMenuAction: (listener: (action: AppMenuAction) => void) => {
@@ -21,6 +21,9 @@ const studioApi: StudioApi = {
   onAgentEvent: (listener) => {
     const handler = (_event: Electron.IpcRendererEvent, value: unknown) => {
       if (value === "changed" || value === "review") listener(value);
+      else if (value && typeof value === "object" && "kind" in value && value.kind === "token-captured") {
+        listener(value as AgentTokenCapture);
+      }
     };
     ipcRenderer.on("agent:event", handler);
     return () => ipcRenderer.removeListener("agent:event", handler);

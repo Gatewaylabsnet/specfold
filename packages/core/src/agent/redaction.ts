@@ -13,22 +13,31 @@ export const isCredentialReference = (value: string): boolean => isVariableRefer
 
 export function workspaceSecrets(workspace: Workspace): string[] {
   const referenced = new Set<string>();
+  const literals = new Set<string>();
   const addReferences = (value: string) => {
     for (const match of value.matchAll(/\{\{([\w.-]+)\}\}/g)) referenced.add(match[1]);
+  };
+  const addCredential = (value: string) => {
+    addReferences(value);
+    if (!value || value === REDACTED || isCredentialReference(value)) return;
+    literals.add(value);
+    // Reflected responses may omit an Authorization header's scheme.
+    const withoutScheme = value.replace(/^(?:Bearer|Basic)\s+/i, "");
+    if (withoutScheme) literals.add(withoutScheme);
   };
   const inspectBody = (value: unknown, depth = 0) => {
     if (!value || typeof value !== "object" || depth > 40) return;
     for (const [key, item] of Object.entries(value)) {
-      if (isCredentialName(key) && typeof item === "string") addReferences(item);
+      if (isCredentialName(key) && typeof item === "string") addCredential(item);
       else if (typeof item === "object") inspectBody(item, depth + 1);
     }
   };
   for (const collection of workspace.collections) for (const { request } of flattenRequests(collection)) {
-    if (request.auth.type === "bearer") addReferences(request.auth.token);
-    if (request.auth.type === "basic") { addReferences(request.auth.username); addReferences(request.auth.password); }
-    if (request.auth.type === "apiKey") addReferences(request.auth.value);
+    if (request.auth.type === "bearer") addCredential(request.auth.token);
+    if (request.auth.type === "basic") { addCredential(request.auth.username); addCredential(request.auth.password); }
+    if (request.auth.type === "apiKey") addCredential(request.auth.value);
     for (const field of [...request.headers, ...request.queryParams, ...(request.body.form ?? [])]) {
-      if (isCredentialName(field.key)) addReferences(field.value);
+      if (isCredentialName(field.key)) addCredential(field.value);
     }
     if (request.body.raw?.trim().startsWith("{")) {
       try { inspectBody(JSON.parse(request.body.raw)); } catch { /* No raw input is logged. */ }
@@ -42,8 +51,8 @@ export function workspaceSecrets(workspace: Workspace): string[] {
     for (const variable of variables) if (referenced.has(variable.name)) addReferences(variable.value);
     if (before === referenced.size) break;
   }
-  return variables.filter((variable) => referenced.has(variable.name))
-    .map((variable) => variable.value).filter((value) => value && !isVariableReference(value));
+  return [...new Set([...literals, ...variables.filter((variable) => referenced.has(variable.name))
+    .map((variable) => variable.value).filter((value) => value && !isCredentialReference(value))])];
 }
 
 /** Defense in depth, not a general-purpose PII classifier. Never resolves variables. */
@@ -84,7 +93,7 @@ export function redactAgentValue<T>(input: T, secrets: readonly string[] = []): 
       !["__proto__", "constructor", "prototype", "uploadId", "fileName"].includes(key)
     ).map(([key, item]) => [key, visit(item,
       isCredentialName(key) || isPersonalName(key) ||
-      (key === "value" && (record.secret === true || isCredentialName(fieldName) || isPersonalName(fieldName))) ||
+      (key === "value" && (record.type === "apiKey" || record.secret === true || isCredentialName(fieldName) || isPersonalName(fieldName))) ||
       (sensitive && ["example", "default", "value", "examples"].includes(key)), depth + 1)]));
   };
   return visit(input) as T;

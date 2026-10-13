@@ -1,6 +1,17 @@
-import type { ApiRequest, Collection, Environment, Folder, PostmanV3FolderSource, Workspace } from "@openapi-collection-studio/core";
+import type { ApiRequest, Collection, Environment, EnvironmentVariable, Folder, PostmanV3FolderSource, Workspace } from "@openapi-collection-studio/core";
 import type { AgentConnectionInfo, AgentPlanReview, AgentSessionSelection } from "../../../../packages/agent/src/desktopContracts";
 export type { AgentConnectionInfo, AgentPlanReview, AgentSessionSelection };
+
+// Trusted main-to-renderer delta only. This is never returned to an MCP client.
+export interface AgentTokenCapture {
+  kind: "token-captured";
+  workspaceId: string;
+  environmentId: string;
+  previous: EnvironmentVariable;
+  value: string;
+  generation: number;
+}
+export type AgentEvent = "changed" | "review" | AgentTokenCapture;
 
 export type ThemePreference = "system" | "light" | "dark";
 export type FontSizePreference = "compact" | "default" | "large";
@@ -152,7 +163,7 @@ export interface StudioApi {
   openExternal(url: string): Promise<void>;
   loadWorkspace(): Promise<WorkspaceLoadResult>;
   saveWorkspace(workspace: Workspace, generation?: number): Promise<void>;
-  onAgentEvent(listener: (event: "changed" | "review") => void): () => void;
+  onAgentEvent(listener: (event: AgentEvent) => void): () => void;
   onAgentFlush(listener: () => Promise<void>): () => void;
   getAgentConnection(): Promise<AgentConnectionInfo>;
   testAgentConnection(): Promise<{ ok: boolean; message: string }>;

@@ -28,11 +28,14 @@ async function connectionInfo(): Promise<AgentConnectionInfo> {
     pending: [...reviews.values()].filter((item) => item.status === "pending" || item.status === "stale"), session: networkSession.info() };
 }
 
-export async function dispatchAgentCall(call: DesktopAgentCall): Promise<unknown> {
+export async function dispatchAgentCall(call: DesktopAgentCall, signal?: AbortSignal): Promise<unknown> {
+  const checkCanceled = () => { if (signal?.aborted) throw new Error("OPERATION_CANCELLED"); };
+  checkCanceled();
   if (!(await loadSettings()).agentEnabled) throw new Error("AGENT_DISABLED");
+  checkCanceled();
   lastConnectedAt = new Date().toISOString();
   if (call.operation === "ping") return { ready: true };
-  if (call.operation === "send") return sendAgentRequest(call);
+  if (call.operation === "send") return sendAgentRequest(call, signal);
   if (call.operation === "documentation") return agentDocumentation(call.collectionId);
   if (call.operation === "status") {
     const review = reviews.get(call.planId);
@@ -40,6 +43,7 @@ export async function dispatchAgentCall(call: DesktopAgentCall): Promise<unknown
     return { planId: review.planId, status: review.status, collectionId: review.collectionId };
   }
   await flushAgentEditor();
+  checkCanceled();
   const service = agentService();
   switch (call.operation) {
     case "list": return service.listCollections();

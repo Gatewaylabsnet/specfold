@@ -44,6 +44,18 @@ Atomic workspace writes, rotating backups, corrupt-file quarantine, single-insta
 - Main resolves tokens and masks outputs. Observations are untrusted, session-only and bounded; documentation labels untested behavior and requires human review. No agent backup export or automatic publication exists.
 - Residual risks: same-user malware/administrators, heuristic masking gaps and model-provider disclosure of returned API structure. Packaged helper depends on Electron RunAsNode being available. Windows SDK/Electron tests do not establish vendor-client UI or macOS/Linux GUI coverage. Human usability pilot and full release gates remain pending.
 
+## v1.10.0 MCP Release Preparation — 2026-10-13
+
+Five issues found during the release review have focused source changes and regression coverage. The current preparation passes source-size, lint, typecheck, 263 unit/renderer/agent tests, production build, three source Electron/SDK scenarios and all seven Windows packaged E2E scenarios. The unsigned Windows portable v1.10.0 package matches its built source; production audit reports zero vulnerabilities, and independent changed-source review found no real secrets (the TLS fixture key is synthetic). Multi-platform CI release validation and publication remain pending:
+
+- **Literal credential disclosure:** Mask typed API-key auth values regardless of custom header/query names, and scrub known literal bearer/basic/API-key credentials from reflected data. General free-text/unknown-field masking remains heuristic.
+- **TLS setting overlap:** Use separate verified and insecure direct/proxy pools instead of changing `NODE_TLS_REJECT_UNAUTHORIZED`. Agent sends retain explicit certificate verification while a manual insecure request is in flight.
+- **Pending editor changes during JWT capture:** Merge only the captured token into current editor state and advance its save generation. Newer manual changes, including token edits/removal, are retained.
+- **Abandoned network work:** Propagate MCP cancellation, stdin closure and local IPC disconnect/timeout/shutdown to native consent and HTTP. Check cancellation before send, token capture and observation recording. Remote effects already performed cannot be undone.
+- **Expired plan exhaustion:** Under a separate `.agent/.specfold-writer.lock`, reclaim only expired authenticated plan files and matching signed approvals, scanning at most 128 candidates when capacity is full. Preserve active plans, receipts, unrecognized files and symlinks. Both profile and state leases require careful manual recovery after a crash.
+
+The [v1.10.0 draft release notes](RELEASE_NOTES_v1.10.0.md) and [local agent guide](LOCAL_AGENT.md) track current verification and retain pending multi-platform CI/public artifact validation, real vendor-client UI checks, macOS/Linux GUI coverage and the human usability pilot. Historical v1.1 and 2026-10-08 results are not a pass for this candidate.
+
 ## Remaining Risks
 
 - Windows builds are unsigned and may trigger SmartScreen.

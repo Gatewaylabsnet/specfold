@@ -48,15 +48,15 @@ It is intentionally local-first. There is no account requirement, no cloud works
 
 > The published stable release is v1.9.4. It keeps folder and request actions attached to their owning collection, exposes clear actions when a folder is selected, and prevents tree-row controls from triggering drag or selection by accident. See the [release notes](docs/RELEASE_NOTES_v1.9.4.md) and [desktop runtime decision](docs/DESKTOP_RUNTIME_DECISION.md).
 
-## Local MCP server and CLI (source preview)
+## Local MCP server and CLI (v1.10.0 preparation)
 
 Connect a trusted MCP client from **Settings → AI connections**: enable the optional connection, copy its JSON or Codex TOML configuration, and test it. The bundled helper uses Specfold's runtime; packaged users do not need a separate Node.js installation. The agent can inspect collections, preview OpenAPI imports, bind token **variable names**, create Apinizer JWT recipes and request a review. You approve or cancel the diff inside Specfold while it stays open. Main remains the only workspace writer; stale previews must be refreshed and repeated applies do not duplicate requests.
 
 Agent request sending is a separate, default-off permission. Choose native confirmation for each request or approve selected requests for a temporary session (15 minutes / 20 sends), with **Stop session** always available. Only main resolves credentials. JWT responses can update the existing encrypted `apinizerAuthAccessToken` without returning its value. Agents can read masked responses to prepare documentation; **Preview documentation draft** shows observed versus untested requests before export. Responses are untrusted data and cannot grant permission or publish a document.
 
-This integration is not yet in the published v1.9.4 packages. See [Local agent setup, MCP configuration, commands and security boundaries](docs/LOCAL_AGENT.md).
+This integration is being prepared for v1.10.0 and is not yet in the published v1.9.4 packages. Local checks, the Windows portable build and all seven packaged E2E scenarios pass. See the [draft v1.10.0 release notes](docs/RELEASE_NOTES_v1.10.0.md) and [local agent setup, MCP configuration, commands and security boundaries](docs/LOCAL_AGENT.md). Multi-platform CI release verification, actual vendor-client setup, macOS/Linux GUI checks and the human usability pilot remain pending.
 
-Build from source with Node.js >=20.19 and npm >=10:
+Build from source with Node.js >=22.19 and npm >=10:
 
 ```bash
 git clone https://github.com/Gatewaylabsnet/specfold.git
@@ -76,6 +76,8 @@ node packages/agent/dist/index.js help
 ```
 
 AI connections and request execution both default to off. Redaction is heuristic, not guaranteed anonymization; a cloud-backed client may transmit even redacted structure outside your machine. The advanced offline CLI retains interactive terminal approval and rejects writes while desktop owns the profile. Never use an older desktop without the writer lease concurrently. [Read the complete safety and recovery guide](docs/LOCAL_AGENT.md#safety-backups-recovery-and-boundaries) before using real data.
+
+The release preparation also masks literal credentials stored in typed API-key authentication, isolates agent TLS verification from simultaneous insecure desktop requests, preserves pending editor changes during JWT capture, and aborts pending sends when their MCP/IPC client cancels or disconnects. Cancellation cannot undo a request already processed by the API. Expired authenticated plans free capacity automatically; active approvals and historical receipts are preserved.
 
 Example agent task: “List my collections, preview this OpenAPI document, show the diff and warnings, then stop. Bind bearer authentication to the `apinizerAuthAccessToken` variable name without requesting its value.”
 
@@ -313,7 +315,7 @@ docs/                                 Product, architecture, UI, and security sp
 
 ## Development
 
-Requires Node.js 20+ and npm 10+.
+Requires Node.js >=22.19 and npm >=10. This source requirement matches the existing Undici 8 dependency; packaged desktop users do not install Node separately.
 
 ```bash
 npm install
@@ -327,10 +329,10 @@ npm test
 The end-to-end suite opens the real unpacked Electron executable with an isolated temporary profile and a local HTTP test server. It covers native import/file-picker IPC, environment routing, request/response handling, multipart upload, export, full backup/restore, and destructive-data confirmation.
 
 ```bash
-npm run test:e2e:packaged
+npm run test:e2e:packaged --workspace @openapi-collection-studio/desktop
 ```
 
-To rerun the E2E suite against an already-built portable package, use `npm run test:e2e`. On failure, Playwright keeps traces, screenshots, and videos in `apps/desktop/e2e/artifacts`.
+To rerun the E2E suite against an already-built portable package, use `npm run test:e2e --workspace @openapi-collection-studio/desktop -- --workers=1`. On failure, Playwright keeps traces, screenshots, and videos in `apps/desktop/e2e/artifacts`.
 
 ## Build Locally
 
