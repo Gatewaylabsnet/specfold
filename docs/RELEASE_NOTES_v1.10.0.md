@@ -1,6 +1,6 @@
 # Specfold v1.10.0 — Draft
 
-Status: release preparation, **not published**. Stable downloads remain [v1.9.4](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.4). These notes describe the current candidate and do not claim that a GitHub release, CI release bundle or verified public artifacts exist yet.
+Status: release preparation in [draft PR #3](https://github.com/Gatewaylabsnet/specfold/pull/3), **not published**. Stable downloads remain [v1.9.4](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.9.4). Recorded candidate [9604df07f8ebdad45f345f0e97c8fc8ce7c7224a](https://github.com/Gatewaylabsnet/specfold/commit/9604df07f8ebdad45f345f0e97c8fc8ce7c7224a) passed CI and tagless multi-platform packaging. No v1.10.0 tag or GitHub Release has been published.
 
 ## Added
 
@@ -37,15 +37,18 @@ Source development requires **Node.js >=22.19 and npm >=10**, matching the exist
 | Local package identity | ASAR, running Electron and MCP server report 1.10.0; 13 desktop output files and `agent.cjs` byte-match built source |
 | Production dependency audit | `npm audit --omit=dev`: 0 vulnerabilities |
 | Independent changed-source secret review | No real secrets found; only a synthetic TLS fixture key |
-| CI and tagless Windows/macOS/Linux release bundle | Pending |
-| Public artifact/commit identity and checksums | Pending |
+| Cloud CI, including Windows packaged E2E | [Pass](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371144773) at 9604df0 |
+| Tagless Windows/macOS/Linux builds, tests and bundle gate | [Pass](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371138382) at 9604df0; [eight-package bundle and generated checksums](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371138382/artifacts/11798414937) |
+| Independent downloaded-asset checksum verification | Pass for the linked 9604df0 bundle: eight expected v1.10.0 filenames, eight checksum records, all sequential SHA-256 checks match and no extra assets |
+| Downloaded package metadata | Both macOS ZIPs and Linux DEB contain version 1.10.0 and a bundled helper byte-matching the verified source build; both Windows EXEs are unsigned |
 | Actual Codex/other vendor-client UI setup | Pending |
 | macOS/Linux GUI and five-person usability pilot | Pending |
 
-Current local results must be tied to the final release commit and supplemented with multi-platform CI/public artifact checks before publication. The existing release workflow creates a **draft** only on a version tag; manual workflow runs verify packages without publishing. No public v1.10.0 download links are asserted here.
+The successful release workflow ran without a tag, so its draft-release publication job was skipped. The linked bundle is a GitHub Actions candidate artifact, not a published GitHub Release. Independent verification of all eight downloaded package names and hashes passed. No GatewayLabs website deployment is claimed.
 
 ## Known limitations
 
+- Apinizer project discovery/export through its management API, example-only test planning, assertions and a batch test report are outside this release. Supply OpenAPI content and use a trusted MCP client to orchestrate saved requests with the existing approvals; generated schema placeholders are not evidence of valid test data.
 - Packages remain unsigned, and macOS packages are not notarized. Automatic update download/installation is unavailable.
 - Masking is conservative and heuristic, not a general DLP guarantee. Same-OS-user trust applies; a cloud-backed MCP client may send returned API structure to its provider.
 - An approved send can change remote data. Cancellation is not rollback, and uncertain remote outcomes need inspection before retry.

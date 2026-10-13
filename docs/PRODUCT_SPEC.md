@@ -43,3 +43,5 @@ Specfold is a simple, local-first desktop REST API collection studio for develop
 ## Success Gate
 
 Typecheck, unit/renderer tests, production build, tagless multi-platform package verification, checksums, light/dark layout review, and packaged smoke tests must pass before each draft release is published.
+
+The v1.10.0 candidate has passed CI and the tagless multi-platform package gate; [recorded evidence and remaining launch checks](RELEASE_NOTES_v1.10.0.md) distinguish this preparation from a published version. No release tag or GitHub Release has been published for v1.10.0.

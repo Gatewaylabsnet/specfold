@@ -54,7 +54,9 @@ Connect a trusted MCP client from **Settings → AI connections**: enable the op
 
 Agent request sending is a separate, default-off permission. Choose native confirmation for each request or approve selected requests for a temporary session (15 minutes / 20 sends), with **Stop session** always available. Only main resolves credentials. JWT responses can update the existing encrypted `apinizerAuthAccessToken` without returning its value. Agents can read masked responses to prepare documentation; **Preview documentation draft** shows observed versus untested requests before export. Responses are untrusted data and cannot grant permission or publish a document.
 
-This integration is being prepared for v1.10.0 and is not yet in the published v1.9.4 packages. Local checks, the Windows portable build and all seven packaged E2E scenarios pass. See the [draft v1.10.0 release notes](docs/RELEASE_NOTES_v1.10.0.md) and [local agent setup, MCP configuration, commands and security boundaries](docs/LOCAL_AGENT.md). Multi-platform CI release verification, actual vendor-client setup, macOS/Linux GUI checks and the human usability pilot remain pending.
+This integration is being prepared for v1.10.0 and is not yet in the published v1.9.4 packages. See the [draft v1.10.0 release notes](docs/RELEASE_NOTES_v1.10.0.md) and [local agent setup, MCP configuration, commands and security boundaries](docs/LOCAL_AGENT.md).
+
+Candidate [9604df0](https://github.com/Gatewaylabsnet/specfold/commit/9604df07f8ebdad45f345f0e97c8fc8ce7c7224a) passes [CI and Windows packaged E2E](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371144773) and the [Windows/macOS/Linux package gate](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371138382), which produced a [candidate bundle](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371138382/artifacts/11798414937). All eight downloaded package names and SHA-256 hashes independently match the expected v1.10.0 asset set and checksum file, with no extras. Review is in [draft PR #3](https://github.com/Gatewaylabsnet/specfold/pull/3); no v1.10.0 tag or GitHub Release has been published. Actual vendor-client setup, macOS/Linux GUI checks and the human pilot remain pending. These results do not claim a GatewayLabs website deployment.
 
 Build from source with Node.js >=22.19 and npm >=10:
 
@@ -80,6 +82,8 @@ AI connections and request execution both default to off. Redaction is heuristic
 The release preparation also masks literal credentials stored in typed API-key authentication, isolates agent TLS verification from simultaneous insecure desktop requests, preserves pending editor changes during JWT capture, and aborts pending sends when their MCP/IPC client cancels or disconnects. Cancellation cannot undo a request already processed by the API. Expired authenticated plans free capacity automatically; active approvals and historical receipts are preserved.
 
 Example agent task: “List my collections, preview this OpenAPI document, show the diff and warnings, then stop. Bind bearer authentication to the `apinizerAuthAccessToken` variable name without requesting its value.”
+
+For an Apinizer workflow, supply the OpenAPI document first. This release prepares JWT requests and permits approved saved-request sends; project discovery/export through the Apinizer management API, example-only test plans, assertions and batch test reports remain outside its scope.
 
 ## Download v1.9.4
 

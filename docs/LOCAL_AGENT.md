@@ -208,6 +208,8 @@ Common credential fields, known secret values, resolved Authorization and TCKN/e
 
 The current preparation adds regression coverage for literal custom-auth credentials, concurrent verified/insecure TLS, pending editor changes during JWT capture, cancellation through stdio/IPC/consent/HTTP, and authenticated expired-plan cleanup with concurrent previews. Local checks were run sequentially with bounded concurrency:
 
+Recorded candidate: [9604df07f8ebdad45f345f0e97c8fc8ce7c7224a](https://github.com/Gatewaylabsnet/specfold/commit/9604df07f8ebdad45f345f0e97c8fc8ce7c7224a), reviewed in [draft PR #3](https://github.com/Gatewaylabsnet/specfold/pull/3). The first tagless attempt exposed noncanonical temporary paths in older test fixtures; this commit canonicalizes those fixture roots without weakening production path checks, and both cloud reruns pass.
+
 | Check | Current result |
 | --- | --- |
 | Source-size, lint and typecheck | Pass |
@@ -219,10 +221,11 @@ The current preparation adds regression coverage for literal custom-auth credent
 | Local package identity | ASAR, running Electron and MCP server report 1.10.0; 13 desktop output files and bundled `agent.cjs` byte-match the built source |
 | Production dependency audit | `npm audit --omit=dev`: 0 vulnerabilities |
 | Independent changed-source secret review | No real secrets found; TLS test key is synthetic |
-| CI and tagless multi-platform release bundle | Pending |
-| Public artifact/commit/checksum verification | Pending; no v1.10.0 publication is claimed |
+| Cloud CI, including Windows packaged E2E | [Pass](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371144773) at the recorded candidate |
+| Tagless Windows/macOS/Linux builds, tests and release-bundle verification | [Pass](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371138382); [candidate bundle](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371138382/artifacts/11798414937) contains the eight packages and generated checksums |
+| Independent downloaded-asset checksum verification | Pass for the linked 9604df0 bundle: eight expected v1.10.0 package names, eight `SHA256SUMS.txt` records, all sequential `Get-FileHash` results match, no extra assets |
 
-Remaining release evidence includes tagless Windows/macOS/Linux package verification, public artifact/commit consistency and checksums. Record the final results against the exact release commit before publication. Actual Codex/other vendor-client setup, macOS/Linux GUI tests and the five-person usability pilot remain pending. The pilot target is four unaided connections and three repeat users within two weeks; automated tests do not satisfy it. Stable downloads remain v1.9.4 until an explicit release publication.
+The successful release workflow was tagless, so its draft-release publication job was skipped. No v1.10.0 tag or GitHub Release was published; stable downloads remain v1.9.4. Independent checks of all eight downloaded package names and hashes passed against the linked candidate bundle. Actual Codex/other vendor-client setup, macOS/Linux GUI tests and the five-person usability pilot remain pending. The pilot target is four unaided connections and three repeat users within two weeks; automated tests do not satisfy it. Signing/notarization is inactive, and this record does not claim a GatewayLabs website deployment.
 
 ## Historical verification (2026-10-08)
 
@@ -244,4 +247,4 @@ GatewayLabs copy was updated in its source repository to describe this workflow 
 
 The earlier production audit reported zero advisories after compatible lockfile updates. Development-tool advisories remain a separate release review item; no force/major-version audit fix is part of this feature.
 
-This run verifies official SDK stdio interoperability, not actual Codex/other vendor client UIs. macOS/Linux GUI and production API behavior remain untested. Before broad release, verify all platform packages/checksums and run a five-person usability pilot: four connect without help and three reuse within two weeks. The human pilot is pending; automated tests do not count as adoption evidence. Stable downloads stay v1.9.4 until the next release is explicitly published.
+This historical run verified official SDK stdio interoperability, not actual Codex/other vendor client UIs or production API behavior. The current candidate evidence and remaining launch checks are recorded above.
