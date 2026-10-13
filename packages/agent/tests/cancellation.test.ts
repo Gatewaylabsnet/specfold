@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { connect, type Socket } from "node:net";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, realpath, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { startNetworkHost, callDesktopHost, callNetworkHost } from "../src/networkTransport";
@@ -27,7 +27,7 @@ describe("agent request cancellation", () => {
   const sockets: Socket[] = [];
   const release: Array<() => void> = [];
   const pending: Promise<unknown>[] = [];
-  beforeEach(async () => { root = await mkdtemp(join(tmpdir(), "specfold-cancel-")); });
+  beforeEach(async () => { root = await realpath(await mkdtemp(join(tmpdir(), "specfold-cancel-"))); });
   afterEach(async () => {
     for (const done of release.splice(0)) done();
     for (const socket of sockets.splice(0)) socket.destroy();
