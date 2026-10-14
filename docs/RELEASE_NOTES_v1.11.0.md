@@ -1,6 +1,6 @@
 # Specfold v1.11.0
 
-This release combines optional local MCP integration, desktop-owned approval, guided testing and update/version safeguards. Publication follows successful integrated CI and tagged package verification.
+This release combines optional local MCP integration, desktop-owned approval, guided testing and update/version safeguards. Published on October 14, 2026 after integrated CI, tagged package verification and Windows packaged checks.
 
 ## Added
 
@@ -17,7 +17,7 @@ This release combines optional local MCP integration, desktop-owned approval, gu
 
 ## Verification and remaining scope
 
-Preparation passed 497 unit/integration tests, three version-gate tests and nine packaged Windows E2E tests. Final integrated CI/tag runs and release assets must be verified against the release commit before publication. Human testing is planned for October 15, 2026 and is not claimed as completed.
+Preparation passed 497 unit/integration tests, three version-gate tests and nine packaged Windows E2E tests. [Final integrated CI](https://github.com/Gatewaylabsnet/specfold/actions/runs/38582615898) and [tag build](https://github.com/Gatewaylabsnet/specfold/actions/runs/38583387156) passed at caf4cb486744c9ec614fb0a79fda93d401c3d57c. All eight published packages match SHA256SUMS and GitHub asset digests. Human testing is planned for October 15, 2026 and is not claimed as completed.
 
 Upgrade fixtures use synthetic data in compatible 1.9.4/1.10.0 formats, not archived old binaries or real user data. Packaged Windows E2E evidence must identify the new stable candidate; macOS/Linux GUI or keychain checks must only be claimed when actually performed. No real account, gateway token or production API was used.
 

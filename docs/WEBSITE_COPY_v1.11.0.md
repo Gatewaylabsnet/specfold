@@ -1,6 +1,6 @@
-# Website publication copy - not deployed
+# Website copy reference for 1.11.0
 
-Use only after stable v1.11.0 is published and its actual assets are verified. Until then, keep the site's active downloads on v1.9.4. The future GitHub tag is plain text here, not an active download link: v1.11.0.
+Stable v1.11.0 is published and its eight assets are verified. Active GatewayLabs product and usage content is maintained in ConfigDiffTool; deployment status is recorded separately. The text below is the preparation reference, not a claim that the site deployment has completed.
 
 ## English
 

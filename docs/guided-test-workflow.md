@@ -1,6 +1,6 @@
 # Guided test workflow
 
-**Specfold 1.11.0 release candidate.** The integrated release must pass final CI/tag verification before stable publication. Source preparation passed 497 tests plus three version gates and nine packaged Windows E2E tests. Human testing is planned for October 15, 2026; it has not happened.
+**Published stable Specfold 1.11.0.** Final integrated CI and the tagged three-platform release build passed. Source preparation passed 497 tests plus three version gates and nine packaged Windows E2E tests. Human testing is planned for October 15, 2026; it has not happened.
 
 The desktop's **Test workflow** guides you through **Connection → Authentication → Test preview → Results**. It prepares a reviewable test selection from saved API definitions and documented inputs. An MCP client can use an already configured profile, but only a person in the desktop can approve its run.
 
@@ -95,8 +95,8 @@ An example agent instruction is: “List my saved connection profiles, preview t
 
 ## Current scope and validation
 
-Local Windows verification completed with 220 core tests, 52 agent tests and 163 desktop tests, followed by nine packaged E2E tests. Lint, typecheck, source-size checks, core build and desktop/helper build passed. The Windows portable package and bundled helper report `1.11.0-dev.1`; the helper matches the built source bundle. The production dependency audit reported zero vulnerabilities.
+Source verification covers 220 core, 52 agent and 225 desktop tests (497 total), plus three version-gate tests. [Integrated CI](https://github.com/Gatewaylabsnet/specfold/actions/runs/38582615898) and [tag build](https://github.com/Gatewaylabsnet/specfold/actions/runs/38583387156) passed at caf4cb486744c9ec614fb0a79fda93d401c3d57c. Nine packaged Windows E2E scenarios passed. All eight published packages match the checksum manifest and uploaded asset digests; extracted Windows, macOS arm64/x64 ZIP and Linux DEB runtimes declare 1.11.0 with matching helper bundles. Windows packages are unsigned; macOS packages are not notarized. DMG/AppImage contents were not separately extracted on Windows; paired ZIP/DEB runtime metadata and all asset hashes were checked.
 
-E2E verification used only loopback synthetic APIs and synthetic credentials. It covered source import preserving old data, configurable issuer authentication, real-example skips, explicit POST selection/native approval, status/schema failures, encrypted credentials, masked JSON export, MCP cancellation/disconnect, and existing editor/import/backup/upload/portable-helper regressions. The package is an unsigned Windows test build. Real gateway behavior and macOS/Linux packaging have not been verified for this new scope. No tag, published release, merge or deployment occurred.
+E2E tests used loopback synthetic APIs/credentials and covered import preservation, issuer authentication, selection and approval, status/schema failures, encryption, masked export, cancellation/disconnect, editor/import/backup/upload/portable-helper regressions. Real gateway, vendor-client UI and macOS/Linux GUI/keychain checks are not claimed. Human testing is planned for October 15, 2026 and has not happened. Old dev.1 binaries need a one-time manual stable download.
 
-The workflow does not supply load testing, fuzzing, arbitrary scripts, automatic retries, full schema conformance, management-project discovery or automatic report publication. Real APIs may reject documented examples or perform side effects despite a read-method label; use an appropriate test environment and inspect the exact preview.
+The workflow does not supply load testing, fuzzing, arbitrary scripts, automatic retries, full schema conformance, management-project discovery or automatic report publication. Real APIs may reject documented examples or perform side effects despite a read-method label; use a test environment and inspect the exact preview.

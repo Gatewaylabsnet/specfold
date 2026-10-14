@@ -1,6 +1,6 @@
 # Local agent integration
 
-Status: local MCP and CLI are included in the 1.11.0 release candidate. Final integrated CI/tag verification precedes stable publication. See the [release notes](RELEASE_NOTES_v1.11.0.md) and [guided workflow guide](guided-test-workflow.md). No model, hosted MCP endpoint, telemetry or automatic downloader is added. Packaged users need no separate Node.js installation.
+Status: local MCP and CLI are included in published stable [v1.11.0](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.11.0). See the [release notes](RELEASE_NOTES_v1.11.0.md) and [guided workflow guide](guided-test-workflow.md). No model, hosted MCP endpoint, telemetry or automatic downloader is added. Packaged users need no separate Node.js installation.
 
 ## Quick start: keep Specfold open
 
@@ -167,9 +167,9 @@ This default has no write or network capability. To allow an agent to apply **al
 | `send_request` | Separate, default-off, desktop-mediated network request |
 | `get_documentation_context` | Redacted definitions and observed responses with untested labels |
 
-### Guided test tools (development draft)
+### Guided test tools
 
-These additions use profiles configured in the desktop. Local Windows verification is recorded separately in the [development release notes](RELEASE_NOTES_v1.11.0-dev.1.md); real gateway and other-platform validation remain open. See the [four-step workflow guide](guided-test-workflow.md#mcp-use-with-a-saved-profile).
+These tools use profiles configured in the desktop and are included in stable 1.11.0. See the [stable release notes](RELEASE_NOTES_v1.11.0.md) for version-specific verification and scope. See the [four-step workflow guide](guided-test-workflow.md#mcp-use-with-a-saved-profile).
 
 | Tool | Behavior |
 | --- | --- |
@@ -219,7 +219,11 @@ Common credential fields, known secret values, resolved Authorization and TCKN/e
 - OS-account trust is the boundary. Same-user malware or an administrator can read process memory or profile files and bypass cooperative leases/approvals. Unix modes are `0600` for files / `0700` for state; Windows relies additionally on the profile's inherited user ACL. This feature is not a multi-user authorization system, an OS mandatory lock, or protection against arbitrary tools given to the agent outside Specfold.
 - No macOS/Linux GUI run or real TarımKredi API call was performed in the Windows acceptance run. The supplied OpenAPI fixture is synthetic, as authorized by the requester.
 
-## v1.10.0 release verification (2026-10-13)
+## Stable 1.11.0 verification (2026-10-14)
+
+[Integrated CI](https://github.com/Gatewaylabsnet/specfold/actions/runs/38582615898) and [tag build](https://github.com/Gatewaylabsnet/specfold/actions/runs/38583387156) passed at `caf4cb486744c9ec614fb0a79fda93d401c3d57c`. Source checks cover 497 tests plus three release-version gates; nine packaged Windows E2E tests passed. All eight published package hashes match the tag bundle and checksum manifest. Windows/macOS arm64/x64 ZIP/Linux DEB app versions and helper bundles match 1.11.0. macOS/Linux GUI, vendor-client UI and real gateway validation are not claimed. Human testing is planned for October 15, 2026.
+
+## Historical v1.10.0 candidate verification (2026-10-13)
 
 The current preparation adds regression coverage for literal custom-auth credentials, concurrent verified/insecure TLS, pending editor changes during JWT capture, cancellation through stdio/IPC/consent/HTTP, and authenticated expired-plan cleanup with concurrent previews. Local checks were run sequentially with bounded concurrency:
 
@@ -240,11 +244,11 @@ Recorded candidate: [9604df07f8ebdad45f345f0e97c8fc8ce7c7224a](https://github.co
 | Tagless Windows/macOS/Linux builds, tests and release-bundle verification | [Pass](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371138382); [candidate bundle](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371138382/artifacts/11798414937) contains the eight packages and generated checksums |
 | Independent downloaded-asset checksum verification | Pass for the linked 9604df0 bundle: eight expected v1.10.0 package names, eight `SHA256SUMS.txt` records, all sequential `Get-FileHash` results match, no extra assets |
 
-The successful release workflow was tagless, so its draft-release publication job was skipped. No v1.10.0 tag or GitHub Release was published; stable downloads remain v1.9.4. Independent checks of all eight downloaded package names and hashes passed against the linked candidate bundle. Actual Codex/other vendor-client setup, macOS/Linux GUI tests and the five-person usability pilot remain pending. The pilot target is four unaided connections and three repeat users within two weeks; automated tests do not satisfy it. Signing/notarization is inactive, and this record does not claim a GatewayLabs website deployment.
+The successful release workflow was tagless, so its draft-release publication job was skipped. No v1.10.0 tag or GitHub Release was published; stable downloads were still v1.9.4 at that checkpoint. Independent checks of all eight downloaded package names and hashes passed against the linked candidate bundle. Actual Codex/other vendor-client setup, macOS/Linux GUI tests and the five-person usability pilot remain pending. The pilot target is four unaided connections and three repeat users within two weeks; automated tests do not satisfy it. Signing/notarization is inactive, and this record does not claim a GatewayLabs website deployment.
 
 ## Historical verification (2026-10-08)
 
-The earlier source-preview run reported the following on Windows. These are historical results, not verification of the current v1.10.0 candidate:
+The earlier source-preview run reported the following on Windows. These are historical results, not verification of the later v1.10.0 candidate:
 
 | Check | Result |
 | --- | --- |
@@ -262,4 +266,4 @@ GatewayLabs copy was updated in its source repository to describe this workflow 
 
 The earlier production audit reported zero advisories after compatible lockfile updates. Development-tool advisories remain a separate release review item; no force/major-version audit fix is part of this feature.
 
-This historical run verified official SDK stdio interoperability, not actual Codex/other vendor client UIs or production API behavior. The current candidate evidence and remaining launch checks are recorded above.
+This historical run verified official SDK stdio interoperability, not actual Codex/other vendor client UIs or production API behavior. Current stable release evidence and remaining verification limits are recorded above.
