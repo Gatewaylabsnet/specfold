@@ -127,7 +127,11 @@ test("bundled MCP reviews live imports, uses bounded sessions and prepares redac
     await page.getByRole("heading", { name: "AI connections", exact: true }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: join(repository, "apps/desktop/e2e/artifacts/agent-settings-dark.png"), fullPage: true });
   } finally {
-    await client?.close(); await app.close();
+    await client?.close();
+    // Assertions finished; terminate only the temporary fixture app without
+    // triggering the production unsaved-change confirmation during teardown.
+    await app.evaluate(({ app }) => app.exit(0)).catch(() => undefined);
+    server.closeAllConnections();
     await new Promise<void>((done, reject) => server.close((error) => error ? reject(error) : done()));
     await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   }

@@ -86,7 +86,10 @@ test("actual desktop blocks agent writes and approves/redacts a separate local n
     expect(calls).toBe(1); expect(authorization).toBe("Bearer LOCAL_TEST_SECRET");
     expect(allowed.stdout).not.toContain("LOCAL_TEST_SECRET"); expect(allowed.stdout).not.toContain("11111111111");
   } finally {
-    await app.close();
+    // Only this isolated fixture app is terminated. Normal quit can open an
+    // unsaved-change dialog and leave Playwright waiting during teardown.
+    await app.evaluate(({ app }) => app.exit(0)).catch(() => undefined);
+    server.closeAllConnections();
     await new Promise<void>((done, reject) => server.close((error) => error ? reject(error) : done()));
     await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   }
