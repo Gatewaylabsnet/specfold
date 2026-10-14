@@ -1,8 +1,6 @@
 # Guided test workflow
 
-**Development candidate `1.11.0-dev.1` - unpublished.** This guide describes the separate guided-workflow development scope. Local verification passed 435 unit/integration tests and nine packaged Windows E2E tests. Earlier v1.10.0 evidence applies to its own candidate.
-
-Current source is now prepared as `1.11.0`; its [stable preparation checklist](RELEASE_PREPARATION_v1.11.0.md) tracks the remaining final package checks. The verified package/results in this guide are historical `1.11.0-dev.1` evidence, not a claim that stable packages have been built or published.
+**Specfold 1.11.0 release candidate.** The integrated release must pass final CI/tag verification before stable publication. Source preparation passed 497 tests plus three version gates and nine packaged Windows E2E tests. Human testing is planned for October 15, 2026; it has not happened.
 
 The desktop's **Test workflow** guides you through **Connection → Authentication → Test preview → Results**. It prepares a reviewable test selection from saved API definitions and documented inputs. An MCP client can use an already configured profile, but only a person in the desktop can approve its run.
 
@@ -38,7 +36,7 @@ Enter real credentials only in the desktop's credential fields. Specfold saves t
 
 The Apinizer preset requests a token from your issuer; Specfold does not sign JWTs or request a signing key. Its editable endpoint initially uses the API origin plus `/auth/jwt`. Verify that address against your gateway configuration. The preset sends a form with `grant_type=password`, `username`, `password` and `client_id`. Enable **My issuer requires a client secret** only when needed; its optional variable supplies `client_secret`. The grant type is fixed to this password-grant preset.
 
-After approval, authentication runs once before service tests. A successful JSON response must contain a usable `access_token`, which is stored in the configured encrypted token variable. Authentication failure, an incomplete response, or inability to save the token securely blocks the service requests. There are no invented credential defaults or automatic authentication retries.
+For each approved Apinizer workflow run, authentication requests a fresh token once before service tests. A successful JSON response must contain a usable `access_token`, which is stored in the configured encrypted token variable. Authentication failure, an incomplete response, or inability to save the token securely blocks the service requests. There are no invented credential defaults, automatic authentication retries or automatic 401 retries.
 
 Select **Save & preview** to save the profile and prepare the next step. Saving does not execute authentication or service requests.
 

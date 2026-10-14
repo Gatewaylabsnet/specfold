@@ -1,6 +1,6 @@
-# Specfold v1.11.0 - Unpublished preparation
+# Specfold v1.11.0
 
-Stable release preparation combines the MCP safety candidate from [PR #3](https://github.com/Gatewaylabsnet/specfold/pull/3), the guided workflow from [PR #4](https://github.com/Gatewaylabsnet/specfold/pull/4), and the final update/version safeguards. Public downloads remain v1.9.4. No v1.11.0 tag, release, main merge or website deployment has been performed.
+This release combines optional local MCP integration, desktop-owned approval, guided testing and update/version safeguards. Publication follows successful integrated CI and tagged package verification.
 
 ## Added
 
@@ -17,7 +17,7 @@ Stable release preparation combines the MCP safety candidate from [PR #3](https:
 
 ## Verification and remaining scope
 
-The prior dev.1 candidate passed 435 tests and nine packaged Windows E2E tests. Stable-preparation verification covers changed update logic, version gates, legacy schema-1 upgrade/backup/import/export, and retained critical security behavior. Final CI, all-platform package checks, runtime versions and checksum evidence are recorded in the preparation draft and its delivery dossier against the same final commit. Earlier candidate artifacts must not be relabeled as 1.11.0; publication requires the completed preparation checklist.
+Preparation passed 497 unit/integration tests, three version-gate tests and nine packaged Windows E2E tests. Final integrated CI/tag runs and release assets must be verified against the release commit before publication. Human testing is planned for October 15, 2026 and is not claimed as completed.
 
 Upgrade fixtures use synthetic data in compatible 1.9.4/1.10.0 formats, not archived old binaries or real user data. Packaged Windows E2E evidence must identify the new stable candidate; macOS/Linux GUI or keychain checks must only be claimed when actually performed. No real account, gateway token or production API was used.
 

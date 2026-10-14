@@ -46,56 +46,35 @@ OpenAPI / Swagger / Postman / Insomnia / HAR / .http / cURL
 
 It is intentionally local-first. There is no account requirement, no cloud workspace, and no hosted sync layer. Your workspace, environments, request history, and secrets stay on the machine running the desktop app.
 
-> The published stable release is v1.9.4. It keeps folder and request actions attached to their owning collection, exposes clear actions when a folder is selected, and prevents tree-row controls from triggering drag or selection by accident. See the [release notes](docs/RELEASE_NOTES_v1.9.4.md) and [desktop runtime decision](docs/DESKTOP_RUNTIME_DECISION.md).
+## MCP and guided testing in 1.11.0
 
-## Stable 1.11.0 release preparation (unpublished)
+The 1.11.0 release candidate combines the optional local MCP helper, desktop-owned approval and a guided test workflow. Final integrated CI and tagged package verification precede stable publication; the download links below stay on the current published release until then.
 
-The separate preparation branch declares `1.11.0` and includes both MCP readiness fixes and the guided workflow. It corrects prerelease-to-stable update comparison and adds manifest/lockfile/tag consistency checks plus synthetic legacy-data upgrade regressions. Final multi-platform packages and release approval are pending; public downloads remain **v1.9.4**.
+### Connect a local MCP client
 
-See the [stable preparation checklist](docs/RELEASE_PREPARATION_v1.11.0.md), [draft stable notes](docs/RELEASE_NOTES_v1.11.0.md), and [prepared website copy](docs/WEBSITE_COPY_v1.11.0.md). No v1.11.0 download link is active here before publication. The candidate evidence below remains historical evidence for its recorded commits.
+In **Settings → AI connections**, enable the default-off connection, copy JSON or Codex TOML configuration and click **Test connection**. Keep Specfold open. Packaged users need no separate Node.js installation; the bundled helper uses the desktop runtime. Windows portable users should copy configuration again after replacing the artifact.
 
-## Local MCP server and CLI (v1.10.0 preparation)
+Agents inspect masked saved requests, preview OpenAPI imports, bind token variable names, propose collection changes and request review. **Review changes** shows the exact diff for your approval; agents cannot approve themselves. Only desktop main writes the workspace and resolves encrypted credentials. Stale previews require refresh; repeated apply does not duplicate requests.
 
-Connect a trusted MCP client from **Settings → AI connections**: enable the optional connection, copy its JSON or Codex TOML configuration, and test it. The bundled helper uses Specfold's runtime; packaged users do not need a separate Node.js installation. The agent can inspect collections, preview OpenAPI imports, bind token **variable names**, create Apinizer JWT recipes and request a review. You approve or cancel the diff inside Specfold while it stays open. Main remains the only workspace writer; stale previews must be refreshed and repeated applies do not duplicate requests.
+Request execution requires a separate default-off permission. Confirm each saved-request send or approve selected requests for a temporary 15-minute / 20-send session. **Stop session** revokes it. Masked observations can support a documentation draft; review observed versus untested behavior before exporting. Responses cannot grant permission or publish anything.
 
-Agent request sending is a separate, default-off permission. Choose native confirmation for each request or approve selected requests for a temporary session (15 minutes / 20 sends), with **Stop session** always available. Only main resolves credentials. JWT responses can update the existing encrypted `apinizerAuthAccessToken` without returning its value. Agents can read masked responses to prepare documentation; **Preview documentation draft** shows observed versus untested requests before export. Responses are untrusted data and cannot grant permission or publish a document.
+See the [MCP setup and safety guide](docs/LOCAL_AGENT.md) for generated configuration, commands, recovery and boundaries. No bundled model, hosted MCP server or automatic model download is added. External clients may transmit returned structure to their providers; masking is heuristic.
 
-This integration is being prepared for v1.10.0 and is not yet in the published v1.9.4 packages. See the [draft v1.10.0 release notes](docs/RELEASE_NOTES_v1.10.0.md) and [local agent setup, MCP configuration, commands and security boundaries](docs/LOCAL_AGENT.md).
+### Run a guided test
 
-Candidate [9604df0](https://github.com/Gatewaylabsnet/specfold/commit/9604df07f8ebdad45f345f0e97c8fc8ce7c7224a) passes [CI and Windows packaged E2E](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371144773) and the [Windows/macOS/Linux package gate](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371138382), which produced a [candidate bundle](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371138382/artifacts/11798414937). All eight downloaded package names and SHA-256 hashes independently match the expected v1.10.0 asset set and checksum file, with no extras. Review is in [draft PR #3](https://github.com/Gatewaylabsnet/specfold/pull/3); no v1.10.0 tag or GitHub Release has been published. Actual vendor-client setup, macOS/Linux GUI checks and the human pilot remain pending. These results do not claim a GatewayLabs website deployment.
+Open **Test workflow** and follow **Connection → Authentication → Test preview → Results**. Supply an OpenAPI file/URL or existing collection. Choose no auth, bearer, basic, API key or the optional Apinizer issuer preset. Credentials stay in encrypted environment variables; profiles and MCP arguments retain references.
 
-Build from source with Node.js >=22.19 and npm >=10:
+Select documented examples/defaults, review destinations and explicitly select operations that may change data. Native final approval authorizes one revision-bound plan. Runs are sequential, with at most 20 sends including authentication, strict TLS, no redirects and no retries. Reports distinguish passed, failed, skipped and blocked checks and can be exported after review.
 
-```bash
-git clone https://github.com/Gatewaylabsnet/specfold.git
-cd specfold
-npm ci
-npm run agent:build
-npm run dev
-```
+The Apinizer preset obtains a fresh issuer token for each approved run; it does not sign JWTs, automatically retry 401 responses or discover management projects. See the [guided workflow usage guide](docs/guided-test-workflow.md). Unsupported schema rules and multipart/file scenarios require manual testing; cancellation cannot undo server-side work.
 
-Use a separate sample profile. In the updated desktop, open **Settings → AI connections → Enable AI connections**, choose your client format, then **Copy configuration** and **Test connection**. Keep Specfold open. The generated configuration contains your executable and profile paths; do not guess them.
+### Upgrade and verification
 
-For advanced CLI use with the open desktop:
+Stable preparation passed 497 unit/integration tests, three release-version gate tests and nine packaged Windows E2E tests. The final integrated commit must pass CI and the existing tag build before publication. Synthetic legacy schema-1 fixtures cover encrypted credentials, backups, restore, routing and import/export. macOS/Linux GUI and external vendor-client checks were not performed. The user's physical test is planned for October 15, 2026 and is not part of completed verification.
 
-```bash
-node packages/agent/dist/index.js list --desktop --data-dir /absolute/path/to/sample-profile
-node packages/agent/dist/index.js help
-```
+Existing unpublished dev.1 binaries need a one-time manual stable download. Windows packages are unsigned; macOS packages are not notarized. Keep a backup before upgrading; complete backup exports may contain readable secrets.
 
-AI connections and request execution both default to off. Redaction is heuristic, not guaranteed anonymization; a cloud-backed client may transmit even redacted structure outside your machine. The advanced offline CLI retains interactive terminal approval and rejects writes while desktop owns the profile. Never use an older desktop without the writer lease concurrently. [Read the complete safety and recovery guide](docs/LOCAL_AGENT.md#safety-backups-recovery-and-boundaries) before using real data.
-
-The release preparation also masks literal credentials stored in typed API-key authentication, isolates agent TLS verification from simultaneous insecure desktop requests, preserves pending editor changes during JWT capture, and aborts pending sends when their MCP/IPC client cancels or disconnects. Cancellation cannot undo a request already processed by the API. Expired authenticated plans free capacity automatically; active approvals and historical receipts are preserved.
-
-Example agent task: “List my collections, preview this OpenAPI document, show the diff and warnings, then stop. Bind bearer authentication to the `apinizerAuthAccessToken` variable name without requesting its value.”
-
-For an Apinizer workflow, supply the OpenAPI document first. This release prepares JWT requests and permits approved saved-request sends; project discovery/export through the Apinizer management API, example-only test plans, assertions and batch test reports remain outside its scope.
-
-## Guided test workflow (development draft)
-
-Separate development work adds **Connection → Authentication → Test preview → Results** for OpenAPI files, URLs and existing collections, with optional Apinizer authentication. Documented input evidence, explicit selection of operations that may change data, native final approval and bounded status/schema reports guide a sequential run. Saved profiles can also be used through four dedicated MCP tools.
-
-The separate `1.11.0-dev.1` development candidate passed 435 local unit/integration tests and nine packaged Windows E2E tests, including synthetic issuer authentication, explicit POST approval, masked export and MCP cancellation/disconnect. It remains unpublished; macOS/Linux packaging and real gateway behavior have not been verified for this scope. See the [guided test workflow guide](docs/guided-test-workflow.md) and [development release notes](docs/RELEASE_NOTES_v1.11.0-dev.1.md).
+Read the [1.11.0 release notes](docs/RELEASE_NOTES_v1.11.0.md) and [changelog](CHANGELOG.md).
 
 ## Download v1.9.4
 

@@ -1,10 +1,10 @@
 # Local agent integration
 
-Status: current source is in **v1.11.0 stable preparation, unpublished and not included in the published v1.9.4 binaries**. See the [stable preparation checklist](RELEASE_PREPARATION_v1.11.0.md) and [draft stable release notes](RELEASE_NOTES_v1.11.0.md). Historical v1.10.0 and v1.11.0-dev.1 candidate evidence below applies to their recorded commits. No model, cloud API, telemetry, credential manager or automatic downloader is added. An MCP-capable local LLM/agent client can launch the stdio server. The CLI uses the same service and core operations.
+Status: local MCP and CLI are included in the 1.11.0 release candidate. Final integrated CI/tag verification precedes stable publication. See the [release notes](RELEASE_NOTES_v1.11.0.md) and [guided workflow guide](guided-test-workflow.md). No model, hosted MCP endpoint, telemetry or automatic downloader is added. Packaged users need no separate Node.js installation.
 
 ## Quick start: keep Specfold open
 
-The separate [guided test workflow development candidate](guided-test-workflow.md), version `1.11.0-dev.1`, adds saved connection profiles, test previews and reports. It passed 435 local unit/integration tests and nine packaged Windows E2E tests. The earlier v1.10.0 candidate evidence below covers its own scope; neither candidate has been published.
+The [guided test workflow](guided-test-workflow.md) adds reference-only connection profiles, reviewed test previews and masked reports. Start with a separate sample profile.
 
 1. Save a sample workspace in the updated desktop.
 2. Open **Settings → AI connections → Enable AI connections**. Default: off.
