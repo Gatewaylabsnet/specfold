@@ -54,7 +54,10 @@ test("real MCP masks stored custom API keys and JWT capture preserves pending us
     const context = await call("get_documentation_context", { collectionId: collection.id });
     expect.soft(JSON.stringify(context)).not.toContain("SYNTHETIC_MCP_API_CREDENTIAL");
     expect(await readFile(join(root, "workspace.json"), "utf8")).not.toContain("SYNTHETIC_MCP_API_CREDENTIAL");
-    await page.getByLabel("Allow agents to send requests and read masked responses").check();
+    // Check the React-rendered controls as well as persisted permission: a DOM
+    // checked state alone did not prove the change reached React on Electron CI.
+    await page.getByLabel("Allow agents to send requests and read masked responses").click();
+    await expect(page.getByRole("combobox", { name: /^Request permission/ })).toBeVisible();
     await expect.poll(() => page.evaluate(async () => (await window.studio.loadSettings()).agentNetworkEnabled)).toBe(true);
     await app.evaluate(({ dialog }) => { dialog.showMessageBox = async () => ({ response: 0, checkboxChecked: false }); });
     // Hold the normal autosave window open so the HTTP completion race is deterministic.
