@@ -10,7 +10,11 @@ export type DesktopAgentCall =
   | { operation: "review"; planId: string; expectedRevision: string }
   | { operation: "status"; planId: string }
   | { operation: "send"; collectionId: string; requestId: string }
-  | { operation: "documentation"; collectionId: string };
+  | { operation: "documentation"; collectionId: string }
+  | { operation: "workflow-profiles" }
+  | { operation: "workflow-preview"; profileId: string; requestIds?: string[] }
+  | { operation: "workflow-run"; planId: string }
+  | { operation: "workflow-report"; id: string };
 
 export interface AgentPlanReview {
   planId: string;

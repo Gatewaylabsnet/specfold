@@ -172,7 +172,8 @@ function operationToRequest(input: {
       method,
       operationId: asString(operation.operationId),
       tags,
-      rawOperation: operation
+      rawOperation: operation,
+      rawParameters: parameters
     }
   };
 }

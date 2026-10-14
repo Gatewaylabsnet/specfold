@@ -9,6 +9,7 @@ import { agentDocumentation, networkSession, resetAgentExecution, sendAgentReque
 import { assertTrustedIpcSender } from "./security";
 import { atomicWrite, loadSettings, loadWorkspace, serializeStorageMutation } from "./storage";
 import { workspaceGeneration } from "./workspaceGeneration";
+import { cancelWorkflowRun, previewWorkflowPlan, resetWorkflowState, runWorkflowPlan, workflowProfiles, workflowReport } from "./workflow";
 
 let service: AgentService | undefined;
 let available = false, lastConnectedAt: string | undefined;
@@ -19,8 +20,8 @@ const planId = (value: unknown): string => {
   return value;
 };
 export function setAgentHostAvailable(value: boolean): void { available = value; }
-export function resetAgentState(): void { reviews.clear(); resetAgentExecution(); }
-export function revokeAgentSession(): void { networkSession.stop(); }
+export function resetAgentState(): void { reviews.clear(); resetAgentExecution(); resetWorkflowState(); }
+export function revokeAgentSession(): void { networkSession.stop(); cancelWorkflowRun(true); }
 
 async function connectionInfo(): Promise<AgentConnectionInfo> {
   const settings = await loadSettings();
@@ -37,6 +38,10 @@ export async function dispatchAgentCall(call: DesktopAgentCall, signal?: AbortSi
   if (call.operation === "ping") return { ready: true };
   if (call.operation === "send") return sendAgentRequest(call, signal);
   if (call.operation === "documentation") return agentDocumentation(call.collectionId);
+  if (call.operation === "workflow-profiles") return workflowProfiles();
+  if (call.operation === "workflow-preview") return previewWorkflowPlan(call.profileId, call.requestIds);
+  if (call.operation === "workflow-run") return runWorkflowPlan(call.planId, signal, true);
+  if (call.operation === "workflow-report") return workflowReport(call.id);
   if (call.operation === "status") {
     const review = reviews.get(call.planId);
     if (!review) throw new Error("REVIEW_NOT_FOUND");

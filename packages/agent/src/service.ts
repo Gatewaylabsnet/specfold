@@ -271,6 +271,16 @@ export class AgentService {
   async planStatus(planId: string) { return callDesktopHost(this.repository.root, { operation: "status", planId }); }
   async documentation(collectionId: string) { return callDesktopHost(this.repository.root, { operation: "documentation", collectionId }); }
 
+  async workflowProfiles() { return callDesktopHost(this.repository.root, { operation: "workflow-profiles" }); }
+  async previewWorkflow(profileId: string, requestIds?: string[]) {
+    return callDesktopHost(this.repository.root, { operation: "workflow-preview", profileId, requestIds });
+  }
+  async runWorkflow(planId: string, signal?: AbortSignal) {
+    if (!this.allowNetwork) throw new AgentError("NETWORK_DISABLED");
+    return callDesktopHost(this.repository.root, { operation: "workflow-run", planId }, signal);
+  }
+  async workflowReport(id: string) { return callDesktopHost(this.repository.root, { operation: "workflow-report", id }); }
+
   private intent(action: AgentMutation) {
     if (action.kind === "import-openapi") return { kind: action.kind, targetCollectionId: action.targetCollectionId, apinizer: action.apinizer === true,
       tokenVariable: action.apinizer ? "apinizerAuthAccessToken" : undefined };

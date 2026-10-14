@@ -1,3 +1,5 @@
+import type { ConnectionProfile } from "../workflow/types";
+
 export type HttpMethod =
   | "GET"
   | "POST"
@@ -90,6 +92,8 @@ export interface OpenApiMetadata {
   components?: Record<string, unknown>;
   securitySchemes?: Record<string, unknown>;
   rawOperation?: unknown;
+  /** Merged path/operation parameters retained for source-example provenance. */
+  rawParameters?: unknown[];
 }
 
 export interface ApiRequest {
@@ -154,6 +158,8 @@ export interface Workspace {
   collections: Collection[];
   environments: Environment[];
   activeEnvironmentId?: string;
+  /** Optional reference-only workflow setup; schema 1 and ordinary requests are unchanged. */
+  connectionProfiles?: ConnectionProfile[];
   updatedAt: string;
 }
 

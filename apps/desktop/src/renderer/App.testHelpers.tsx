@@ -29,6 +29,11 @@ export function studioMock(workspace = sampleWorkspace()): StudioApi {
     stopAgentSession: vi.fn(async () => undefined),
     exportAgentDocumentation: vi.fn(async () => ({ canceled: true })),
     previewAgentDocumentation: vi.fn(async () => "# Documentation draft"),
+    saveWorkflowProfile: vi.fn(async () => { throw new Error("No workflow configured"); }),
+    previewWorkflowRun: vi.fn(async () => { throw new Error("No workflow configured"); }),
+    runWorkflowPlan: vi.fn(async () => { throw new Error("No workflow configured"); }),
+    cancelWorkflowRun: vi.fn(async () => undefined),
+    getWorkflowReport: vi.fn(async () => undefined),
     getAppInfo: vi.fn(async () => ({
       name: "Specfold", version: "1.6.0", platform: "win32", arch: "x64",
       releaseUrl: "https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.6.0",

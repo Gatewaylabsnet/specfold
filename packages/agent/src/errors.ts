@@ -39,7 +39,16 @@ const messages: Record<string, string> = {
   UNPROTECTED_SECRET: "The saved workspace contains literal credentials. Mark environment credentials as Secret and save with secure storage available, or replace inline credentials with variable references, before agent writes.",
   INPUT_TOO_LARGE: "Input or returned context exceeds the local integration size limit. Use a smaller document or inspect individual requests.",
   INVALID_VARIABLE_NAME: "Use a variable name, never a token value (letters, digits, underscore, dot or dash).",
-  API_BASE_URL_REQUIRED: "Set a concrete HTTP(S) collection API address before creating its Apinizer JWT recipe."
+  API_BASE_URL_REQUIRED: "Set a concrete HTTP(S) collection API address before creating its Apinizer JWT recipe.",
+  WORKFLOW_PROFILE_NOT_FOUND: "Choose a saved connection profile from list_connection_profiles, or configure one in the desktop Test workflow.",
+  WORKFLOW_PLAN_NOT_FOUND: "Preview a new test plan. Plans are consumed once, expire after fifteen minutes and are cleared when data changes.",
+  WORKFLOW_REPORT_NOT_FOUND: "No retained report matches this run or plan ID. Reports are in memory for the last ten completed runs.",
+  WORKFLOW_PLAN_LIMIT: "Too many active test previews. Wait for expiry or reopen Specfold, then preview only the intended selection.",
+  WORKFLOW_ROW_LIMIT: "The selected collection exceeds the guided test plan limit of 500 requests. Use a smaller collection.",
+  WORKFLOW_BUSY: "A guided test is awaiting consent or running. Finish or cancel it before starting another.",
+  INVALID_WORKFLOW_ID: "Use the exact saved profile, plan or run ID returned by Specfold.",
+  INVALID_WORKFLOW_SELECTION: "Choose unique saved request IDs within the guided run limit.",
+  PLAN_EXPIRED: "This test plan expired. Generate a new preview and approve that exact selection."
 };
 
 /** Never echo parser errors, raw arguments, document fragments, secrets or paths. */

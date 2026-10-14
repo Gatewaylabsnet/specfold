@@ -52,6 +52,7 @@ export async function startNetworkHost(root: string, execute: (call: AgentNetwor
           if (typeof value.token !== "string" || value.token.length !== token.length ||
               !timingSafeEqual(Buffer.from(value.token), Buffer.from(token))) throw new AgentError("IPC_UNAUTHORIZED");
           const call = value.operation ? validateDesktopCall(value) : validateDesktopCall({ ...value, operation: "send" });
+          if (call.operation === "workflow-run") socket.setTimeout(12 * 60_000);
           if (active) throw new AgentError("NETWORK_BUSY");
           active = controller;
           const output = JSON.stringify({ result: value.operation && dispatch ? await dispatch(call, controller.signal)
@@ -111,7 +112,8 @@ export async function callDesktopHost<T = unknown>(root: string, call: DesktopAg
     const abort = () => finish(new AgentError("OPERATION_CANCELLED"));
     signal?.addEventListener("abort", abort, { once: true });
     socket.setEncoding("utf8");
-    socket.setTimeout(65_000, () => finish(new AgentError("NETWORK_TIMEOUT")));
+    socket.setTimeout("operation" in call && call.operation === "workflow-run" ? 12 * 60_000 + 5000 : 65_000,
+      () => finish(new AgentError("NETWORK_TIMEOUT")));
     socket.on("connect", () => {
       connected = true;
       if (signal?.aborted) { abort(); return; }
@@ -142,7 +144,16 @@ function validateDesktopCall(value: Record<string, unknown>): DesktopAgentCall {
     return item;
   };
   switch (value.operation) {
-    case "ping": case "list": return { operation: value.operation };
+    case "ping": case "list": case "workflow-profiles": return { operation: value.operation };
+    case "workflow-run": return { operation: value.operation, planId: id("planId") };
+    case "workflow-report": return { operation: value.operation, id: id("id") };
+    case "workflow-preview": {
+      const requestIds = value.requestIds;
+      if (requestIds !== undefined && (!Array.isArray(requestIds) || requestIds.length > 20 ||
+        requestIds.some((item) => typeof item !== "string" || !item || item.length > 200) ||
+        new Set(requestIds).size !== requestIds.length)) throw new AgentError("INVALID_ARGUMENTS");
+      return { operation: value.operation, profileId: id("profileId"), requestIds: requestIds as string[] | undefined };
+    }
     case "inspect": case "send": return { operation: value.operation, collectionId: id("collectionId"), requestId: id("requestId") };
     case "validate": case "documentation": return { operation: value.operation, collectionId: id("collectionId") };
     case "diff": case "status": return { operation: value.operation, planId: id("planId", true) };

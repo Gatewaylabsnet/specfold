@@ -1,7 +1,7 @@
 import type { HttpMethod } from "@openapi-collection-studio/core";
 import type { AppSettings as SharedAppSettings, FontSizePreference, ThemePreference } from "../../shared/contracts";
 
-export type Screen = "editor" | "import" | "environments" | "export" | "settings";
+export type Screen = "editor" | "import" | "environments" | "export" | "settings" | "workflow";
 export type RequestTab = "params" | "auth" | "headers" | "body";
 export type ResponseTab = "body" | "headers" | "raw";
 export type ExportFormat = "openapi-yaml" | "openapi-json" | "collection-json" | "postman-json" | "http-file";

@@ -85,6 +85,12 @@ Example agent task: “List my collections, preview this OpenAPI document, show 
 
 For an Apinizer workflow, supply the OpenAPI document first. This release prepares JWT requests and permits approved saved-request sends; project discovery/export through the Apinizer management API, example-only test plans, assertions and batch test reports remain outside its scope.
 
+## Guided test workflow (development draft)
+
+Separate development work adds **Connection → Authentication → Test preview → Results** for OpenAPI files, URLs and existing collections, with optional Apinizer authentication. Documented input evidence, explicit selection of operations that may change data, native final approval and bounded status/schema reports guide a sequential run. Saved profiles can also be used through four dedicated MCP tools.
+
+The separate `1.11.0-dev.1` development candidate passed 435 local unit/integration tests and nine packaged Windows E2E tests, including synthetic issuer authentication, explicit POST approval, masked export and MCP cancellation/disconnect. It remains unpublished; macOS/Linux packaging and real gateway behavior have not been verified for this scope. See the [guided test workflow guide](docs/guided-test-workflow.md) and [development release notes](docs/RELEASE_NOTES_v1.11.0-dev.1.md).
+
 ## Download v1.9.4
 
 | Platform | Package | Download |
