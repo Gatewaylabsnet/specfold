@@ -49,6 +49,11 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Verify release version metadata
+        run: |
+          npm run check:release-version
+          npm run test:release-version
+
       - name: Install Linux packaging dependencies
         if: matrix.platform == 'linux'
         run: |

@@ -1,6 +1,6 @@
 # Local agent integration
 
-Status: implemented in the development source and being prepared for **v1.10.0; not published yet and not included in the published v1.9.4 binaries**. See the [draft release notes](RELEASE_NOTES_v1.10.0.md). No model, cloud API, telemetry, credential manager or automatic downloader is added. An MCP-capable local LLM/agent client can launch the stdio server. The CLI uses the same service and core operations.
+Status: current source is in **v1.11.0 stable preparation, unpublished and not included in the published v1.9.4 binaries**. See the [stable preparation checklist](RELEASE_PREPARATION_v1.11.0.md) and [draft stable release notes](RELEASE_NOTES_v1.11.0.md). Historical v1.10.0 and v1.11.0-dev.1 candidate evidence below applies to their recorded commits. No model, cloud API, telemetry, credential manager or automatic downloader is added. An MCP-capable local LLM/agent client can launch the stdio server. The CLI uses the same service and core operations.
 
 ## Quick start: keep Specfold open
 

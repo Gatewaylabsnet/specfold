@@ -2,6 +2,8 @@
 
 **Development candidate `1.11.0-dev.1` - unpublished.** This guide describes the separate guided-workflow development scope. Local verification passed 435 unit/integration tests and nine packaged Windows E2E tests. Earlier v1.10.0 evidence applies to its own candidate.
 
+Current source is now prepared as `1.11.0`; its [stable preparation checklist](RELEASE_PREPARATION_v1.11.0.md) tracks the remaining final package checks. The verified package/results in this guide are historical `1.11.0-dev.1` evidence, not a claim that stable packages have been built or published.
+
 The desktop's **Test workflow** guides you through **Connection → Authentication → Test preview → Results**. It prepares a reviewable test selection from saved API definitions and documented inputs. An MCP client can use an already configured profile, but only a person in the desktop can approve its run.
 
 ## 1. Connection

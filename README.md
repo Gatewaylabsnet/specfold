@@ -48,6 +48,12 @@ It is intentionally local-first. There is no account requirement, no cloud works
 
 > The published stable release is v1.9.4. It keeps folder and request actions attached to their owning collection, exposes clear actions when a folder is selected, and prevents tree-row controls from triggering drag or selection by accident. See the [release notes](docs/RELEASE_NOTES_v1.9.4.md) and [desktop runtime decision](docs/DESKTOP_RUNTIME_DECISION.md).
 
+## Stable 1.11.0 release preparation (unpublished)
+
+The separate preparation branch declares `1.11.0` and includes both MCP readiness fixes and the guided workflow. It corrects prerelease-to-stable update comparison and adds manifest/lockfile/tag consistency checks plus synthetic legacy-data upgrade regressions. Final multi-platform packages and release approval are pending; public downloads remain **v1.9.4**.
+
+See the [stable preparation checklist](docs/RELEASE_PREPARATION_v1.11.0.md), [draft stable notes](docs/RELEASE_NOTES_v1.11.0.md), and [prepared website copy](docs/WEBSITE_COPY_v1.11.0.md). No v1.11.0 download link is active here before publication. The candidate evidence below remains historical evidence for its recorded commits.
+
 ## Local MCP server and CLI (v1.10.0 preparation)
 
 Connect a trusted MCP client from **Settings → AI connections**: enable the optional connection, copy its JSON or Codex TOML configuration, and test it. The bundled helper uses Specfold's runtime; packaged users do not need a separate Node.js installation. The agent can inspect collections, preview OpenAPI imports, bind token **variable names**, create Apinizer JWT recipes and request a review. You approve or cancel the diff inside Specfold while it stays open. Main remains the only workspace writer; stale previews must be refreshed and repeated applies do not duplicate requests.
