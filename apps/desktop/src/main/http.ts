@@ -5,6 +5,7 @@ import { MAX_IMPORT_BYTES } from "./constants";
 import { loadSettings } from "./storage";
 import type { ConnectionTestResult, SendRequestPayload, SendRequestResult, UpdateCheckResult } from "../shared/contracts";
 import { createMultipartFormData, stripMultipartTransportHeaders } from "./uploadFiles";
+import { compareReleaseVersions, parseReleaseVersion } from "./releaseVersions";
 
 const proxyAgents = new ProxyAgentCache();
 
@@ -226,6 +227,7 @@ export async function testConnection(url: string): Promise<ConnectionTestResult>
 }
 
 export async function checkForUpdates(currentVersion: string): Promise<UpdateCheckResult> {
+  if (!parseReleaseVersion(currentVersion)) return { ok: false, currentVersion, error: "Installed app version is invalid; update comparison was not attempted." };
   const settings = await loadSettings();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), settings.requestTimeoutMs);
@@ -253,20 +255,29 @@ export async function checkForUpdates(currentVersion: string): Promise<UpdateChe
     if (truncated) {
       return { ok: false, currentVersion, error: "Update response was too large." };
     }
-    const payload = JSON.parse(new TextDecoder().decode(bytes)) as Record<string, unknown>;
-    const tagName = typeof payload.tag_name === "string" ? payload.tag_name : "";
-    const latestVersion = normalizeVersion(tagName);
-    if (!latestVersion) {
+    let payload: unknown;
+    try { payload = JSON.parse(new TextDecoder().decode(bytes)); }
+    catch { return { ok: false, currentVersion, error: "Update response was not valid release metadata." }; }
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return { ok: false, currentVersion, error: "Update response was not valid release metadata." };
+    }
+    const release = payload as Record<string, unknown>;
+    const tagName = typeof release.tag_name === "string" ? release.tag_name : "";
+    const latest = parseReleaseVersion(tagName);
+    if (!latest) {
       return { ok: false, currentVersion, error: "Latest release did not include a valid version tag." };
+    }
+    if (latest.prerelease.length || release.prerelease === true || release.draft === true) {
+      return { ok: false, currentVersion, error: "Latest release was not a published stable version." };
     }
     return {
       ok: true,
       currentVersion,
-      latestVersion,
-      updateAvailable: compareVersions(latestVersion, currentVersion) > 0,
-      releaseName: typeof payload.name === "string" ? payload.name : tagName,
-      releaseUrl: typeof payload.html_url === "string" ? payload.html_url : undefined,
-      publishedAt: typeof payload.published_at === "string" ? payload.published_at : undefined
+      latestVersion: latest.value,
+      updateAvailable: compareReleaseVersions(latest.value, currentVersion) === 1,
+      releaseName: typeof release.name === "string" ? release.name : tagName,
+      releaseUrl: typeof release.html_url === "string" ? release.html_url : undefined,
+      publishedAt: typeof release.published_at === "string" ? release.published_at : undefined
     };
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
@@ -276,20 +287,6 @@ export async function checkForUpdates(currentVersion: string): Promise<UpdateChe
   } finally {
     clearTimeout(timeout);
   }
-}
-
-function normalizeVersion(version: string): string {
-  return version.trim().replace(/^v/i, "");
-}
-
-function compareVersions(left: string, right: string): number {
-  const leftParts = normalizeVersion(left).split(".").map((part) => Number.parseInt(part, 10) || 0);
-  const rightParts = normalizeVersion(right).split(".").map((part) => Number.parseInt(part, 10) || 0);
-  for (let index = 0; index < Math.max(leftParts.length, rightParts.length); index += 1) {
-    const delta = (leftParts[index] ?? 0) - (rightParts[index] ?? 0);
-    if (delta !== 0) return delta;
-  }
-  return 0;
 }
 
 export function emptyError(statusText: string, message: string): SendRequestResult {

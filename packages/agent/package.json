@@ -1,6 +1,6 @@
 {
   "name": "@specfold/agent",
-  "version": "1.11.0-dev.1",
+  "version": "1.11.0",
   "private": true,
   "type": "module",
   "description": "Local, approval-gated Specfold MCP server and CLI",
@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
-    "@openapi-collection-studio/core": "1.11.0-dev.1",
+    "@openapi-collection-studio/core": "1.11.0",
     "zod": "^4.3.6",
     "yaml": "^2.5.1"
   },
