@@ -11,15 +11,15 @@ Stable release preparation combines the MCP safety candidate from [PR #3](https:
 
 ## Fixed
 
-- Semantic version precedence now offers stable 1.11.0 to users of 1.11.0-dev.1, handles numeric prerelease identifiers correctly, ignores build metadata and prevents equal-version/downgrade notifications. Invalid versions and malformed release metadata do not imply an update or echo raw parser data.
+- Update comparison now treats stable versions as newer than their prereleases, handles numeric prerelease identifiers correctly, ignores build metadata and prevents equal-version/downgrade notifications. Invalid versions and malformed release metadata do not imply an update or echo raw parser data. The previously built, unpublished dev.1 binary retains its old comparator: its users need a one-time manual download of the stable package.
 - Draft or prerelease metadata cannot be offered through the stable update channel. Updates are checked through GitHub's published stable `/releases/latest` endpoint; no separate updater YAML feed or automatic installation is introduced.
 - The combined candidate retains custom API-key masking, verified/insecure TLS isolation, targeted JWT capture preserving editor changes, cancellation through consent/IPC/HTTP, and authenticated expired-plan cleanup.
 
 ## Verification and remaining scope
 
-The prior dev.1 candidate passed 435 tests and nine packaged Windows E2E tests. Stable-preparation verification is focused on changed update logic, version gates, legacy schema-1 upgrade/backup/import/export, and retained critical security behavior. Final all-platform package checks, packaged runtime versions, checksums and final CI are pending; earlier candidate artifacts must not be relabeled as 1.11.0.
+The prior dev.1 candidate passed 435 tests and nine packaged Windows E2E tests. Stable-preparation verification covers changed update logic, version gates, legacy schema-1 upgrade/backup/import/export, and retained critical security behavior. Final CI, all-platform package checks, runtime versions and checksum evidence are recorded in the preparation draft and its delivery dossier against the same final commit. Earlier candidate artifacts must not be relabeled as 1.11.0; publication requires the completed preparation checklist.
 
-Upgrade fixtures use synthetic data in compatible 1.9.4/1.10.0 formats, not archived old binaries or real user data. OS-keychain verification remains the prior Windows E2E evidence until new stable packages are exercised. No real account, gateway token or production API was used.
+Upgrade fixtures use synthetic data in compatible 1.9.4/1.10.0 formats, not archived old binaries or real user data. Packaged Windows E2E evidence must identify the new stable candidate; macOS/Linux GUI or keychain checks must only be claimed when actually performed. No real account, gateway token or production API was used.
 
 Apinizer management-project discovery and real gateway verification are outside the validated scope. The preset requests issuer tokens; it does not sign JWTs or automatically retry expired-token requests. Schema checks are a bounded subset; unsupported rules are blocked. Multipart/files and unsupported form bodies require manual testing. Cancellation cannot undo server-side work; reports remain in memory unless exported.
 

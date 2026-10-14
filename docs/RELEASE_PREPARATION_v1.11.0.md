@@ -28,7 +28,7 @@ After separate approval, merge order is **PR #3 -> PR #4 -> stable preparation P
 
 After explicit publication/merge approval and successful final gates: integrate the PRs in order; ensure the chosen main commit declares 1.11.0; tag that exact commit as v1.11.0; let the existing workflow create its verified **draft** release; check package names/checksums and final notes; then publish it as stable. Verify the public release and latest-stable response before activating README/site download links.
 
-Current update checks use GitHub `/releases/latest`; stable 1.11.0 will be newer than both v1.9.4 and 1.11.0-dev.1 after the comparison fix. A separate updater manifest is not required.
+Current update checks use GitHub `/releases/latest`; the new comparator orders stable 1.11.0 above v1.9.4 and 1.11.0-dev.1. Previously built dev.1 binaries retain the old comparator and require a one-time manual stable download. A separate updater manifest is not required.
 
 ## Honest limitations
 
