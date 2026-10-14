@@ -1,24 +1,39 @@
-import { ProxyAgent } from "undici";
+import { Agent, FormData as UndiciFormData, ProxyAgent, fetch as undiciFetch, type RequestInit as UndiciRequestInit } from "undici";
 
 type EnvMap = Record<string, string | undefined>;
 type SystemProxyResolver = (url: string) => Promise<string>;
 
 export class ProxyAgentCache {
   private readonly agents = new Map<string, ProxyAgent>();
+  private readonly directAgents = new Map<boolean, Agent>();
 
-  get(uri: string): ProxyAgent {
-    const existing = this.agents.get(uri);
+  get(uri: string, allowInsecureTls = false): ProxyAgent {
+    const rejectUnauthorized = !allowInsecureTls;
+    const key = JSON.stringify([uri, rejectUnauthorized]);
+    const existing = this.agents.get(key);
     if (existing) {
       return existing;
     }
-    const agent = new ProxyAgent(uri);
-    this.agents.set(uri, agent);
+    const agent = new ProxyAgent({ uri,
+      requestTls: { rejectUnauthorized }, proxyTls: { rejectUnauthorized } });
+    this.agents.set(key, agent);
+    return agent;
+  }
+
+  direct(allowInsecureTls = false): Agent {
+    const rejectUnauthorized = !allowInsecureTls;
+    const existing = this.directAgents.get(rejectUnauthorized);
+    if (existing) return existing;
+    const agent = new Agent({ connect: { rejectUnauthorized } });
+    this.directAgents.set(rejectUnauthorized, agent);
     return agent;
   }
 
   async closeAll(): Promise<void> {
-    await Promise.all([...this.agents.values()].map((agent) => agent.close()));
+    const agents = [...this.agents.values(), ...this.directAgents.values()];
     this.agents.clear();
+    this.directAgents.clear();
+    await Promise.all(agents.map((agent) => agent.close()));
   }
 }
 
@@ -121,11 +136,24 @@ export async function fetchWithProxy(
   init: RequestInit,
   resolveSystemProxy: SystemProxyResolver,
   agents: ProxyAgentCache,
-  env: EnvMap = process.env
+  env: EnvMap = process.env,
+  allowInsecureTls = false
 ): Promise<Response> {
   const proxyUri = await resolveProxyUri(rawUrl, resolveSystemProxy, env);
-  const nextInit = proxyUri
-    ? ({ ...init, dispatcher: agents.get(proxyUri) } as unknown as RequestInit)
-    : init;
-  return fetch(rawUrl, nextInit);
+  // Keep verified and insecure connections in separate pools, including HTTPS proxies.
+  // Explicit true also prevents an inherited Node TLS environment flag weakening strict sends.
+  const dispatcher = proxyUri ? agents.get(proxyUri, allowInsecureTls) : agents.direct(allowInsecureTls);
+  const nextInit = { ...init, dispatcher } as UndiciRequestInit;
+  // Native FormData belongs to the runtime's bundled Undici. Preserve Blob handles and
+  // filenames while adapting its entries, so file uploads remain streamed without copying bytes.
+  if (init.body instanceof FormData) {
+    const body = new UndiciFormData();
+    for (const [name, value] of init.body) {
+      if (typeof value === "string") body.append(name, value);
+      else body.append(name, value, value.name);
+    }
+    nextInit.body = body;
+  }
+  // Match fetch to its dispatcher version, independent of Electron's built-in Undici version.
+  return await undiciFetch(rawUrl, nextInit) as unknown as Response;
 }

@@ -18,7 +18,7 @@ Specfold is a simple, local-first desktop REST API collection studio for develop
 - OAuth recipes start with only required fields enabled; optional scope can be enabled when the provider requires it.
 - Export, validate, and restore a complete local backup; delete every local Specfold data file with strong confirmation.
 - Show installed version metadata and manually check GitHub Releases for newer versions.
-- Optionally connect a trusted MCP agent with copied configuration and a connection test; review/import/bearer proposals inside the open desktop. This remains a source preview, not part of stable v1.9.4.
+- Optionally connect a trusted MCP agent with copied configuration and a connection test; review/import/bearer proposals inside the open desktop. This is being prepared for v1.10.0 and is not part of stable v1.9.4.
 - Explicitly permit agent sends per request or selected-request temporary session, read masked responses and prepare observed/untested documentation drafts for human review.
 
 ## Product Principles
@@ -30,6 +30,7 @@ Specfold is a simple, local-first desktop REST API collection studio for develop
 - Explicit file access: imported documents can describe file fields but can never make Specfold read a local path; every upload file requires a native picker grant for the current session.
 - Progressive disclosure: Import Doctor, route resolution, and response tools surface the next action without adding a scripting language or cloud workflow.
 - Optional AI: connection and execution are off by default; no model account/setup is required for ordinary API work. Only desktop main writes or resolves credentials.
+- Preserve pending editor changes during automatic token capture; a newer manual token edit or removal wins. Canceling agent sends aborts pending consent/transport, without promising to undo remote effects already performed.
 
 ## Non-Goals
 
@@ -42,3 +43,5 @@ Specfold is a simple, local-first desktop REST API collection studio for develop
 ## Success Gate
 
 Typecheck, unit/renderer tests, production build, tagless multi-platform package verification, checksums, light/dark layout review, and packaged smoke tests must pass before each draft release is published.
+
+The v1.10.0 candidate has passed CI and the tagless multi-platform package gate; [recorded evidence and remaining launch checks](RELEASE_NOTES_v1.10.0.md) distinguish this preparation from a published version. No release tag or GitHub Release has been published for v1.10.0.

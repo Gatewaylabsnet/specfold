@@ -1,6 +1,6 @@
 # Local agent integration
 
-Status: implemented in the development source; **not included in the published v1.9.4 binaries**. No model, cloud API, telemetry, credential manager or automatic downloader is added. An MCP-capable local LLM/agent client can launch the stdio server. The CLI uses the same service and core operations.
+Status: implemented in the development source and being prepared for **v1.10.0; not published yet and not included in the published v1.9.4 binaries**. See the [draft release notes](RELEASE_NOTES_v1.10.0.md). No model, cloud API, telemetry, credential manager or automatic downloader is added. An MCP-capable local LLM/agent client can launch the stdio server. The CLI uses the same service and core operations.
 
 ## Quick start: keep Specfold open
 
@@ -10,7 +10,7 @@ Status: implemented in the development source; **not included in the published v
 4. Click **Test connection**. It starts the bundled helper and calls `list_collections` through the real stdio MCP SDK.
 5. Keep Specfold open. Ask your agent to preview a change and request review, then use **Review changes** to apply or cancel it.
 
-Packaged builds bundle the helper and use Electron's Node runtime; users need no separate Node/npm installation. Copy configuration again after changing/moving the package. Packaging must retain Electron's `RunAsNode` capability or supply an equivalent helper runtime. Windows portable configuration points to the extracted runtime because the NSIS wrapper cannot forward stdio: keep the same portable artifact open, and copy configuration again after replacing it. Its extraction path is stable for that artifact, not a permanent standalone install. AppImage resources resolve at helper launch; Linux GUI verification is still required. Source builds require Node.js >=20.19 and npm >=10:
+Packaged builds bundle the helper and use Electron's Node runtime; users need no separate Node/npm installation. Copy configuration again after changing/moving the package. Packaging must retain Electron's `RunAsNode` capability or supply an equivalent helper runtime. Windows portable configuration points to the extracted runtime because the NSIS wrapper cannot forward stdio: keep the same portable artifact open, and copy configuration again after replacing it. Its extraction path is stable for that artifact, not a permanent standalone install. AppImage resources resolve at helper launch; Linux GUI verification is still required. Source builds require Node.js >=22.19 and npm >=10, matching the existing Undici 8 dependency:
 
 ```bash
 npm ci
@@ -35,16 +35,18 @@ Observations are in-memory only: last 50 per collection, last three per request.
 - `packages/core/src/agent`: pure proposal/merge, bearer-variable binding, Apinizer recipe, validation, OpenAPI diagnostics and redaction. Existing importer, safe re-import, traversal, factories and HTTP preparation are reused. Desktop OpenAPI previews use the same diagnostics.
 - `packages/agent/src/service.ts`: signed, revision-bound plans, operator approvals and idempotent receipts. Both CLI and MCP call this service; neither implements its own import/merge logic.
 - `packages/agent/src/repository.ts`: strict opaque disk snapshots, bounded reads, single-writer transactions and rollback. It never invokes `safeStorage` or decrypts stored credentials.
-- `atomicFile.ts` and `workspaceLock.ts`: persistence primitive shared with desktop and a cooperative exclusive writer lease.
+- `atomicFile.ts` and `workspaceLock.ts`: persistence primitive shared with desktop and cooperative exclusive leases. The profile lease protects workspace mutation; a separate `.agent/.specfold-writer.lock` serializes plan preview, expiry and replacement without conflicting with the open desktop.
 - Desktop main: owns the lifetime writer lease and authenticated same-user local IPC endpoint. The packaged helper forwards typed calls and never writes workspace files. Only main resolves secrets through `safeStorage` and executes HTTP. Main reuses the shared service and core operations for proposals/apply.
 
 `workspace.json` stays at `schemaVersion: 1`; collections, environments, native exports and `specfold.backup.v1` keep their existing formats. Agent state is separate in the profile's `.agent` directory. There are no secrets or model configurations added to collections. Existing public importer/exporter names and desktop import behavior remain unchanged, apart from additional non-blocking OpenAPI warnings.
 
 Live-desktop calls flush pending renderer edits before inspection/review. Main serializes apply with normal storage mutations and rechecks the exact disk revision. A generation guard rejects queued renderer saves from before an agent commit, restore, deletion or token capture. Atomic safety snapshots/receipt rollback remain in use. There is no unsafe fallback when IPC is unavailable. Advanced offline writes still require the lease and fail while desktop is open. Do not run an older desktop without that lease concurrently against the profile.
 
+JWT capture sends a targeted token update to the trusted desktop editor instead of replacing its whole workspace. The captured value is merged only if that variable still matches its pre-capture state; pending edits to requests and environments are retained, and a newer manual edit, rename or removal of the token variable wins. The editor rebases its next save onto the new workspace generation. Token values do not enter MCP replies.
+
 ## Advanced CLI: build and select a profile
 
-Requirements: Node.js >=20.19 and npm >=10. Run from the repository root:
+Requirements: Node.js >=22.19 and npm >=10. Run from the repository root:
 
 ```powershell
 npm ci
@@ -101,6 +103,8 @@ node packages/agent/dist/index.js apply --data-dir "$data" --allow-apply `
 Approval shows the diff, warnings and intent, and asks the operator to type `APPLY <plan-prefix>`. There is no `--yes` switch, no piped approval and no MCP approval tool. Passing a boolean to an agent cannot grant human approval.
 
 Every apply checks the exact SHA-256 revision of the saved workspace bytes while holding the writer lease. Any desktop save, restore, deletion or external edit invalidates an old plan. Obtain a new preview and approval on `REVISION_CONFLICT`; never force it. Plans expire after 24 hours, are authenticated with a profile-local key, and approvals are tied to their exact plan signature.
+
+At the 128-plan limit, a preview examines at most 128 correctly named plan files and reclaims only expired, authenticated normal files plus their exact matching signed approvals. Active plans, unrecognized files, symlinks and receipt history are preserved. Re-previewing the same expired proposal creates a fresh signed plan and requires new approval. If 128 active or unrecognized plan files remain, `PLAN_LIMIT` still applies. Historical receipts do not extend an expired plan's approval lifetime.
 
 Repeated application of the same completed plan returns an authenticated receipt without another mutation. A fresh preview of the same title/base URL targets the existing collection automatically and reuses non-destructive method/path re-import identities; it does not create another collection. Use `--collection ID` to explicitly select a target, particularly after renaming a collection or changing its route. Matching requests retain their existing IDs, bodies and examples. Existing requests are never deleted. `--apinizer` deliberately binds service auth to the requested token reference; standalone imports preserve existing auth on matches.
 
@@ -180,9 +184,11 @@ node packages/agent/dist/index.js send --data-dir "$data" --allow-network `
   --collection COLLECTION_ID --request REQUEST_ID
 ```
 
-The agent passes IDs only. Main loads its own request/environment, resolves credentials internally, displays method and effective origin/path, and rechecks revision/permissions after consent and immediately before send. An authenticated named pipe (Windows) or Unix-domain socket (macOS/Linux) connects the same-user client; its ephemeral capability is never returned through MCP/CLI. Only one bridge operation is pending at a time. Redirects are refused, TLS verification stays enabled, timeout is capped at 30 seconds, and response body at 512 KiB. Raw bodies are not separately returned. Normal desktop HTTP settings remain unchanged.
+The agent passes IDs only. Main loads its own request/environment, resolves credentials internally, displays method and effective origin/path, and rechecks revision/permissions after consent and immediately before send. An authenticated named pipe (Windows) or Unix-domain socket (macOS/Linux) connects the same-user client; its ephemeral capability is never returned through MCP/CLI. Only one bridge operation is pending at a time. Redirects are refused, TLS verification stays enabled, timeout is capped at 30 seconds, and response body at 512 KiB. Raw bodies are not separately returned. Verified and insecure desktop requests use separate direct/proxy connection pools: an insecure manual send cannot relax TLS verification for an agent request, and no process-wide TLS setting is changed.
 
-Common credential fields, known secret values, resolved Authorization and TCKN/email/telephone-like data are masked before returning the result. HTTP failures expose a generic error, not a potentially sensitive transport exception. An approved request can modify remote server data: consent is not an API sandbox.
+Canceling `send_request` through MCP, closing the helper's stdin, or losing its local IPC connection aborts pending native consent and HTTP work. IPC timeout and host shutdown also cancel outstanding transport work and release the bridge for later calls. Cancellation is checked before send, token capture and recording observations. It cannot undo a request the remote API has already processed; inspect the API's state before retrying a request that may change data.
+
+Common credential fields, known secret values, resolved Authorization and TCKN/email/telephone-like data are masked before returning the result. Typed API-key authentication values are treated as credentials even when the configured header/query name is unfamiliar; literal bearer/basic/API-key values are also scrubbed when reflected elsewhere in returned data. Variable references remain usable. HTTP failures expose a generic error, not a potentially sensitive transport exception. An approved request can modify remote server data: consent is not an API sandbox.
 
 ## Safety, backups, recovery and boundaries
 
@@ -192,15 +198,38 @@ Common credential fields, known secret values, resolved Authorization and TCKN/e
 - The existing desktop **Export backup** remains an explicitly confirmed, secret-inclusive user action. It is deliberately not exposed to the agent. Agent state/approval keys are not included in portable workspace backups.
 - **Delete all data** removes plans, approvals, receipts and signing key, and clears reviews, observations and temporary sessions. The ephemeral local bridge remains until exit; settings reset to off. Old plans cannot be used afterward.
 - Corrupt/unsupported files are refused without quarantine, recovery or overwrite by the agent. Desktop's existing user-facing recovery behavior is unchanged.
-- A crash leaves `.specfold-writer.lock` in place rather than guessing ownership. Close all desktop and agent processes. Inspect the lock's `pid` and confirm that process is no longer running before manually removing **only that exact lock file**. Never remove a live lease, and never use automatic force-unlock. Re-open the profile and obtain a fresh preview.
-- Source input is limited to 4 MiB; workspace input to 100 MiB; traversal depth/node counts are bounded. MCP's JSON-RPC transport can impose a smaller effective payload allowance. Symlinked profiles/state files and unsafe paths are rejected. At most 128 plans are stored. With all clients/desktop closed, remove obsolete plan/approval/receipt files to free capacity; keep active plans and the plan key together.
+- A crash may leave the profile `.specfold-writer.lock` or the plan-state `.agent/.specfold-writer.lock` in place rather than guessing ownership. Close all desktop and agent processes. Inspect the exact lock's `pid` and confirm that process is no longer running before manually removing **only that exact lock file**. Never remove a live lease, and never use automatic force-unlock. Re-open the profile and obtain a fresh preview. Do not remove the whole `.agent` directory to clear a busy error.
+- Source input is limited to 4 MiB; workspace input to 100 MiB; traversal depth/node counts are bounded. MCP's JSON-RPC transport can impose a smaller effective payload allowance. Symlinked profiles/state files and unsafe paths are rejected. Plan capacity remains 128; expired authenticated state is reclaimed as described above. Unknown or damaged files are never automatically deleted. If those files keep the profile at capacity, close every writer, retain a recovery copy and inspect the exact files before manual cleanup; preserve active plans, receipts and the plan key.
 - Redaction is conservative and heuristic, not a full DLP/anonymization guarantee. Unknown personal fields, names in free text, custom credential fields, encodings and split/obfuscated data require operator review. Do not grant a sensitive profile to an untrusted model/client. Even redacted request structure may be confidential.
 - OS-account trust is the boundary. Same-user malware or an administrator can read process memory or profile files and bypass cooperative leases/approvals. Unix modes are `0600` for files / `0700` for state; Windows relies additionally on the profile's inherited user ACL. This feature is not a multi-user authorization system, an OS mandatory lock, or protection against arbitrary tools given to the agent outside Specfold.
 - No macOS/Linux GUI run or real TarımKredi API call was performed in the Windows acceptance run. The supplied OpenAPI fixture is synthetic, as authorized by the requester.
 
-## Verification (2026-10-08)
+## v1.10.0 release verification (2026-10-13)
 
-Executed locally on Windows:
+The current preparation adds regression coverage for literal custom-auth credentials, concurrent verified/insecure TLS, pending editor changes during JWT capture, cancellation through stdio/IPC/consent/HTTP, and authenticated expired-plan cleanup with concurrent previews. Local checks were run sequentially with bounded concurrency:
+
+Recorded candidate: [9604df07f8ebdad45f345f0e97c8fc8ce7c7224a](https://github.com/Gatewaylabsnet/specfold/commit/9604df07f8ebdad45f345f0e97c8fc8ce7c7224a), reviewed in [draft PR #3](https://github.com/Gatewaylabsnet/specfold/pull/3). The first tagless attempt exposed noncanonical temporary paths in older test fixtures; this commit canonicalizes those fixture roots without weakening production path checks, and both cloud reruns pass.
+
+| Check | Current result |
+| --- | --- |
+| Source-size, lint and typecheck | Pass |
+| Unit/renderer/agent suite | 263 passing: desktop 112, core 103, agent 48 |
+| Production build | Pass for the v1.10.0 preparation |
+| Source Electron/SDK scenarios | 3 passing, including credential masking, pending-editor JWT capture and disconnect safety |
+| Windows portable v1.10.0 build | Pass; unsigned status verified |
+| Packaged Windows E2E | All 7 scenarios pass |
+| Local package identity | ASAR, running Electron and MCP server report 1.10.0; 13 desktop output files and bundled `agent.cjs` byte-match the built source |
+| Production dependency audit | `npm audit --omit=dev`: 0 vulnerabilities |
+| Independent changed-source secret review | No real secrets found; TLS test key is synthetic |
+| Cloud CI, including Windows packaged E2E | [Pass](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371144773) at the recorded candidate |
+| Tagless Windows/macOS/Linux builds, tests and release-bundle verification | [Pass](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371138382); [candidate bundle](https://github.com/Gatewaylabsnet/specfold/actions/runs/38371138382/artifacts/11798414937) contains the eight packages and generated checksums |
+| Independent downloaded-asset checksum verification | Pass for the linked 9604df0 bundle: eight expected v1.10.0 package names, eight `SHA256SUMS.txt` records, all sequential `Get-FileHash` results match, no extra assets |
+
+The successful release workflow was tagless, so its draft-release publication job was skipped. No v1.10.0 tag or GitHub Release was published; stable downloads remain v1.9.4. Independent checks of all eight downloaded package names and hashes passed against the linked candidate bundle. Actual Codex/other vendor-client setup, macOS/Linux GUI tests and the five-person usability pilot remain pending. The pilot target is four unaided connections and three repeat users within two weeks; automated tests do not satisfy it. Signing/notarization is inactive, and this record does not claim a GatewayLabs website deployment.
+
+## Historical verification (2026-10-08)
+
+The earlier source-preview run reported the following on Windows. These are historical results, not verification of the current v1.10.0 candidate:
 
 | Check | Result |
 | --- | --- |
@@ -218,4 +247,4 @@ GatewayLabs copy was updated in its source repository to describe this workflow 
 
 The earlier production audit reported zero advisories after compatible lockfile updates. Development-tool advisories remain a separate release review item; no force/major-version audit fix is part of this feature.
 
-This run verifies official SDK stdio interoperability, not actual Codex/other vendor client UIs. macOS/Linux GUI and production API behavior remain untested. Before broad release, verify all platform packages/checksums and run a five-person usability pilot: four connect without help and three reuse within two weeks. The human pilot is pending; automated tests do not count as adoption evidence. Stable downloads stay v1.9.4 until the next release is explicitly published.
+This historical run verified official SDK stdio interoperability, not actual Codex/other vendor client UIs or production API behavior. The current candidate evidence and remaining launch checks are recorded above.

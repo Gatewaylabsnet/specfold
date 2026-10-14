@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mkdtemp, rm, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, readFile, realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createCollection, createEmptyWorkspace, createId, createRequest } from "@openapi-collection-studio/core";
@@ -51,13 +51,13 @@ describe("approved network capability", () => {
 
 describe("same-user local network IPC", () => {
   let root: string, close: (() => Promise<void>) | undefined;
-  beforeEach(async () => { root = await mkdtemp(join(tmpdir(), "specfold-ipc-")); });
+  beforeEach(async () => { root = await realpath(await mkdtemp(join(tmpdir(), "specfold-ipc-"))); });
   afterEach(async () => { await close?.(); await rm(root, { recursive: true, force: true }); });
   it("round trips only IDs over authenticated local IPC", async () => {
     const execute = vi.fn(async (ids) => ({ status: 200, ids }));
     close = await startNetworkHost(root, execute);
     expect(await callNetworkHost(root, call)).toEqual({ status: 200, ids: call });
-    expect(execute).toHaveBeenCalledWith(call);
+    expect(execute).toHaveBeenCalledWith(call, expect.any(AbortSignal));
   });
   it("rejects an incorrect session capability token without executing", async () => {
     const execute = vi.fn(); close = await startNetworkHost(root, execute);

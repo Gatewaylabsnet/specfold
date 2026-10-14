@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -15,7 +15,7 @@ import { safeAgentError } from "../src/errors";
 const fixture = await readFile(new URL("../fixtures/tarimkredi.synthetic.openapi.yaml", import.meta.url), "utf8");
 let root: string, workspace: Workspace, service: AgentService;
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "specfold-agent-"));
+  root = await realpath(await mkdtemp(join(tmpdir(), "specfold-agent-")));
   workspace = createEmptyWorkspace();
   workspace.environments[0].variables.push({ id: createId("var"), name: "apinizerAuthAccessToken",
     value: "enc:v1:ZW5jcnlwdGVkLXNlY3JldA==", enabled: true, secret: true });

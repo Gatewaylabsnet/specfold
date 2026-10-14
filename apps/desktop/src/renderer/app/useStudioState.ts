@@ -10,10 +10,12 @@ import { firstRequestId } from "./helpers";
 import { DEFAULT_SETTINGS } from "./types";
 import { applyFontSizePreference, applyThemePreference, observeThemePreference } from "./theme";
 import type { AppSettings, ExportFormat, RequestTab, ResponseHistoryEntry, ResponseState, SaveStatus, Screen } from "./types";
-import type { WorkspaceLoadResult } from "../../shared/contracts";
+import type { AgentTokenCapture, WorkspaceLoadResult } from "../../shared/contracts";
+import { mergeAgentToken } from "./mergeAgentToken";
 
 export function useStudioState() {
   const [workspace, setWorkspace] = useState<Workspace>(() => createEmptyWorkspace());
+  const [renderedCaptureGeneration, setRenderedCaptureGeneration] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [screen, setScreen] = useState<Screen>("editor");
   const [activeCollectionId, setActiveCollectionId] = useState<string>();
@@ -59,6 +61,9 @@ export function useStudioState() {
   const skipNextSave = useRef(false);
   const needsSave = useRef(false);
   const inFlightSave = useRef<Promise<void>>(Promise.resolve());
+  const pendingTokenCaptures = useRef<AgentTokenCapture[]>([]);
+  const workspaceId = useRef(workspace.id);
+  useEffect(() => { workspaceId.current = workspace.id; }, [workspace.id]);
 
   // Auto-dismiss transient banners (copied cURL, saved variable, etc.) so they
   // do not linger. The user can also close them with the x button.
@@ -114,6 +119,7 @@ export function useStudioState() {
         .saveWorkspace(workspace, generation.current)
         .then(() => {
           if (saveEpoch === workspaceSaveEpoch.current) {
+            pendingTokenCaptures.current = [];
             needsSave.current = false;
             setSaveStatus("saved");
           }
@@ -239,6 +245,7 @@ export function useStudioState() {
 
   const replaceSavedWorkspace = useCallback((result: WorkspaceLoadResult, persist = false) => {
     resetWorkspaceSaveQueue();
+    pendingTokenCaptures.current = [];
     generation.current = result.generation ?? generation.current;
     skipNextSave.current = !persist;
     needsSave.current = persist;
@@ -253,10 +260,15 @@ export function useStudioState() {
     window.clearTimeout(saveTimer.current);
     setSaveStatus("saving");
     try {
-      const pending = window.studio.saveWorkspace(workspace, generation.current);
+      // A new MCP call can flush before React commits the capture's render.
+      const current = pendingTokenCaptures.current
+        .filter((event) => event.generation > renderedCaptureGeneration)
+        .reduce(mergeAgentToken, workspace);
+      const pending = window.studio.saveWorkspace(current, generation.current);
       inFlightSave.current = pending;
       await pending;
       if (saveEpoch === workspaceSaveEpoch.current) {
+        pendingTokenCaptures.current = [];
         needsSave.current = false;
         setSaveStatus("saved");
       }
@@ -266,12 +278,23 @@ export function useStudioState() {
       }
       throw error;
     }
-  }, [workspace]);
+  }, [workspace, renderedCaptureGeneration]);
 
   useEffect(() => window.studio.onAgentFlush?.(saveWorkspaceNow), [saveWorkspaceNow]);
   useEffect(() => window.studio.onAgentEvent?.((event) => {
     if (event === "changed") void window.studio.loadWorkspace().then((result) => replaceSavedWorkspace(result));
-  }), [replaceSavedWorkspace]);
+    else if (typeof event === "object" && event.kind === "token-captured" &&
+        event.workspaceId === workspaceId.current && event.generation > generation.current) {
+      resetWorkspaceSaveQueue();
+      pendingTokenCaptures.current.push(event);
+      generation.current = event.generation;
+      skipNextSave.current = false;
+      needsSave.current = true;
+      setSaveStatus("dirty");
+      setWorkspace((current) => mergeAgentToken(current, event));
+      setRenderedCaptureGeneration(event.generation);
+    }
+  }), [replaceSavedWorkspace, resetWorkspaceSaveQueue]);
 
   return { workspace, setWorkspace, loaded, setLoaded, screen, setScreen,
     activeCollectionId, setActiveCollectionId, selectedFolderId, setSelectedFolderId,

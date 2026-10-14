@@ -11,20 +11,17 @@ const proxyAgents = new ProxyAgentCache();
 export async function sendHttpRequest(
   payload: SendRequestPayload,
   uploadOwnerId = -1,
-  limits?: { maxResponseBytes: number; timeoutMs: number; allowInsecureTls: boolean; redirect: "error" | "follow" | "manual" }
+  limits?: { maxResponseBytes: number; timeoutMs: number; allowInsecureTls: boolean; redirect: "error" | "follow" | "manual"; signal?: AbortSignal }
 ): Promise<SendRequestResult> {
   const settings = { ...await loadSettings(), ...(limits ? {
     maxResponseBytes: limits.maxResponseBytes, requestTimeoutMs: limits.timeoutMs, allowInsecureTls: limits.allowInsecureTls
   } : {}) };
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), settings.requestTimeoutMs);
-  const previousTlsSetting = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
-  if (settings.allowInsecureTls) {
-    // Opt-in escape hatch for internal CAs / self-signed gateways.
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-  }
+  const signal = limits?.signal ? AbortSignal.any([controller.signal, limits.signal]) : controller.signal;
 
   try {
+    signal.throwIfAborted();
     const prepared = prepareHttpRequest(
       payload.request,
       payload.environment,
@@ -49,10 +46,12 @@ export async function sendHttpRequest(
         headers: requestHeaders,
         body: requestBody,
         redirect: limits?.redirect,
-        signal: controller.signal
+        signal
       },
       (url) => session.defaultSession.resolveProxy(url),
-      proxyAgents
+      proxyAgents,
+      process.env,
+      settings.allowInsecureTls
     );
 
     const { bytes, truncated } = await readCappedBody(response, settings.maxResponseBytes);
@@ -74,6 +73,7 @@ export async function sendHttpRequest(
       truncated
     };
   } catch (error) {
+    if (limits?.signal?.aborted) return emptyError("Request canceled", "The request was canceled.");
     if (error instanceof MissingVariablesError) {
       return emptyError("Missing variables", error.message);
     }
@@ -86,13 +86,6 @@ export async function sendHttpRequest(
     return emptyError("Request failed", error instanceof Error ? error.message : String(error));
   } finally {
     clearTimeout(timeout);
-    if (settings.allowInsecureTls) {
-      if (previousTlsSetting === undefined) {
-        delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
-      } else {
-        process.env.NODE_TLS_REJECT_UNAUTHORIZED = previousTlsSetting;
-      }
-    }
   }
 }
 
@@ -201,8 +194,6 @@ export async function testConnection(url: string): Promise<ConnectionTestResult>
   const settings = await loadSettings();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), settings.requestTimeoutMs);
-  const previousTlsSetting = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
-  if (settings.allowInsecureTls) process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
   const normalizedUrl = parsed.toString();
   const startedAt = performance.now();
   try {
@@ -210,7 +201,9 @@ export async function testConnection(url: string): Promise<ConnectionTestResult>
       normalizedUrl,
       { method: "HEAD", redirect: "follow", signal: controller.signal },
       (targetUrl) => session.defaultSession.resolveProxy(targetUrl),
-      proxyAgents
+      proxyAgents,
+      process.env,
+      settings.allowInsecureTls
     );
     return {
       ok: true,
@@ -229,10 +222,6 @@ export async function testConnection(url: string): Promise<ConnectionTestResult>
     };
   } finally {
     clearTimeout(timeout);
-    if (settings.allowInsecureTls) {
-      if (previousTlsSetting === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
-      else process.env.NODE_TLS_REJECT_UNAUTHORIZED = previousTlsSetting;
-    }
   }
 }
 

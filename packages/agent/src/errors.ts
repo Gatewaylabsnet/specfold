@@ -25,6 +25,8 @@ const messages: Record<string, string> = {
   INVALID_API_BASE_URL: "Use a concrete HTTP(S) API URL without credentials, query parameters or fragments.",
   IPC_UNAUTHORIZED: "The local IPC capability is invalid. Restart the updated desktop and try again.",
   IPC_INVALID_RESPONSE: "The local desktop did not return a valid response.",
+  IPC_DISCONNECTED: "The desktop connection closed before a response was received. Check the request status before retrying.",
+  OPERATION_CANCELLED: "The operation was cancelled. A request already sent to the remote server cannot be undone; check its status before retrying.",
   NETWORK_TIMEOUT: "Local network execution did not finish within the consent/execution timeout.",
   AGENT_DISABLED: "Enable AI connections in Specfold Settings, then test the connection again.",
   SESSION_REQUIRED: "Select requests and approve a temporary session in Specfold AI connections before sending.",

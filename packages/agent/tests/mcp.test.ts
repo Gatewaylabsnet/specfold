@@ -1,14 +1,14 @@
 import { expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createEmptyWorkspace } from "@openapi-collection-studio/core";
 
 it("uses a real stdio MCP client/server without stdout logs or unapproved writes", async () => {
-  const root = await mkdtemp(join(tmpdir(), "specfold-mcp-"));
+  const root = await realpath(await mkdtemp(join(tmpdir(), "specfold-mcp-")));
   const workspace = createEmptyWorkspace();
   await writeFile(join(root, "workspace.json"), JSON.stringify(workspace));
   const transport = new StdioClientTransport({ command: process.execPath,
