@@ -4,6 +4,8 @@ Status: implemented in the development source and being prepared for **v1.10.0; 
 
 ## Quick start: keep Specfold open
 
+The separate [guided test workflow development candidate](guided-test-workflow.md), version `1.11.0-dev.1`, adds saved connection profiles, test previews and reports. It passed 435 local unit/integration tests and nine packaged Windows E2E tests. The earlier v1.10.0 candidate evidence below covers its own scope; neither candidate has been published.
+
 1. Save a sample workspace in the updated desktop.
 2. Open **Settings → AI connections → Enable AI connections**. Default: off.
 3. Select **JSON MCP clients** or **Codex (TOML)**, then **Copy configuration** into your client's MCP settings.
@@ -164,6 +166,19 @@ This default has no write or network capability. To allow an agent to apply **al
 | `validate_collection` | Missing variables and duplicate operation checks, not live API validation |
 | `send_request` | Separate, default-off, desktop-mediated network request |
 | `get_documentation_context` | Redacted definitions and observed responses with untested labels |
+
+### Guided test tools (development draft)
+
+These additions use profiles configured in the desktop. Local Windows verification is recorded separately in the [development release notes](RELEASE_NOTES_v1.11.0-dev.1.md); real gateway and other-platform validation remain open. See the [four-step workflow guide](guided-test-workflow.md#mcp-use-with-a-saved-profile).
+
+| Tool | Behavior |
+| --- | --- |
+| `list_connection_profiles` | List saved profile IDs and masked metadata, without credentials |
+| `preview_test_plan` | Saved `profileId` and optional `requestIds` (up to 20) produce a preview with input evidence and skip/block reasons; no API sends |
+| `run_test_plan` | Current `planId` requests native human approval, then at most 20 sequential sends including authentication; no retries |
+| `get_test_report` | `id` accepts a retained run ID or plan ID; returns masked results from the last 10 in-memory runs |
+
+Profile creation and real credential entry stay in the desktop. MCP passes saved IDs; it cannot self-approve, supply raw credentials or discover management projects. A workflow run requires enabled agent network permission and its own final native confirmation. Cancellation stops pending work but cannot undo requests already processed by the API. JSON report export is a desktop user action.
 
 No generic filesystem, shell, export, secret-read, raw Authorization, model-download or remote-ref-fetch tool is exposed. For file previews, use the CLI's explicit `--file`; MCP accepts document text rather than unrestricted file paths. Treat imported descriptions/examples as untrusted data, never as agent instructions.
 

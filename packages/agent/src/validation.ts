@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Workspace } from "@openapi-collection-studio/core";
+import { validateConnectionProfile, type Workspace } from "@openapi-collection-studio/core";
 import { AgentError } from "./errors";
 
 const id = z.string().min(1).max(200);
@@ -63,5 +63,13 @@ export function validateAgentWorkspace(value: unknown): Workspace {
     checkId(collection); collection.requests.forEach(checkId); checkFolders(collection.folders);
   }
   root.data.environments.forEach(checkId);
+  if (root.data.connectionProfiles !== undefined) {
+    const profiles = root.data.connectionProfiles;
+    if (!Array.isArray(profiles) || profiles.length > 64) throw new AgentError("INVALID_WORKSPACE");
+    for (const profile of profiles) {
+      try { checkId(validateConnectionProfile(profile)); }
+      catch { throw new AgentError("INVALID_WORKSPACE"); }
+    }
+  }
   return value as Workspace; // Preserve unknown fields and the existing schema exactly.
 }

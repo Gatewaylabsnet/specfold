@@ -40,6 +40,11 @@ if (browserPreview && typeof window.studio === "undefined") {
     stopAgentSession: async () => undefined,
     exportAgentDocumentation: async () => ({ canceled: true }),
     previewAgentDocumentation: async () => "Documentation preview requires the desktop application.",
+    saveWorkflowProfile: async () => { throw new Error("Test workflow requires the desktop app."); },
+    previewWorkflowRun: async () => { throw new Error("Test workflow requires the desktop app."); },
+    runWorkflowPlan: async () => { throw new Error("Test workflow requires the desktop app."); },
+    cancelWorkflowRun: async () => undefined,
+    getWorkflowReport: async () => undefined,
     getAppInfo: async () => ({
       name: "Specfold",
       version: "browser-preview",

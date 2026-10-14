@@ -8,6 +8,7 @@ import { RequestWorkspace } from "./app/screens/RequestEditor";
 import { useStudioController } from "./app/useStudioController";
 import { useEditorShortcuts, useUnsavedExitWarning } from "./app/useEditorShortcuts";
 import { AgentReviewDialog } from "./app/AgentReviewDialog";
+import type { Screen } from "./app/types";
 
 const AboutDialog = lazy(() =>
   import("./app/AboutDialog").then((module) => ({ default: module.AboutDialog }))
@@ -24,11 +25,16 @@ const ImportScreen = lazy(() =>
 const SettingsScreen = lazy(() =>
   import("./app/screens/SettingsScreen").then((module) => ({ default: module.SettingsScreen }))
 );
+const WorkflowWizard = lazy(() =>
+  import("./app/workflow/WorkflowWizard").then((module) => ({ default: module.WorkflowWizard }))
+);
 
 export function App() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [updateCheckRequestId, setUpdateCheckRequestId] = useState(0);
   const [localDataInfo, setLocalDataInfo] = useState<LocalDataInfo>();
+  const [workflowBusy, setWorkflowBusy] = useState(false);
+  const [workflowDirty, setWorkflowDirty] = useState(false);
   const closeAbout = useCallback(() => {
     setIsAboutOpen(false);
     setUpdateCheckRequestId(0);
@@ -49,7 +55,7 @@ export function App() {
     setSavedExportPath, savedBackupPath, setSavedBackupPath, saveStatus, setSaveStatus,
     settings, setSettings, notice, setNotice, activeCollection, activeRequestLocation,
     activeRequest, activeEnvironment, exportResult, exportContent, mutateWorkspace,
-    secureStorageAvailable,
+    secureStorageAvailable, saveWorkspaceNow, replaceSavedWorkspace,
     createNewWorkspace, addCollection, addFolder, addRequest, updateActiveRequest, moveActiveRequest,
     mutateCollection, openImportFile, openPostmanFolder, fetchImportUrl,
     toggleImportOperation, handlePreviewImport, handleImport, copyActiveRequestAsCurl,
@@ -60,6 +66,14 @@ export function App() {
     agentConnection, agentReview, agentBusy, agentError, openAgentReview, applyAgentReview,
     rejectAgentReview, refreshAgentReview, closeAgentReview
   } = useStudioController();
+  const navigate = useCallback((next: Screen) => {
+    if (screen === "workflow" && next !== "workflow") {
+      if (workflowBusy) { setNotice("Wait for the workflow operation to finish. You can cancel an active test run."); return; }
+      if (workflowDirty && !window.confirm("Discard the unsaved changes in this workflow? Stored profiles and credentials are kept.")) return;
+      setWorkflowDirty(false);
+    }
+    setScreen(next);
+  }, [screen, setNotice, setScreen, workflowBusy, workflowDirty]);
   const activeFolder =
     activeRequestLocation?.folder ??
     (activeCollection && selectedFolderId
@@ -82,12 +96,13 @@ export function App() {
           setIsAboutOpen(true);
           return;
         }
-        setScreen(action);
+        navigate(action);
       }),
-    [setScreen]
+    [navigate]
   );
   useEditorShortcuts(() => {
-    setScreen("editor");
+    if (screen === "workflow" && workflowBusy) return;
+    navigate("editor");
     window.setTimeout(() => document.getElementById("request-search")?.focus(), 0);
   });
   useUnsavedExitWarning(saveStatus);
@@ -106,6 +121,7 @@ export function App() {
           <label className="topbar__environment">
             <span>Environment</span>
             <select
+              disabled={workflowBusy}
               onChange={(event) => event.target.value && selectEnvironment(event.target.value)}
               value={workspace.activeEnvironmentId ?? ""}
             >
@@ -119,7 +135,8 @@ export function App() {
           <button
             aria-label="Manage environments"
             className={screen === "environments" ? "secondary-button topbar__environment-manage is-active" : "secondary-button topbar__environment-manage"}
-            onClick={() => setScreen("environments")}
+            onClick={() => navigate("environments")}
+            disabled={workflowBusy}
             title="Manage environments"
             type="button"
           >
@@ -127,12 +144,16 @@ export function App() {
             Manage
           </button>
           <span className={`save-status save-status--${saveStatus}`}>{saveStatusLabel(saveStatus)}</span>
+          <button className={screen === "workflow" ? "secondary-button is-active" : "secondary-button"}
+            type="button" disabled={workflowBusy || isSending} onClick={() => navigate("workflow")}>Test workflow</button>
           {!!agentConnection?.pending.length && <button className="secondary-button" type="button"
+            disabled={screen === "workflow"}
             onClick={() => void openAgentReview(agentConnection.pending[0].planId)}>Review changes ({agentConnection.pending.length})</button>}
           <button
             aria-label="Settings"
             className={screen === "settings" ? "icon-button is-active" : "icon-button"}
-            onClick={() => setScreen(screen === "settings" ? "editor" : "settings")}
+            onClick={() => navigate(screen === "settings" ? "editor" : "settings")}
+            disabled={workflowBusy}
             title="Settings"
             type="button"
           >
@@ -156,8 +177,8 @@ export function App() {
         </div>
       )}
 
-      <div className="workspace">
-        <CollectionsSidebar
+      <div className={screen === "workflow" ? "workspace workspace--workflow" : "workspace"}>
+        {screen !== "workflow" && <CollectionsSidebar
           activeCollection={activeCollection}
           onAddApinizerJwtRequest={() => addRequest("apinizer-jwt")}
           onAddOAuthClientRequest={() => addRequest("oauth-client")}
@@ -169,12 +190,16 @@ export function App() {
           selectedFolderId={selectedFolderId}
           selectedRequestId={selectedRequestId}
           screen={screen}
-          onScreenChange={setScreen}
+          onScreenChange={navigate}
           treeActions={treeActions}
           workspace={workspace}
-        />
+        />}
         <main className="workspace-main">
         <Suspense fallback={<div className="loading loading--screen">Loading screen...</div>}>
+        {screen === "workflow" && <WorkflowWizard workspace={workspace} settings={settings} secureStorageAvailable={secureStorageAvailable}
+          saveWorkspaceNow={saveWorkspaceNow} replaceSavedWorkspace={replaceSavedWorkspace}
+          onOpenSettings={() => navigate("settings")} onClose={() => navigate("editor")}
+          onRunningChange={setWorkflowBusy} onDirtyChange={setWorkflowDirty} />}
         {screen === "import" && (
           <ImportScreen
             grouping={grouping}

@@ -1,4 +1,4 @@
-import type { ApiRequest, Collection, Environment, EnvironmentVariable, Folder, PostmanV3FolderSource, Workspace } from "@openapi-collection-studio/core";
+import type { ApiRequest, Collection, ConnectionProfile, Environment, EnvironmentVariable, Folder, PostmanV3FolderSource, WorkflowRunReport, WorkflowTestPlan, Workspace } from "@openapi-collection-studio/core";
 import type { AgentConnectionInfo, AgentPlanReview, AgentSessionSelection } from "../../../../packages/agent/src/desktopContracts";
 export type { AgentConnectionInfo, AgentPlanReview, AgentSessionSelection };
 
@@ -72,6 +72,14 @@ export interface WorkspaceLoadResult {
   message?: string;
   generation?: number;
 }
+
+export interface WorkflowProfileSaveInput {
+  profile: ConnectionProfile;
+  sourceText?: string;
+  credentials?: Record<string, string>;
+  expectedGeneration: number;
+}
+export type WorkflowProfileSaveResult = WorkspaceLoadResult & { profileId: string };
 
 export interface RestoreBackupResult {
   canceled: boolean;
@@ -175,6 +183,11 @@ export interface StudioApi {
   stopAgentSession(): Promise<void>;
   previewAgentDocumentation(collectionId: string): Promise<string>;
   exportAgentDocumentation(collectionId: string): Promise<FileActionResult>;
+  saveWorkflowProfile(input: WorkflowProfileSaveInput): Promise<WorkflowProfileSaveResult>;
+  previewWorkflowRun(profileId: string, selectedRequestIds?: string[]): Promise<WorkflowTestPlan>;
+  runWorkflowPlan(planId: string): Promise<WorkflowRunReport>;
+  cancelWorkflowRun(): Promise<void>;
+  getWorkflowReport(id: string): Promise<WorkflowRunReport | undefined>;
   loadSettings(): Promise<AppSettings>;
   saveSettings(settings: AppSettings): Promise<AppSettings>;
   testConnection(url: string): Promise<ConnectionTestResult>;

@@ -12,6 +12,7 @@ import { openTrustedExternal } from "./external";
 import { assertTrustedIpcSender } from "./security";
 import { bumpWorkspaceGeneration, checkWorkspaceGeneration, workspaceGeneration } from "./workspaceGeneration";
 import { registerAgentIpc, resetAgentState, revokeAgentSession } from "./agentDesktop";
+import { registerWorkflowIpc } from "./workflow";
 import {
   validateExportPayload,
   validateIpcSettings,
@@ -25,6 +26,7 @@ const uploadOwnersWithCleanup = new Set<number>();
 
 export function registerIpcHandlers(): void {
   registerAgentIpc();
+  registerWorkflowIpc();
   handleTrusted("app:info", () => ({
     name: "Specfold",
     version: app.getVersion(),

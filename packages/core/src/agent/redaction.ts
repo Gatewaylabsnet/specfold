@@ -44,6 +44,20 @@ export function workspaceSecrets(workspace: Workspace): string[] {
     }
   }
   const variables = workspace.environments.flatMap((environment) => environment.variables);
+  // Guided profiles may refer to custom variable names whose legacy Secret flag
+  // was omitted. A profile reference is still credential evidence.
+  for (const profile of workspace.connectionProfiles ?? []) {
+    const auth = profile.auth;
+    if (auth.kind === "bearer" || auth.kind === "apinizer") referenced.add(auth.tokenVariable);
+    if (auth.kind === "basic" || auth.kind === "apinizer") {
+      referenced.add(auth.usernameVariable); referenced.add(auth.passwordVariable);
+    }
+    if (auth.kind === "apiKey") referenced.add(auth.valueVariable);
+    if (auth.kind === "apinizer") {
+      referenced.add(auth.clientIdVariable);
+      if (auth.clientSecretVariable) referenced.add(auth.clientSecretVariable);
+    }
+  }
   for (const variable of variables) if (variable.secret || isCredentialName(variable.name)) referenced.add(variable.name);
   // Follow reference names, not values; bound alias chains and never resolve credentials.
   for (let pass = 0; pass < 40; pass++) {

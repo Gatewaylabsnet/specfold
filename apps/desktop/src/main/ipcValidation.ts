@@ -1,4 +1,4 @@
-import type { Workspace } from "@openapi-collection-studio/core";
+import { validateConnectionProfile, type Workspace } from "@openapi-collection-studio/core";
 import type { AppSettings, SendRequestPayload } from "../shared/contracts";
 
 const MAX_IPC_DOCUMENT_BYTES = 100 * 1024 * 1024;
@@ -11,6 +11,11 @@ export function validateIpcWorkspace(value: unknown): Workspace {
     throw new Error("Invalid workspace payload.");
   }
   assertJsonSize(value, MAX_IPC_DOCUMENT_BYTES, "Workspace");
+  if (value.connectionProfiles !== undefined) {
+    if (!Array.isArray(value.connectionProfiles) || value.connectionProfiles.length > 64) throw new Error("Invalid connection profiles.");
+    const profiles = value.connectionProfiles.map(validateConnectionProfile);
+    if (new Set(profiles.map((profile) => profile.id)).size !== profiles.length) throw new Error("Duplicate connection profile.");
+  }
   return value as unknown as Workspace;
 }
 
