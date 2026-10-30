@@ -4,6 +4,7 @@ import { useRequestController } from "./useRequestController";
 import { useStudioState } from "./useStudioState";
 import { useWorkspaceController } from "./useWorkspaceController";
 import { useAgentController } from "./useAgentController";
+import { useResponseTokenController } from "./useResponseTokenController";
 
 export function useStudioController() {
   const state = useStudioState();
@@ -12,5 +13,6 @@ export function useStudioController() {
   const request = useRequestController(state, workspace);
   const data = useDataController(state, workspace);
   const agent = useAgentController(state);
-  return { ...state, ...workspace, ...importer, ...request, ...data, ...agent };
+  const token = useResponseTokenController(state);
+  return { ...state, ...workspace, ...importer, ...request, ...data, ...agent, ...token };
 }

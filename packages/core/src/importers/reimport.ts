@@ -1,11 +1,14 @@
 import { createFolder } from "../model/factory";
 import { flattenRequests } from "../model/traversal";
 import type { ApiRequest, Collection, Folder } from "../model/types";
+import { diffOpenApiContracts, type ContractChange } from "./contractDiff";
+import { contractCanonical } from "./contractSchemaDiff";
 
 export interface ReimportDiff {
   matched: number;
   added: number;
   retained: number;
+  contractChanges?: ContractChange[];
 }
 
 /**
@@ -13,14 +16,15 @@ export interface ReimportDiff {
  * back to method + URL for portable collections. This deliberately never
  * removes a user request.
  */
-export function previewSafeReimport(target: Collection, incoming: Collection): ReimportDiff {
+export function previewSafeReimport(target: Collection, incoming: Collection, options?: { semantic?: boolean }): ReimportDiff {
   const existing = new Set(flattenRequests(target).map(({ request }) => stableRequestKey(request)));
   const source = flattenRequests(incoming);
   const matched = source.filter(({ request }) => existing.has(stableRequestKey(request))).length;
   return {
     matched,
     added: source.length - matched,
-    retained: Math.max(0, existing.size - matched)
+    retained: Math.max(0, existing.size - matched),
+    ...(options?.semantic ? { contractChanges: diffOpenApiContracts(target, incoming) } : {})
   };
 }
 
@@ -50,6 +54,14 @@ export function applySafeReimport(target: Collection, incoming: Collection): Rei
 
     const destination = ensureFolderPath(target, folderPath);
     destination.push(structuredClone(request));
+  }
+  if (target.openApi?.components && incoming.openApi?.components && contractCanonical(target.openApi.components) !== contractCanonical(incoming.openApi.components)) {
+    target.openApi.contractSourceUncertain = true;
+  }
+  if (incoming.openApi?.security !== undefined) {
+    target.openApi ??= {};
+    target.openApi.security = structuredClone(incoming.openApi.security);
+    target.openApi.securitySchemes = structuredClone(incoming.openApi.securitySchemes ?? {});
   }
   return diff;
 }

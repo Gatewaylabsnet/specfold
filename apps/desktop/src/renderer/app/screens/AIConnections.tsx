@@ -11,6 +11,8 @@ export function AIConnections({ settings, onChange, workspace }: {
   const [selected, setSelected] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false), [message, setMessage] = useState("");
+  const [helperTest, setHelperTest] = useState<"untested" | "passed" | "failed">("untested");
+  const exampleTask = "List my collections. Do not change data or send API requests.";
   const collection = workspace?.collections.find((item) => item.id === collectionId);
   const requests = collection ? flattenRequests(collection).map(({ request }) => request) : [];
   const refresh = () => { void window.studio.getAgentConnection?.().then(setInfo).catch(() => undefined); };
@@ -30,24 +32,37 @@ export function AIConnections({ settings, onChange, workspace }: {
     : JSON.stringify({ mcpServers: { specfold: info.configuration } }, null, 2) : "";
   return <section className="ai-connections" aria-labelledby="ai-connections-title">
     <h3 id="ai-connections-title">AI connections</h3>
-    <p>Connect your AI client to inspect collections, propose changes and prepare documentation. Review changes here before they are applied.</p>
+    <p>Connect an AI client to prepare API work. You approve changes and request sends in Specfold.</p>
     <label className="check-row"><input type="checkbox" checked={settings.agentEnabled === true}
       onChange={(event) => onChange({ agentEnabled: event.target.checked })} /><span>Enable AI connections</span></label>
     {settings.agentEnabled && <>
-      <p role="status">{info?.available ? "Specfold is ready for connections." : "The local connection is unavailable. Restart Specfold and try again."}
-        {info?.lastConnectedAt && ` Last connection: ${new Date(info.lastConnectedAt).toLocaleTimeString()}.`}</p>
+      <p role="status">{info?.available ? "Local MCP server available." : "Local server unavailable. Keep Specfold open and retry."}</p>
+      <h4>1. Connect your client</h4>
       <label className="field"><span>AI client configuration</span><select value={client} onChange={(event) => setClient(event.target.value)}>
         <option value="json">JSON MCP clients</option><option value="codex">Codex (TOML)</option></select></label>
       <div className="button-row">
         <button className="secondary-button" disabled={busy || !configuration} onClick={() => void run(async () => {
           await navigator.clipboard.writeText(configuration); setMessage("Configuration copied. Add it to your AI client's MCP settings, then keep Specfold open.");
         })} type="button">Copy configuration</button>
-        <button className="secondary-button" disabled={busy} onClick={() => void run(async () => {
-          const result = await window.studio.testAgentConnection(); setMessage(result.message);
-        })} type="button">{busy ? "Working…" : "Test connection"}</button>
       </div>
       <details><summary>View configuration</summary><pre className="agent-config">{configuration}</pre></details>
-      <p>The bundled helper uses Specfold's runtime. Your AI client may send the returned API structure to its model provider; choose a client you trust.</p>
+      <h4>2. Test the bundled helper</h4>
+      <button className="secondary-button" disabled={busy} onClick={() => void run(async () => {
+        setHelperTest("untested");
+        try {
+          const result = await window.studio.testAgentConnection(); setHelperTest(result.ok ? "passed" : "failed");
+          setMessage(result.ok ? "Bundled helper self-test passed. This does not verify your external client." : "Bundled helper self-test failed. Keep Specfold open, enable AI connections and retry.");
+        } catch { setHelperTest("failed"); setMessage("Bundled helper self-test failed. Keep Specfold open and retry."); }
+      })} type="button">{busy ? "Working…" : "Test bundled helper"}</button>
+      <p role="status">Last bundled helper test: {helperTest}. External client: not verified by this self-test.</p>
+      <h4>3. Try a read-only task in your client</h4>
+      <blockquote>{exampleTask}</blockquote>
+      <p>Paste this in your configured client. Verify that it shows your collection list. Specfold does not certify that client from this screen.</p>
+      <details><summary>Privacy and local activity</summary>
+        <p>Your client may send API structure to its provider. Choose a client you trust; review masked output before sharing.</p>
+        <p>{info?.lastConnectedAt ? `Local helper activity last seen: ${new Date(info.lastConnectedAt).toLocaleTimeString()}. This may be the self-test; client identity is not verified.` : "No local helper activity observed yet."}</p>
+      </details>
+      <h4>Optional request permissions</h4>
       <label className="check-row"><input type="checkbox" checked={settings.agentNetworkEnabled === true}
         onChange={(event) => onChange({ agentNetworkEnabled: event.target.checked })} /><span>Allow agents to send requests and read masked responses</span></label>
       {settings.agentNetworkEnabled && <>
@@ -70,7 +85,7 @@ export function AIConnections({ settings, onChange, workspace }: {
           <button className="secondary-button" onClick={() => void run(async () => { await window.studio.stopAgentSession(); setMessage("Session stopped."); })} type="button">Stop session</button></div>}
       </>}
       <p>Tokens stay inside Specfold. Common personal fields in responses are masked; use test data for sensitive APIs.</p>
-      {workspace && workspace.collections.length > 0 && <div className="agent-documentation">
+      {workspace && workspace.collections.length > 0 && <details className="agent-documentation"><summary>Advanced: draft documentation from observed responses</summary>
         <label className="field"><span>Documentation collection</span><select value={collectionId} onChange={(event) => { setCollectionId(event.target.value); setSelected([]); setDraft(""); }}>
           <option value="">Select a collection</option>{workspace.collections.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
         <button className="secondary-button" disabled={busy || !collectionId} onClick={() => void run(async () => {
@@ -82,7 +97,7 @@ export function AIConnections({ settings, onChange, workspace }: {
           setMessage(result.canceled ? "Export canceled." : "Documentation draft saved. Review observed and untested behavior before publishing.");
         })} type="button">Export documentation draft</button></>}
         <p>Includes redacted examples from approved sends in this app session. Untested requests are marked.</p>
-      </div>}
+      </details>}
     </>}
     {message && <div className="status-box" role="status">{message}</div>}
   </section>;

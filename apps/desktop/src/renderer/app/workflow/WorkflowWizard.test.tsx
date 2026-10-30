@@ -105,6 +105,25 @@ function expectMcpUnchanged(api: ReturnType<typeof fixture>["api"]) {
   expect(api.startAgentSession).not.toHaveBeenCalled();
   expect(api.testAgentConnection).not.toHaveBeenCalled();
 }
+it("starts from the selected API's literal authentication without filling secret inputs or sending, and can reset to new setup", async () => {
+  const context = fixture();
+  context.collection.requests[0].auth = { type: "basic", username: "SYNTHETIC_CONTEXT_USER", password: "SYNTHETIC_CONTEXT_PASSWORD" };
+  render(<WorkflowWizard {...context.props} startContext={{ collectionId: context.collection.id, requestId: context.collection.requests[0].id }} />);
+  await context.user.click(screen.getByRole("button", { name: "Continue" }));
+  expect((screen.getByLabelText("Username") as HTMLInputElement).value).toBe("");
+  expect((screen.getByLabelText("Password") as HTMLInputElement).value).toBe("");
+  expect(context.api.runWorkflowPlan).not.toHaveBeenCalled();
+  await context.user.click(screen.getByRole("button", { name: "Save & preview" }));
+  await screen.findByRole("checkbox", { name: "Select List users" });
+  const [saved] = context.api.saveWorkflowProfile.mock.lastCall!;
+  expect(Object.values(saved.credentials ?? {}).length).toBe(2);
+  expect(JSON.stringify(saved.profile).includes("SYNTHETIC_CONTEXT")).toBe(false);
+  await context.user.click(screen.getByRole("button", { name: "Back to authentication" }));
+  await context.user.click(screen.getByRole("button", { name: "Back to connection" }));
+  await context.user.click(screen.getByRole("button", { name: "New setup" }));
+  expect((screen.getByLabelText("Base URL") as HTMLInputElement).value).toBe("");
+  expect(context.api.runWorkflowPlan).not.toHaveBeenCalled(); expectMcpUnchanged(context.api);
+});
 
 it("flushes pending workspace edits before saving with the current generation and keeps unsafe rows unselected", async () => {
   const context = fixture(); const flush = deferred<void>();

@@ -188,6 +188,12 @@ export interface StudioApi {
   runWorkflowPlan(planId: string): Promise<WorkflowRunReport>;
   cancelWorkflowRun(): Promise<void>;
   getWorkflowReport(id: string): Promise<WorkflowRunReport | undefined>;
+  getWorkflowLibrary(profileId?: string): Promise<import("./workflowLibrary").WorkflowLibraryView>;
+  saveWorkflowScenario(planId: string): Promise<void>;
+  previewWorkflowScenario(scenarioId: string): Promise<WorkflowTestPlan>;
+  saveWorkflowSummary(reportId: string): Promise<void>;
+  deleteWorkflowLibraryItem(kind: "scenarios" | "runs", id: string): Promise<void>;
+  clearWorkflowLibrary(): Promise<boolean>;
   loadSettings(): Promise<AppSettings>;
   saveSettings(settings: AppSettings): Promise<AppSettings>;
   testConnection(url: string): Promise<ConnectionTestResult>;

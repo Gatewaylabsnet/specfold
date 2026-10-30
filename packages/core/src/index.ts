@@ -23,3 +23,5 @@ export * from "./workflow/provenance";
 export * from "./workflow/planning";
 export * from "./workflow/request";
 export * from "./workflow/assertions";
+export * from "./workflow/syntheticData";
+export * from "./workflow/businessRules";

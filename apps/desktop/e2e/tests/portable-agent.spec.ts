@@ -28,8 +28,8 @@ test("portable desktop configuration uses its extracted runtime for real stdio",
     await page.getByRole("button", { name: "Settings", exact: true }).click();
     await page.getByLabel("Enable AI connections").check();
     await expect.poll(async () => page.evaluate(async () => (await window.studio.loadSettings()).agentEnabled)).toBe(true);
-    await page.getByRole("button", { name: "Test connection", exact: true }).click();
-    await expect(page.getByText("The bundled agent connected successfully.", { exact: false })).toBeVisible();
+    await page.getByRole("button", { name: "Test bundled helper", exact: true }).click();
+    await expect(page.getByText("Bundled helper self-test passed.", { exact: false })).toBeVisible();
     const info = await page.evaluate(() => window.studio.getAgentConnection());
     expect(info.configuration.command).not.toBe(executable);
     expect(info.configuration.command).toMatch(/Specfold\.exe$/);

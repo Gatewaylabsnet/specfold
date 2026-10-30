@@ -66,7 +66,8 @@ export function importOpenApiDocument(
     version: preview.version,
     servers: readServers(document),
     components: getRecord(document, "components"),
-    securitySchemes: collectSecuritySchemes(document)
+    securitySchemes: collectSecuritySchemes(document),
+    security: document.security ?? []
   };
 
   const folderMap = new Map<string, Folder>();

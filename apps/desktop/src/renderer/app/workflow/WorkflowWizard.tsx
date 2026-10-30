@@ -7,17 +7,24 @@ import { PreviewStep } from "./PreviewStep";
 import { ResultsStep } from "./ResultsStep";
 import { credentialFields, defaultAuth, newProfile, safeSaveError, safeSourceUrl, savedProfiles, validAuthentication, validConnection, type SourceChoice } from "./model";
 import "./WorkflowWizard.css";
+import { blankWorkflow, workflowStart, type WorkflowStartContext } from "./context";
+import { LibraryPanel } from "./LibraryPanel";
 
 export interface WorkflowWizardProps {
   workspace: Workspace; settings: AppSettings; secureStorageAvailable: boolean;
   saveWorkspaceNow(): Promise<void>; replaceSavedWorkspace(result: WorkspaceLoadResult): void;
   onOpenSettings(): void; onClose(): void; onRunningChange(running: boolean): void;
   onDirtyChange?(dirty: boolean): void;
+  startContext?: WorkflowStartContext;
 }
 
 export function WorkflowWizard({ workspace, settings, secureStorageAvailable, saveWorkspaceNow, replaceSavedWorkspace,
-  onOpenSettings, onClose, onRunningChange, onDirtyChange }: WorkflowWizardProps) {
-  const [profile, setProfile] = useState(() => newProfile(workspace));
+  onOpenSettings, onClose, onRunningChange, onDirtyChange, startContext }: WorkflowWizardProps) {
+  const [start] = useState(() => workflowStart(workspace, startContext));
+  const [profile, setProfile] = useState(() => start.profile);
+  const inheritedCredentials = useRef(start.credentials);
+  const [contextNote, setContextNote] = useState(start.note);
+  const [authChoiceRequired, setAuthChoiceRequired] = useState(start.requiresAuthChoice ?? false);
   const [credentials, setCredentials] = useState<Record<string, string>>({});
   const [sourceText, setSourceText] = useState<string>();
   const [sourceUrl, setSourceUrl] = useState("");
@@ -30,7 +37,7 @@ export function WorkflowWizard({ workspace, settings, secureStorageAvailable, sa
   const [dirty, setDirty] = useState(false);
   const selectedIds = useRef<string[] | undefined>(undefined);
   const runningRef = useRef(false);
-  const savedId = useRef<string>();
+  const savedId = useRef<string | undefined>(savedProfiles(workspace).some((item) => item.id === start.profile.id) ? start.profile.id : undefined);
   const running = busy === "run";
   useEffect(() => { onRunningChange(!!busy); }, [busy, onRunningChange]);
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
@@ -46,6 +53,7 @@ export function WorkflowWizard({ workspace, settings, secureStorageAvailable, sa
   }, []);
 
   function changeProfile(next: ConnectionProfile) {
+    if (next.collectionId !== profile.collectionId) { next = { ...next }; delete next.rules; }
     if (next.auth.kind === "apinizer" && next.baseUrl !== profile.baseUrl) {
       const previousDefault = defaultAuth("apinizer", profile.baseUrl, profile.id);
       const nextDefault = defaultAuth("apinizer", next.baseUrl, next.id);
@@ -53,16 +61,25 @@ export function WorkflowWizard({ workspace, settings, secureStorageAvailable, sa
         next = { ...next, auth: { ...next.auth, endpoint: nextDefault.endpoint } };
       }
     }
-    if (next.auth.kind !== profile.auth.kind || next.environmentId !== profile.environmentId) setCredentials({});
+    if (next.auth.kind !== profile.auth.kind || next.environmentId !== profile.environmentId || next.collectionId !== profile.collectionId || next.baseUrl !== profile.baseUrl || next.provider !== profile.provider) {
+      setCredentials({}); inheritedCredentials.current = {}; setContextNote(undefined);
+    }
     setProfile(next); setDirty(true); setPlan(undefined); setError(undefined);
   }
-  function changeAuth(auth: WorkflowAuth) { changeProfile({ ...profile, auth }); }
+  function changeAuth(auth: WorkflowAuth) { setAuthChoiceRequired(false); changeProfile({ ...profile, auth }); }
   function loadProfile(id: string) {
     if (dirty && !window.confirm("Discard the unsaved changes in this workflow? Stored profiles and credentials are kept.")) return;
     const saved = savedProfiles(workspace).find((item) => item.id === id);
     setProfile(saved ? structuredClone(saved) : newProfile(workspace));
+    inheritedCredentials.current = {}; setContextNote(undefined); setAuthChoiceRequired(false);
     setCredentials({}); setSourceText(undefined); setSourceUrl(saved?.source.kind === "url" ? saved.source.label : "");
     setPlan(undefined); setReport(undefined); setError(undefined); setDirty(false); savedId.current = saved?.id; selectedIds.current = undefined;
+  }
+  function newSetup() {
+    if (dirty && !window.confirm("Discard the unsaved setup changes?")) return;
+    setProfile(blankWorkflow(workspace).profile); inheritedCredentials.current = {}; setContextNote(undefined); setAuthChoiceRequired(false);
+    setCredentials({}); setSourceText(undefined); setSourceUrl(""); setPlan(undefined); setReport(undefined);
+    setError(undefined); setDirty(false); setStep(0); savedId.current = undefined; selectedIds.current = undefined;
   }
   function changeSource(kind: SourceChoice) {
     if (kind === profile.source.kind) return;
@@ -108,9 +125,10 @@ export function WorkflowWizard({ workspace, settings, secureStorageAvailable, sa
       await saveWorkspaceNow();
       const current = await window.studio.loadWorkspace();
       if (typeof current.generation !== "number") throw new Error("Workspace revision unavailable");
-      const values = Object.fromEntries(credentialFields(profile.auth).filter((field) => credentials[field.variable]).map((field) => [field.variable, credentials[field.variable]]));
+      const drafts = { ...inheritedCredentials.current, ...Object.fromEntries(Object.entries(credentials).filter(([, value]) => value)) };
+      const values = Object.fromEntries(credentialFields(profile.auth).filter((field) => drafts[field.variable]).map((field) => [field.variable, drafts[field.variable]]));
       const result = await window.studio.saveWorkflowProfile({ profile, sourceText, credentials: values, expectedGeneration: current.generation });
-      replaceSavedWorkspace(result); setCredentials({}); setSourceText(undefined); setDirty(false);
+      replaceSavedWorkspace(result); setCredentials({}); inheritedCredentials.current = {}; setSourceText(undefined); setDirty(false);
       const saved = savedProfiles(result.workspace).find((item) => item.id === result.profileId);
       if (saved) setProfile(structuredClone(saved));
       savedId.current = result.profileId; selectedIds.current = undefined;
@@ -154,24 +172,43 @@ export function WorkflowWizard({ workspace, settings, secureStorageAvailable, sa
     } catch { setError("The saved report is unavailable. The current report remains visible."); }
     finally { setBusy(undefined); }
   }
+  async function openScenario(scenarioId: string) {
+    if (dirty && !window.confirm("Discard unsaved setup changes and open a fresh scenario preview?")) throw new Error("CANCELED");
+    setBusy("preview"); setError(undefined);
+    try {
+      const next = await window.studio.previewWorkflowScenario(scenarioId);
+      const saved = savedProfiles(workspace).find((item) => item.id === next.profileId);
+      if (!saved) throw new Error("WORKFLOW_SCENARIO_STALE");
+      setProfile(structuredClone(saved)); setCredentials({}); inheritedCredentials.current = {};
+      setContextNote(undefined); setAuthChoiceRequired(false); setDirty(false);
+      savedId.current = saved.id; selectedIds.current = next.rows.filter((row) => row.selected).map((row) => row.requestId);
+      setPlan(next); setReport(undefined); setStep(2);
+    } finally { setBusy(undefined); }
+  }
   return <div className="workflow">
     <div className="workflow-heading"><div><h1>Test workflow</h1><p>Connect an API, set authentication, review tests, and inspect the results.</p></div>
       <button className="secondary-button" type="button" disabled={!!busy} onClick={onClose}>Back to editor</button></div>
     <ol className="workflow-steps" aria-label="Workflow steps">{["Connection", "Authentication", "Test preview", "Results"].map((label, index) => <li key={label} aria-current={step === index ? "step" : undefined}><span>{index + 1}</span>{label}</li>)}</ol>
+    {contextNote && <p className="workflow-note">{contextNote}</p>}
     <details className="workflow-settings"><summary>MCP settings: {settings.agentEnabled ? "enabled" : "disabled"}; network access: {settings.agentNetworkEnabled ? "enabled" : "disabled"}</summary>
       <p>This manual desktop workflow uses native consent. It does not change MCP or network permissions.</p><button className="secondary-button" type="button" disabled={!!busy} onClick={onOpenSettings}>Open Settings</button></details>
     {error && <p role="alert" className="workflow-error">{error}</p>}
     <div className="workflow-card"><fieldset className="workflow-fields" disabled={!!busy && step < 2}>
       {step === 0 && <ConnectionStep workspace={workspace} profile={profile} sourceText={sourceText} sourceUrl={sourceUrl} busy={!!busy}
+        onNewSetup={newSetup}
         onProfile={changeProfile} onLoadProfile={loadProfile} onSource={changeSource} onUrl={(value) => { setSourceUrl(value); setSourceText(undefined); changeProfile({ ...profile, collectionId: "", source: { kind: "url", label: "" } }); }}
         onFile={() => void openFile()} onFetch={() => void fetchSource()} onContinue={() => { setStep(1); setError(undefined); }} canContinue={validConnection(profile, sourceText)} />}
       {step === 1 && <AuthenticationStep workspace={workspace} profile={profile} credentials={credentials} secureStorageAvailable={secureStorageAvailable} busy={!!busy}
-        valid={validAuthentication(profile.auth) && (profile.auth.kind === "none" || secureStorageAvailable)} onAuth={changeAuth}
-        onCredential={(variable, value) => { setCredentials((previous) => ({ ...previous, [variable]: value })); setDirty(true); }}
+        onRules={(rules) => changeProfile({ ...profile, rules })}
+        inheritedCredentialNames={Object.keys(inheritedCredentials.current)}
+        requiresAuthChoice={authChoiceRequired}
+        valid={!authChoiceRequired && validAuthentication(profile.auth) && (profile.auth.kind === "none" || secureStorageAvailable)} onAuth={changeAuth}
+        onCredential={(variable, value) => { setAuthChoiceRequired(false); setCredentials((previous) => ({ ...previous, [variable]: value })); setDirty(true); }}
         onBack={() => { setStep(0); setError(undefined); }} onSave={() => void save()} />}
       {step === 2 && <PreviewStep plan={plan} baseUrl={profile.baseUrl} maxTests={profile.auth.kind === "apinizer" ? 19 : 20} busy={!!busy} running={running} canceling={canceling} onToggle={toggle}
         onBack={() => { setStep(1); setPlan(undefined); setError(undefined); }} onRetry={() => savedId.current && void preview(savedId.current)} onRun={() => void run()} onCancel={() => void cancel()} />}
       {step === 3 && report && <ResultsStep report={report} busy={!!busy} onPreview={() => { setPlan(undefined); if (savedId.current) void preview(savedId.current); }} onExport={() => void exportReport()} onReload={() => void reloadReport()} />}
     </fieldset></div>
+    <LibraryPanel profileId={profile.id} plan={step === 2 ? plan : undefined} report={step === 3 ? report : undefined} busy={!!busy} onOpen={openScenario} />
   </div>;
 }

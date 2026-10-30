@@ -46,8 +46,8 @@ test("bundled MCP reviews live imports, uses bounded sessions and prepares redac
     await page.getByRole("button", { name: "Settings", exact: true }).click();
     await page.getByLabel("Enable AI connections").check();
     await expect.poll(async () => page.evaluate(async () => (await window.studio.loadSettings()).agentEnabled)).toBe(true);
-    await page.getByRole("button", { name: "Test connection", exact: true }).click();
-    await expect(page.getByText("The bundled agent connected successfully.", { exact: false })).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("button", { name: "Test bundled helper", exact: true }).click();
+    await expect(page.getByText("Bundled helper self-test passed.", { exact: false })).toBeVisible({ timeout: 20_000 });
     const info = await page.evaluate(() => window.studio.getAgentConnection());
     if (process.env.SPECFOLD_E2E_PORTABLE_HELPER) expect(info.configuration.command).not.toBe(process.env.SPECFOLD_E2E_PORTABLE_HELPER);
     client = new Client({ name: "specfold-workflow-test", version: "1" });
@@ -104,6 +104,7 @@ test("bundled MCP reviews live imports, uses bounded sessions and prepares redac
     expect(await readFile(join(root, "workspace.json"), "utf8")).not.toContain("JWT_TEST_SECRET");
     const draftPath = join(root, "documentation.md");
     await app.evaluate(({ dialog }, path) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: path }); }, draftPath);
+    await page.getByText("Advanced: draft documentation from observed responses", { exact: true }).click();
     await page.getByLabel("Documentation collection").selectOption(collection.id);
     await page.getByRole("button", { name: "Preview documentation draft", exact: true }).click();
     await expect(page.getByLabel("Documentation draft")).toContainText("Observed in the approved local session");

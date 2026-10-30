@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import type { ResponseHistoryEntry, ResponseState, ResponseTab } from "../types";
 import { Copy, Search, Save } from "lucide-react";
 import { formatBytes, formatHistoryTime, looksLikeJson, tabLabel } from "../helpers";
+import { ResponseTokenBinding, type TokenBindingContext } from "./ResponseTokenBinding";
+import type { TokenBindingReview } from "../responseTokenBinding";
+import { responseTokenFields } from "../responseTokenBinding";
 
 const RESPONSE_FONT_SIZES = [11, 12, 14, 16, 18] as const;
 const DEFAULT_RESPONSE_FONT_SIZE = 12;
@@ -13,7 +16,9 @@ export function ResponsePanel({
   onAssignResponseValue,
   onSaveResponseExample,
   environmentVariableNames,
-  folderTokenTarget
+  folderTokenTarget,
+  tokenBindingContext,
+  onBindToken
 }: {
   response?: ResponseState;
   history: ResponseHistoryEntry[];
@@ -21,6 +26,8 @@ export function ResponsePanel({
   onSaveResponseExample(response: ResponseState): void;
   environmentVariableNames: string[];
   folderTokenTarget?: { id: string; name: string; variableName?: string };
+  tokenBindingContext?: TokenBindingContext;
+  onBindToken?(review: TokenBindingReview): void;
 }) {
   const [responseTab, setResponseTab] = useState<ResponseTab>("body");
   const [assignPath, setAssignPath] = useState("access_token");
@@ -53,6 +60,7 @@ export function ResponsePanel({
   // Show the selected history entry when browsing; otherwise the live response.
   const displayed = history[historyIndex]?.response ?? response;
   const isJsonResponse = Boolean(displayed && !displayed.error && looksLikeJson(displayed.rawBody));
+  const hasToken = isJsonResponse && responseTokenFields(displayed?.rawBody || displayed?.body || "").length > 0;
   const selectedText = displayed
     ? responseTab === "headers"
       ? JSON.stringify(displayed.headers, null, 2)
@@ -154,6 +162,12 @@ export function ResponsePanel({
       )}
       {displayed && !displayed.error ? (
         <>
+          {isJsonResponse && tokenBindingContext && onBindToken && (hasToken
+            ? <ResponseTokenBinding body={displayed.rawBody || displayed.body} context={tokenBindingContext} onApply={onBindToken} />
+            : <details><summary>Use a response field as a token</summary><ResponseTokenBinding body={displayed.rawBody || displayed.body}
+              context={tokenBindingContext} onApply={onBindToken} /></details>)}
+          <details className="response-body-view" open={!hasToken}>
+          <summary>{hasToken ? "View response body (may contain credentials)" : "Response content"}</summary>
           <div className="response-tabs">
             {(["body", "headers", "raw"] as ResponseTab[]).map((tab) => (
               <button
@@ -207,7 +221,10 @@ export function ResponsePanel({
             <ResponseText text={displayedText} query={responseSearch} />
           </pre>
           {copyStatus && <div className="response-copy-status" role="status">{copyStatus}</div>}
+          </details>
           {isJsonResponse && (
+            <>
+            <details className="response-advanced"><summary>Advanced: save any response field to a variable</summary>
             <div className="assign-row">
               <span className="assign-row__label">Save field to variable</span>
               <div className="assign-row__controls">
@@ -257,6 +274,8 @@ export function ResponsePanel({
                 )}
               </div>
             </div>
+            </details>
+            </>
           )}
         </>
       ) : (

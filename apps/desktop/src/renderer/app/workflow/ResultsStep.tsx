@@ -6,7 +6,7 @@ export function ResultsStep({ report, busy, onPreview, onExport, onReload }: {
   return <section aria-labelledby="workflow-results-title">
     <h2 id="workflow-results-title">Results</h2>
     <p>Run {report.status}. Secret values are masked in this report. Review response content before sharing it; API data can still be sensitive.</p>
-    <dl className="workflow-facts"><div><dt>Report ID</dt><dd><code>{report.id}</code></dd></div><div><dt>Plan ID</dt><dd><code>{report.planId}</code></dd></div></dl>
+    <details><summary>Advanced: report identifiers</summary><dl className="workflow-facts"><div><dt>Report ID</dt><dd><code>{report.id}</code></dd></div><div><dt>Plan ID</dt><dd><code>{report.planId}</code></dd></div></dl></details>
     <div className="workflow-totals">{(["passed", "failed", "skipped", "blocked"] as const).map((status) => <div key={status}><strong>{report.totals[status]}</strong><span>{status}</span></div>)}</div>
     {report.authentication && <p className="workflow-note">Authentication {report.authentication.status}: {report.authentication.message}</p>}
     <div className="workflow-results">{report.results.map((result) => <article key={result.requestId}>

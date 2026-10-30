@@ -185,6 +185,14 @@
   font-size: 12px;
 }
 
+.response-token-binding { padding: 12px; margin: 12px 0; border: 1px solid var(--border-color, #cbd5e1); border-radius: 8px; }
+.response-token-binding h3 { margin: 0 0 6px; }
+.response-token-binding p, .response-advanced { font-size: 12px; }
+.response-token-binding details, .response-advanced { margin: 10px 0; }
+.token-request-list, .token-binding-review ul { max-height: 240px; overflow: auto; overflow-wrap: anywhere; }
+.token-binding-review { max-width: min(700px, 90vw); max-height: 85vh; overflow: auto; padding: 20px; color: inherit; background: var(--panel-bg, #fff); border: 1px solid #94a3b8; border-radius: 10px; }
+.token-binding-review::backdrop { background: #0f172a66; }
+
 @media (max-width: 660px) {
   .environment-base-url__row {
     grid-template-columns: 1fr;

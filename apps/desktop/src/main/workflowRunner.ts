@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   createKeyValue, createRequest, findRequest, isCredentialName, prepareHttpRequest, redactAgentValue,
-  workspaceSecrets, evaluateWorkflowResponse, workflowRequest,
+  workspaceSecrets, evaluateWorkflowResponse, evaluateBusinessRules, workflowRequest,
   type ApiRequest, type ConnectionProfile, type WorkflowRunReport, type WorkflowTestPlan, type Workspace
 } from "@openapi-collection-studio/core";
 import type { SendRequestPayload, SendRequestResult } from "../shared/contracts";
@@ -172,7 +172,8 @@ export async function executeWorkflowPlan(
       if (!location) throw new Error("REQUEST_NOT_FOUND");
       const response = await deps.send(payloadFor(workflowRequest(location.request, profile)));
       signal?.throwIfAborted();
-      const assertions = evaluateWorkflowResponse(row, response);
+      const assertions = [...evaluateWorkflowResponse(row, response), ...evaluateBusinessRules(
+        (profile.rules ?? []).filter((rule) => rule.requestId === row.requestId), { ...response, body: response.rawBody || response.body })];
       const failed = response.error || assertions.some((item) => item.outcome === "failed");
       const blocked = assertions.some((item) => item.outcome === "blocked");
       const result = report.results.find((item) => item.requestId === row.requestId)!;

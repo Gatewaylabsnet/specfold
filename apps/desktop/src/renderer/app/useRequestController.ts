@@ -12,9 +12,10 @@ import {
 } from "@openapi-collection-studio/core";
 import { applyEnvironmentBaseUrlToCollection, createEnvironmentVariable, environmentBaseUrl, extractJsonPath, replaceEnvironmentCustomVariables, upsertEnvironmentBaseUrl } from "./helpers";
 import { MAX_HISTORY_PER_REQUEST } from "./types";
-import type { AppSettings, ResponseState } from "./types";
+import type { ResponseState } from "./types";
 import type { StudioState } from "./useStudioState";
 import type { WorkspaceController } from "./useWorkspaceController";
+import { useSettingsUpdates } from "./useSettingsUpdates";
 
 export function useRequestController(state: StudioState, workspaceController: WorkspaceController) {
   const { workspace, setWorkspace, loaded, setLoaded, screen, setScreen,
@@ -173,13 +174,7 @@ export function useRequestController(state: StudioState, workspaceController: Wo
     });
   };
 
-  const updateSettings = (patch: Partial<AppSettings>) => {
-    setSettings((current) => {
-      const next = { ...current, ...patch };
-      void window.studio.saveSettings(next).then(setSettings);
-      return next;
-    });
-  };
+  const updateSettings = useSettingsUpdates(settings, setSettings, setNotice);
 
   const assignResponseValue = (path: string, variableName: string, folderId?: string) => {
     if (!response || !variableName.trim()) {
