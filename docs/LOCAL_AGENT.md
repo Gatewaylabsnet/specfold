@@ -2,6 +2,16 @@
 
 Status: local MCP and CLI are included in published stable [v1.11.0](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.11.0). See the [release notes](RELEASE_NOTES_v1.11.0.md) and [guided workflow guide](guided-test-workflow.md). No model, hosted MCP endpoint, telemetry or automatic downloader is added. Packaged users need no separate Node.js installation.
 
+## 1.12.0-dev.1 connection flow
+
+The [prerelease](RELEASE_NOTES_v1.12.0-dev.1.md) presents three steps in **Settings > AI connections**:
+
+1. Enable AI connections, select your client's format and **Copy configuration** into that client's MCP settings. Keep the same Specfold runtime open.
+2. Select **Test bundled helper**. A pass verifies the included helper's stdio connection to Specfold. It does not verify an external client. Recent local helper activity can come from this self-test and does not identify a client.
+3. In your configured client, try: **List my collections. Do not change data or send API requests.** Check that the client actually returns your collection list; the settings screen does not certify this result.
+
+Request permission remains separate and optional. Reading collections does not need network-send permission. Proposed changes and sends still need their existing previews and desktop approvals. Use synthetic data first; an external client may send returned structure to its provider. The 1.11.0 instructions below retain the older button label.
+
 ## Quick start: keep Specfold open
 
 The [guided test workflow](guided-test-workflow.md) adds reference-only connection profiles, reviewed test previews and masked reports. Start with a separate sample profile.
