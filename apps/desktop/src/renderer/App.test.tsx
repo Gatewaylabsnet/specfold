@@ -365,7 +365,7 @@ describe("renderer workflows", () => {
     expect(screen.getByText("Not configured")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Configure route" }));
 
-    expect(await screen.findByRole("heading", { name: "Connection profiles" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Environments" })).toBeTruthy();
     const folderBaseUrl = screen.getByRole("textbox", { name: "Folder base URL" });
     await user.type(folderBaseUrl, "https://proxy.example.com/api");
 

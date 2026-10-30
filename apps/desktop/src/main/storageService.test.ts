@@ -254,6 +254,7 @@ describe("storage service", () => {
     await mkdir(paths.backups, { recursive: true });
     await writeFile(paths.workspace, "workspace", "utf8");
     await writeFile(paths.settings, "settings", "utf8");
+    await writeFile(join(userData, "workflow-library.json"), "content-free library", "utf8");
     await writeFile(join(paths.backups, "backup.json"), "backup", "utf8");
     await writeFile(join(userData, "workspace.corrupt-old.json"), "corrupt", "utf8");
     const unrelated = join(userData, "keep-me.txt");
@@ -267,6 +268,7 @@ describe("storage service", () => {
     expect(await readFile(unrelated, "utf8")).toBe("keep");
     await expect(stat(paths.workspace)).rejects.toMatchObject({ code: "ENOENT" });
     await expect(stat(paths.settings)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(stat(join(userData, "workflow-library.json"))).rejects.toMatchObject({ code: "ENOENT" });
     await expect(stat(paths.backups)).rejects.toMatchObject({ code: "ENOENT" });
     await expect(stat(join(userData, ".agent", "plan-key"))).rejects.toMatchObject({ code: "ENOENT" });
     await expect(stat(join(userData, ".agent", "sample.plan.json"))).rejects.toMatchObject({ code: "ENOENT" });

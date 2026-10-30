@@ -21,6 +21,7 @@ export * from "./shared";
 export * from "./openapi/importOpenApi";
 export * from "./swagger2/importSwagger2";
 export * from "./reimport";
+export * from "./contractDiff";
 
 export function previewApiDocument(text: string): ImportPreview {
   const parsed = parseApiText(text);

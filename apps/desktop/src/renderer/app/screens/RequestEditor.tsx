@@ -10,6 +10,9 @@ import type { RequestTab, ResponseHistoryEntry, ResponseState } from "../types";
 import { RequestBodyEditor } from "./RequestBodyEditor";
 import { RequestAuthFields } from "./RequestAuthFields";
 import { ResponsePanel } from "./ResponsePanel";
+import type { TokenBindingContext } from "./ResponseTokenBinding";
+import type { TokenBindingReview } from "../responseTokenBinding";
+import { SyntheticDataPanel } from "./SyntheticDataPanel";
 
 export function RequestWorkspace({
   activeCollection,
@@ -36,7 +39,9 @@ export function RequestWorkspace({
   onAssignResponseValue,
   onSaveResponseExample,
   environmentVariableNames,
-  responseHistory
+  responseHistory,
+  tokenBindingContext,
+  onBindToken
 }: {
   activeCollection?: Collection;
   activeEnvironmentBaseUrl?: string;
@@ -49,6 +54,8 @@ export function RequestWorkspace({
   folderOptions: ReturnType<typeof flattenFolders>;
   isSending: boolean;
   responseHistory: ResponseHistoryEntry[];
+  tokenBindingContext?: Omit<TokenBindingContext, "folderId">;
+  onBindToken?(review: TokenBindingReview): void;
   onAddRequest(): void;
   onAddJwtRequest(): void;
   onDeleteFolder(folderId: string): void;
@@ -235,6 +242,7 @@ export function RequestWorkspace({
               ))}
             </div>
             <RequestTabPanel
+              collection={activeCollection}
               activeRequest={activeRequest}
               folderAuthScope={routingFolder ? {
                 folder: routingFolder,
@@ -280,6 +288,9 @@ export function RequestWorkspace({
         )}
       </div>}
       bottom={<ResponsePanel
+        key={activeRequest?.id}
+        tokenBindingContext={tokenBindingContext ? { ...tokenBindingContext, folderId: routingFolder?.id } : undefined}
+        onBindToken={onBindToken}
         response={response}
         history={responseHistory}
         onAssignResponseValue={onAssignResponseValue}
@@ -342,6 +353,7 @@ function RequestNameInput({ name, onCommit }: { name: string; onCommit(name: str
 }
 
 export function RequestTabPanel({
+  collection,
   activeRequest,
   folderAuthScope,
   folderAccessTokenVariable,
@@ -349,6 +361,7 @@ export function RequestTabPanel({
   onUpdateFolderTokenVariable,
   onUpdateRequest
 }: {
+  collection?: Collection;
   activeRequest: ApiRequest;
   folderAuthScope?: {
     folder: Folder;
@@ -435,13 +448,14 @@ export function RequestTabPanel({
   }
 
   return (
-    <RequestBodyEditor
+    <><RequestBodyEditor
       body={activeRequest.body}
       onChange={(body) =>
         onUpdateRequest((request) => {
           request.body = body;
         })
       }
-    />
+    />{collection && <SyntheticDataPanel key={activeRequest.id} request={activeRequest} collection={collection}
+      onApply={(body) => onUpdateRequest((request) => { request.body = body; })} />}</>
   );
 }

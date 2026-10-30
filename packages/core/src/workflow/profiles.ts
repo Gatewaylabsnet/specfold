@@ -1,5 +1,6 @@
 import type { Workspace } from "../model/types";
 import type { ConnectionProfile, WorkflowAuth } from "./types";
+import { validateBusinessRules } from "./businessRules";
 
 const MAX_PROFILES = 64;
 const MAX_URL_LENGTH = 2_048;
@@ -113,11 +114,12 @@ function authConfig(value: unknown): WorkflowAuth {
 
 /** Validate metadata without resolving or storing any credential values. */
 export function validateConnectionProfile(value: unknown): ConnectionProfile {
-  const item = record(value, ["id", "name", "provider", "collectionId", "environmentId", "baseUrl", "source", "auth"], "profile");
+  const item = record(value, ["id", "name", "provider", "collectionId", "environmentId", "baseUrl", "source", "auth", "rules"], "profile");
   if (item.provider !== "openapi" && item.provider !== "apinizer") invalid("provider");
   const source = record(item.source, ["kind", "label"], "source");
   if (source.kind !== "file" && source.kind !== "url" && source.kind !== "existing") invalid("source.kind");
   const auth = authConfig(item.auth);
+  const rules = item.rules !== undefined ? validateBusinessRules(item.rules) : undefined;
   if (auth.kind === "apinizer" && item.provider !== "apinizer") invalid("provider/auth");
   return {
     id: identifier(item.id, "id"), name: text(item.name, "name", 160), provider: item.provider,
@@ -127,7 +129,8 @@ export function validateConnectionProfile(value: unknown): ConnectionProfile {
       kind: source.kind,
       label: source.kind === "url" ? httpUrl(source.label, "source.label", true) : text(source.label, "source.label", MAX_URL_LENGTH)
     },
-    auth
+    auth,
+    ...(rules?.length ? { rules } : {})
   };
 }
 

@@ -16,7 +16,7 @@ describe("environment management", () => {
 
     await user.click(screen.getByRole("button", { name: "Manage environments" }));
 
-    expect(await screen.findByRole("heading", { name: "Connection profiles" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Environments" })).toBeTruthy();
   });
 
   it("keeps environment name editing local until the field is committed", async () => {

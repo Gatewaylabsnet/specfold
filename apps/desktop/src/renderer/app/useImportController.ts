@@ -248,7 +248,7 @@ export function useImportController(state: StudioState, workspaceController: Wor
         ? workspace.collections.find((candidate) => candidate.id === importTargetCollectionId)
         : undefined;
       const canUpdate = Boolean(target && imported.collections.length === 1);
-      const diff = canUpdate ? previewSafeReimport(target!, collection) : undefined;
+      const diff = canUpdate ? previewSafeReimport(target!, collection, { semantic: true }) : undefined;
       const importedEnvironments = importVariablesAsEnvironment ? imported.environments : [];
       mutateWorkspace((draft) => {
         if (canUpdate) {
@@ -299,7 +299,7 @@ export function useImportController(state: StudioState, workspaceController: Wor
     const target = importTargetCollectionId
       ? workspace.collections.find((collection) => collection.id === importTargetCollectionId)
       : undefined;
-    setImportDiff(target && incoming ? previewSafeReimport(target, incoming) : undefined);
+    setImportDiff(target && incoming ? previewSafeReimport(target, incoming, { semantic: true }) : undefined);
   };
 
   return {

@@ -61,7 +61,7 @@ export function App() {
     toggleImportOperation, handlePreviewImport, handleImport, copyActiveRequestAsCurl,
     sendActiveRequest, updateEnvironment, updateEnvironmentBaseUrl, createNewEnvironment,
     selectEnvironment, deleteEnvironment,
-    updateSettings, assignResponseValue, saveResponseAsExample, saveExport, copyExportToClipboard, exportFullBackup,
+    updateSettings, assignResponseValue, bindResponseToken, saveResponseAsExample, saveExport, copyExportToClipboard, exportFullBackup,
     restoreFullBackup, deleteAllData, isDeletingData, treeActions,
     agentConnection, agentReview, agentBusy, agentError, openAgentReview, applyAgentReview,
     rejectAgentReview, refreshAgentReview, closeAgentReview
@@ -197,6 +197,7 @@ export function App() {
         <main className="workspace-main">
         <Suspense fallback={<div className="loading loading--screen">Loading screen...</div>}>
         {screen === "workflow" && <WorkflowWizard workspace={workspace} settings={settings} secureStorageAvailable={secureStorageAvailable}
+          startContext={{ collectionId: activeCollectionId, requestId: selectedRequestId }}
           saveWorkspaceNow={saveWorkspaceNow} replaceSavedWorkspace={replaceSavedWorkspace}
           onOpenSettings={() => navigate("settings")} onClose={() => navigate("editor")}
           onRunningChange={setWorkflowBusy} onDirtyChange={setWorkflowDirty} />}
@@ -284,6 +285,10 @@ export function App() {
               }
               onUpdateRequest={updateActiveRequest}
               onAssignResponseValue={assignResponseValue}
+              onBindToken={bindResponseToken}
+              tokenBindingContext={activeCollection && activeEnvironment && activeRequest ? { workspace,
+                collectionId: activeCollection.id, environmentId: activeEnvironment.id, sourceRequestId: activeRequest.id,
+                secureStorageAvailable } : undefined}
               onSaveResponseExample={saveResponseAsExample}
               environmentVariableNames={activeEnvironment?.variables.map((variable) => variable.name) ?? []}
               responseHistory={selectedRequestId ? responseHistory[selectedRequestId] ?? [] : []}

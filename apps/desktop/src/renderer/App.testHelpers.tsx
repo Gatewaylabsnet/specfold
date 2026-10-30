@@ -34,6 +34,12 @@ export function studioMock(workspace = sampleWorkspace()): StudioApi {
     runWorkflowPlan: vi.fn(async () => { throw new Error("No workflow configured"); }),
     cancelWorkflowRun: vi.fn(async () => undefined),
     getWorkflowReport: vi.fn(async () => undefined),
+    getWorkflowLibrary: vi.fn(async (_profileId?: string): Promise<import("../shared/workflowLibrary").WorkflowLibrary> => ({ scenarios: [], runs: [] })),
+    saveWorkflowScenario: vi.fn(async (_planId: string) => undefined),
+    previewWorkflowScenario: vi.fn(async (_id: string): Promise<import("@openapi-collection-studio/core").WorkflowTestPlan> => { throw new Error("No saved scenario"); }),
+    saveWorkflowSummary: vi.fn(async (_id: string) => undefined),
+    deleteWorkflowLibraryItem: vi.fn(async (_kind: "scenarios" | "runs", _id: string) => undefined),
+    clearWorkflowLibrary: vi.fn(async () => false),
     getAppInfo: vi.fn(async () => ({
       name: "Specfold", version: "1.6.0", platform: "win32", arch: "x64",
       releaseUrl: "https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.6.0",

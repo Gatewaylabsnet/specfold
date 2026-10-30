@@ -1,9 +1,13 @@
-import type { ConnectionProfile, WorkflowAuth, Workspace } from "@openapi-collection-studio/core";
+import type { BusinessRule, ConnectionProfile, WorkflowAuth, Workspace } from "@openapi-collection-studio/core";
 import { credentialFields, defaultAuth } from "./model";
+import { RulesEditor } from "./RulesEditor";
 
-export function AuthenticationStep({ workspace, profile, credentials, secureStorageAvailable, busy, valid, onAuth, onCredential, onBack, onSave }: {
+export function AuthenticationStep({ workspace, profile, credentials, secureStorageAvailable, busy, valid, onAuth, onCredential, onBack, onSave, inheritedCredentialNames = [], requiresAuthChoice, onRules }: {
   workspace: Workspace; profile: ConnectionProfile; credentials: Record<string, string>; secureStorageAvailable: boolean;
   busy: boolean; valid: boolean; onAuth(auth: WorkflowAuth): void; onCredential(variable: string, value: string): void; onBack(): void; onSave(): void;
+  inheritedCredentialNames?: string[];
+  requiresAuthChoice?: boolean;
+  onRules(rules: BusinessRule[]): void;
 }) {
   const auth = profile.auth;
   const fields = credentialFields(auth);
@@ -11,7 +15,10 @@ export function AuthenticationStep({ workspace, profile, credentials, secureStor
   const setVariable = (key: string, value: string) => onAuth({ ...auth, [key]: value } as WorkflowAuth);
   return <section aria-labelledby="workflow-auth-title">
     <h2 id="workflow-auth-title">Authentication</h2>
-    <p>Credentials are saved by Specfold to encrypted environment variables. This screen never reloads stored secret values.</p>
+    <p>Credentials stay encrypted. Leave a stored credential blank to keep it.</p>
+    {requiresAuthChoice && <div role="alert"><p>This request's header or token expression cannot be reused automatically. Choose authentication or enter its credentials before continuing.</p>
+      <button type="button" className="secondary-button" onClick={() => onAuth({ kind: "none" })}>Continue without authentication for this run</button></div>}
+    {!!inheritedCredentialNames.length && <p role="status">Current request credentials are ready to reuse securely when you save. Their values are not shown.</p>}
     <label className="field"><span>Authentication</span><select aria-label="Authentication" value={auth.kind} disabled={busy}
       onChange={(event) => onAuth(defaultAuth(event.target.value as WorkflowAuth["kind"], profile.baseUrl, profile.id))}>
       <option value="none">No authentication</option><option value="bearer">Bearer token</option><option value="basic">Basic authentication</option>
@@ -26,7 +33,7 @@ export function AuthenticationStep({ workspace, profile, credentials, secureStor
     <div className="workflow-grid">{fields.filter((field) => field.key !== "clientSecretVariable").map((field) => <label className="field" key={field.key}><span>{field.label}</span>
       <input type="password" autoComplete="new-password" aria-label={field.label} value={credentials[field.variable] ?? ""}
         onChange={(event) => onCredential(field.variable, event.target.value)} placeholder="Leave blank to keep the stored value" disabled={busy} />
-      <small>{variables.some((item) => item.name === field.variable) ? "Stored credential available; leave blank to keep it." : "Saved securely for this profile."}</small>
+      <small>{inheritedCredentialNames.includes(field.variable) ? "Using the current request credential; leave blank to keep it." : variables.some((item) => item.name === field.variable) ? "Stored credential available; leave blank to keep it." : "Saved securely when you choose Save & preview."}</small>
     </label>)}</div>
     {auth.kind !== "none" && <details className="workflow-advanced"><summary>Advanced: variable references</summary>
       <p>New authentication settings use variables unique to this profile. You can deliberately reuse an existing variable here; changing its value also affects other profiles that reference it. Blank credential fields keep existing values.</p>
@@ -43,6 +50,7 @@ export function AuthenticationStep({ workspace, profile, credentials, secureStor
         <small>Only enable this if required by your issuer. No placeholder credential is sent.</small></>}
     </details>}
     {!secureStorageAvailable && <p role="alert" className="workflow-note">Secure storage is unavailable. Authenticated workflows require OS secure storage; restore it before saving authentication settings or credentials.</p>}
+    <RulesEditor key={`${profile.id}:${profile.collectionId}`} rules={profile.rules ?? []} collection={workspace.collections.find((item) => item.id === profile.collectionId)} onChange={onRules} />
     <p>Saving creates or updates this profile and its collection. It does not send test requests. The next step previews the exact test selection.</p>
     <div className="workflow-actions"><button type="button" className="secondary-button" disabled={busy} onClick={onBack}>Back to connection</button>
       <button type="button" className="primary-button" disabled={busy || !valid} onClick={onSave}>{busy ? "Saving…" : "Save & preview"}</button></div>

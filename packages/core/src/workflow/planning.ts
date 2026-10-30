@@ -30,6 +30,7 @@ export function buildWorkflowTestPlan(workspace: Workspace, input: ConnectionPro
   assertBoundedWorkflowValue(collection);
   assertBoundedWorkflowValue(environment);
   const requests = flattenRequests(collection).map(({ request }) => request);
+  if (profile.rules?.some((rule) => !requests.some((request) => request.id === rule.requestId))) throw new Error("INVALID_BUSINESS_RULES");
   if (requests.length > 500) throw new Error("WORKFLOW_REQUEST_LIMIT");
   if (options.selectedRequestIds && (!Array.isArray(options.selectedRequestIds) || options.selectedRequestIds.length > 500 ||
       options.selectedRequestIds.some((id) => typeof id !== "string" || !requests.some((request) => request.id === id)))) throw new Error("INVALID_WORKFLOW_SELECTION");
@@ -93,6 +94,12 @@ export function buildWorkflowTestPlan(workspace: Workspace, input: ConnectionPro
     } catch {
       row.status = "blocked"; row.reason = "The request definition is invalid, unsupported, or exceeds workflow limits.";
       if (!row.provenance.length) row.provenance.push({ location: "body", source: "missing", valid: false, reason: row.reason });
+    }
+    const rules = profile.rules?.filter((rule) => rule.requestId === request.id);
+    if (rules?.length) row.rules = structuredClone(rules);
+    if (rules?.some((rule) => rule.path !== redactAgentValue(rule.path, secrets) || [rule.path, ...(rule.kind === "range" ? [String(rule.minimum), String(rule.maximum)] : rule.kind === "equals" ? [String(rule.value)] : [])].some((value) => secrets.includes(value)))) {
+      row.status = "blocked"; row.reason = "A business-rule constraint overlaps saved credential data. Review non-secret constraints before running.";
+      delete row.rules;
     }
     row.selected = row.status === "ready" && (selected ? selected.has(request.id) : effect === "read");
     if (row.status === "ready" && !row.selected) row.reason = effect === "may-change-data"

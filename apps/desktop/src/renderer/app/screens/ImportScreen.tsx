@@ -136,6 +136,11 @@ export function ImportScreen({
           <div className="reimport-diff" role="status">
             <strong>Safe re-import preview</strong>
             <span>{importDiff.matched} matched · {importDiff.added} new · {importDiff.retained} retained</span>
+            {importDiff.contractChanges && <details><summary>Contract changes: {importDiff.contractChanges.filter((item) => item.severity === "breaking").length} breaking, {importDiff.contractChanges.filter((item) => item.severity === "additive").length} additive, {importDiff.contractChanges.filter((item) => item.severity === "unknown").length} need review</summary>
+              <p>Supported local OpenAPI evidence only. Unknown constraints are not a compatibility pass. Removed operations remain saved; this preview does not send requests or automatically apply changes.</p>
+              {!importDiff.contractChanges.length && <p>No changes found in the supported contract subset. This is not proof of complete API compatibility.</p>}
+              <ul>{importDiff.contractChanges.map((change, index) => <li key={index}><strong>{change.severity}</strong> · {change.operation} · {change.area}: {change.message}</li>)}</ul>
+            </details>}
           </div>
         )}
         <h3>Variables</h3>

@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import { promisify } from "node:util";
 import { expect, test } from "@playwright/test";
 import { _electron as electron, type ElectronApplication, type Page } from "playwright";
@@ -34,6 +35,8 @@ const execFile = promisify(execFileCallback);
 const packagedExecutable = process.env.SPECFOLD_E2E_EXECUTABLE
   ? resolve(process.env.SPECFOLD_E2E_EXECUTABLE)
   : join(desktopRoot, "dist", "win-unpacked", "Specfold.exe");
+const sourceSmoke = process.env.SPECFOLD_E2E_SOURCE === "1";
+if (sourceSmoke && process.env.CI) throw new Error("CI must exercise the packaged executable, not local source-smoke mode.");
 
 test.describe.configure({ mode: "serial" });
 test.skip(process.platform !== "win32", "The packaged application scenario runs on Windows.");
@@ -85,8 +88,9 @@ test("imports a document, manages routing, sends a request, and exports it", asy
   await page.getByLabel("Editor").click();
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(page.locator(".status-pill")).toContainText("200");
+  await page.getByText("View response body (may contain credentials)", { exact: true }).click();
   await expect(page.locator(".response-panel pre")).toContainText("e2e-access-token");
-
+  await page.getByText("Advanced: save any response field to a variable", { exact: true }).click();
   await page.getByLabel("Target variable name").fill("accessToken");
   await page.locator(".assign-row").getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.locator(".notice-banner")).toContainText('Saved "accessToken"');
@@ -164,9 +168,9 @@ async function launchPackagedApp(baseUrl: string): Promise<AppFixture> {
   await writeFile(uploadPath, "e2e-file-content", "utf8");
 
   const app = await electron.launch({
-    args: ["--disable-gpu"],
+    args: sourceSmoke ? [join(desktopRoot, "out/main/index.js"), "--disable-gpu"] : ["--disable-gpu"],
     env: { ...process.env, SPECFOLD_E2E_USER_DATA_PATH: userDataPath },
-    executablePath: packagedExecutable,
+    executablePath: sourceSmoke ? createRequire(import.meta.url)("electron") : packagedExecutable,
     timeout: 30_000
   });
   const page = await app.firstWindow();

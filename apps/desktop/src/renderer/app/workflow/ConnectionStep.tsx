@@ -2,21 +2,23 @@ import type { ConnectionProfile, Workspace } from "@openapi-collection-studio/co
 import { defaultAuth, savedProfiles, type SourceChoice } from "./model";
 
 export function ConnectionStep({ workspace, profile, sourceText, sourceUrl, busy, onProfile, onLoadProfile, onSource,
-  onUrl, onFile, onFetch, onContinue, canContinue }: {
+  onUrl, onFile, onFetch, onContinue, canContinue, onNewSetup }: {
   workspace: Workspace; profile: ConnectionProfile; sourceText?: string; sourceUrl: string; busy: boolean;
   onProfile(profile: ConnectionProfile): void; onLoadProfile(id: string): void; onSource(kind: SourceChoice): void;
   onUrl(value: string): void; onFile(): void; onFetch(): void; onContinue(): void; canContinue: boolean;
+  onNewSetup?(): void;
 }) {
   const profiles = savedProfiles(workspace);
   return <section aria-labelledby="workflow-connection-title">
     <h2 id="workflow-connection-title">Connection</h2>
-    <p>Choose the API and environment for this workflow. No API request is sent by continuing.</p>
+    <p>Choose an API and environment. A test setup remembers these choices; the environment holds credentials.</p>
+    {onNewSetup && <button type="button" className="secondary-button" disabled={busy} onClick={onNewSetup}>New setup</button>}
     <div className="workflow-grid">
-      <label className="field"><span>Existing profile</span><select aria-label="Existing profile" value={profiles.some((item) => item.id === profile.id) ? profile.id : ""}
+      <label className="field"><span>Saved test setup</span><select aria-label="Existing profile" value={profiles.some((item) => item.id === profile.id) ? profile.id : ""}
         onChange={(event) => onLoadProfile(event.target.value)} disabled={busy}>
-        <option value="">New profile</option>{profiles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+        <option value="">Unsaved setup</option>{profiles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select></label>
-      <label className="field"><span>Profile name</span><input aria-label="Profile name" value={profile.name}
+      <label className="field"><span>Test setup name</span><input aria-label="Profile name" value={profile.name}
         onChange={(event) => onProfile({ ...profile, name: event.target.value })} /></label>
       <label className="field"><span>Provider</span><select aria-label="Provider" value={profile.provider}
         onChange={(event) => { const provider = event.target.value as ConnectionProfile["provider"];

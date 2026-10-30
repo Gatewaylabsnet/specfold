@@ -1,9 +1,9 @@
 import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from "electron";
 import { createHash, randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import {
-  buildWorkflowTestPlan, createId, importApiDocument, profileAuthVariables, redactAgentValue,
+  buildWorkflowTestPlan, createId, flattenRequests, importApiDocument, profileAuthVariables, redactAgentValue,
   validateConnectionProfile, workspaceSecrets, type ConnectionProfile, type WorkflowRunReport,
   type WorkflowTestPlan, type Workspace
 } from "@openapi-collection-studio/core";
@@ -15,6 +15,7 @@ import { assertTrustedIpcSender } from "./security";
 import { loadSettings, loadWorkspace, saveWorkspace, serializeStorageMutation } from "./storage";
 import { bumpWorkspaceGeneration, checkWorkspaceGeneration } from "./workspaceGeneration";
 import { executeWorkflowPlan } from "./workflowRunner";
+import { fingerprint, readWorkflowLibrary, safeRunSummary, workflowLibraryPath, writeWorkflowLibrary } from "./workflowLibraryStore";
 
 interface StoredPlan {
   id: string; profileId: string; selectedRequestIds?: string[]; revision: string; createdAt: string; expiresAt: string;
@@ -24,6 +25,8 @@ interface ProfileInput {
 }
 const plans = new Map<string, StoredPlan>();
 const reports = new Map<string, WorkflowRunReport>();
+const reportWorkspaces = new Map<string, string>();
+const archivedReports = new Map<string, string>();
 let activeRun: AbortController | undefined;
 let activeRunFromAgent = false;
 let stateEpoch = 0;
@@ -61,7 +64,7 @@ function prunePlans(): void {
   for (const [key, plan] of plans) if (Date.parse(plan.expiresAt) <= Date.now()) plans.delete(key);
 }
 export function cancelWorkflowRun(fromAgentOnly = false): void { if (!fromAgentOnly || activeRunFromAgent) activeRun?.abort(); }
-export function resetWorkflowState(): void { stateEpoch++; cancelWorkflowRun(); plans.clear(); reports.clear(); }
+export function resetWorkflowState(): void { stateEpoch++; cancelWorkflowRun(); plans.clear(); reports.clear(); reportWorkspaces.clear(); archivedReports.clear(); }
 
 /** Reject credential-bearing source URLs rather than persisting a masked but runnable destination. */
 function assertNoCredentialUrls(value: unknown, depth = 0): void {
@@ -114,6 +117,10 @@ export async function saveWorkflowProfile(value: unknown): Promise<WorkspaceLoad
       workspace.collections.push(collection);
       profile.collectionId = collection.id;
     } else if (!workspace.collections.some((item) => item.id === profile.collectionId)) throw new Error("COLLECTION_NOT_FOUND");
+    const ruleRequests = new Set(flattenRequests(workspace.collections.find((item) => item.id === profile.collectionId)!).map(({ request }) => request.id));
+    if (profile.rules?.some((rule) => !ruleRequests.has(rule.requestId))) throw new Error("INVALID_BUSINESS_RULES");
+    const ruleSecrets = [...workspaceSecrets(workspace), ...Object.values(credentials).filter(Boolean)];
+    if (profile.rules?.some((rule) => rule.path !== redactAgentValue(rule.path, ruleSecrets) || [rule.path, ...(rule.kind === "range" ? [String(rule.minimum), String(rule.maximum)] : rule.kind === "equals" ? [String(rule.value)] : [])].some((value) => ruleSecrets.includes(value)))) throw new Error("SENSITIVE_BUSINESS_RULE");
     for (const name of allowed) {
       const matches = environment.variables.filter((item) => item.name === name);
       if (matches.length > 1) throw new Error("DUPLICATE_AUTH_VARIABLE");
@@ -163,6 +170,11 @@ export async function previewWorkflowPlan(profileId: string, selectedRequestIds?
   await flushAgentEditor();
   const saved = await snapshot();
   const profile = profileFor(saved.workspace, key);
+  if (selected) {
+    const collection = saved.workspace.collections.find((item) => item.id === profile.collectionId);
+    const available = new Set(collection ? flattenRequests(collection).map(({ request }) => request.id) : []);
+    if (selected.some((item) => !available.has(item))) throw new Error("WORKFLOW_SCENARIO_STALE");
+  }
   prunePlans();
   if (plans.size >= 32) throw new Error("WORKFLOW_PLAN_LIMIT");
   const plan = buildWorkflowTestPlan(saved.workspace, profile, { id: randomUUID(), revision: saved.revision, selectedRequestIds: selected });
@@ -214,7 +226,7 @@ export async function runWorkflowPlan(planId: string, signal?: AbortSignal, from
       confirm: async (summary) => {
         const selected = summary.rows.filter((row) => row.selected && row.status === "ready");
         const details = [summary.authentication ? `Authentication: ${summary.authentication}` : "",
-          ...selected.map((row) => `${row.effect === "may-change-data" ? "MAY CHANGE DATA: " : ""}${row.method} ${row.route}`),
+          ...selected.map((row) => `${row.effect === "may-change-data" ? "MAY CHANGE DATA: " : ""}${row.method} ${row.route}${row.rules?.length ? ` (${row.rules.length} reviewed business rules)` : ""}`),
           "", "Only these selected requests will run, sequentially, once. Authentication may update this profile's encrypted token.",
           "Requests marked MAY CHANGE DATA can modify server data. Cancel stops further requests; it cannot undo work already performed by the server."];
         const choice = await dialog.showMessageBox(parent, { signal: combined, type: "warning", title: "Approve workflow run",
@@ -249,7 +261,11 @@ export async function runWorkflowPlan(planId: string, signal?: AbortSignal, from
     }, combined);
     if (epoch === stateEpoch) {
       reports.set(report.id, report);
-      while (reports.size > 10) reports.delete(reports.keys().next().value!);
+      reportWorkspaces.set(report.id, saved.workspace.id);
+      while (reports.size > 10) {
+        const oldest = reports.keys().next().value!;
+        reports.delete(oldest); reportWorkspaces.delete(oldest); archivedReports.delete(oldest);
+      }
     }
     return report;
   } finally {
@@ -264,6 +280,84 @@ export function workflowReport(planIdOrRunId: string): WorkflowRunReport {
   const report = reports.get(key) ?? [...reports.values()].reverse().find((item) => item.planId === key);
   if (!report) throw new Error("WORKFLOW_REPORT_NOT_FOUND");
   return structuredClone(report);
+}
+
+export async function workflowLibrary(profileId?: string) {
+  return serializeStorageMutation(async () => {
+    const saved = await snapshotUnlocked(), workspace = fingerprint(saved.workspace.id);
+    const library = await readWorkflowLibrary(app.getPath("userData"));
+    const profile = profileId ? fingerprint(saved.workspace.id, id(profileId)) : undefined;
+    const setup = saved.workspace.connectionProfiles?.find((item) => item.id === profileId);
+    const collection = saved.workspace.collections.find((item) => item.id === setup?.collectionId);
+    const secrets = workspaceSecrets(saved.workspace);
+    const requestLabels = Object.fromEntries((collection ? flattenRequests(collection) : []).slice(0, 500).map(({ request }) =>
+      [fingerprint(saved.workspace.id, request.id), redactAgentValue(`${request.method} ${request.name}`, secrets)]));
+    return { scenarios: library.scenarios.filter((item) => item.workspace === workspace && (!profile || item.profile === profile)), runs: library.runs.filter((item) => item.workspace === workspace && (!profile || item.profile === profile)), requestLabels };
+  });
+}
+export async function saveWorkflowScenario(planId: string) {
+  return serializeStorageMutation(async () => {
+    const saved = await snapshotUnlocked(), stored = plans.get(id(planId));
+    if (!stored || Date.parse(stored.expiresAt) <= Date.now()) throw new Error("WORKFLOW_PLAN_NOT_FOUND");
+    if (saved.revision !== stored.revision) throw new Error("REVISION_CONFLICT");
+    const profile = profileFor(saved.workspace, stored.profileId);
+    const plan = buildWorkflowTestPlan(saved.workspace, profile, stored);
+    const requests = plan.rows.filter((row) => row.selected && row.status === "ready").map((row) => fingerprint(saved.workspace.id, row.requestId, row.method));
+    if (!requests.length) throw new Error("INVALID_WORKFLOW_SELECTION");
+    const library = await readWorkflowLibrary(app.getPath("userData"));
+    if (library.scenarios.length >= 32) throw new Error("WORKFLOW_SCENARIO_LIMIT");
+    library.scenarios.push({ id: randomUUID(), workspace: fingerprint(saved.workspace.id), profile: fingerprint(saved.workspace.id, profile.id), requests, createdAt: new Date().toISOString() });
+    await writeWorkflowLibrary(app.getPath("userData"), library);
+  });
+}
+export async function previewWorkflowScenario(scenarioId: string) {
+  const selection = await serializeStorageMutation(async () => {
+    const saved = await snapshotUnlocked();
+    const library = await readWorkflowLibrary(app.getPath("userData"));
+    const scenario = library.scenarios.find((item) => item.id === id(scenarioId) && item.workspace === fingerprint(saved.workspace.id));
+    const profile = saved.workspace.connectionProfiles?.find((item) => scenario?.profile === fingerprint(saved.workspace.id, item.id));
+    const collection = saved.workspace.collections.find((item) => item.id === profile?.collectionId);
+    if (!scenario || !profile || !collection) throw new Error("WORKFLOW_SCENARIO_STALE");
+    const requests = flattenRequests(collection).map(({ request }) => request);
+    const selected = scenario.requests.map((hash) => requests.find((request) => fingerprint(saved.workspace.id, request.id, request.method) === hash)?.id);
+    if (selected.some((key) => !key)) throw new Error("WORKFLOW_SCENARIO_STALE");
+    return { profileId: profile.id, requestIds: selected as string[] };
+  });
+  return previewWorkflowPlan(selection.profileId, selection.requestIds);
+}
+export async function saveWorkflowSummary(reportId: string) {
+  return serializeStorageMutation(async () => {
+    const saved = await snapshotUnlocked(), report = workflowReport(reportId);
+    if (reportWorkspaces.get(report.id) !== saved.workspace.id) throw new Error("WORKFLOW_REPORT_NOT_FOUND");
+    const library = await readWorkflowLibrary(app.getPath("userData"));
+    if (library.runs.some((item) => item.id === archivedReports.get(report.id))) return;
+    const summary = safeRunSummary(saved.workspace.id, report);
+    library.runs.push(summary); library.runs = library.runs.slice(-50);
+    await writeWorkflowLibrary(app.getPath("userData"), library); archivedReports.set(report.id, summary.id);
+  });
+}
+export async function deleteWorkflowLibraryItem(kind: unknown, itemId: unknown) {
+  return serializeStorageMutation(async () => {
+    if (kind !== "scenarios" && kind !== "runs") throw new Error("INVALID_WORKFLOW_ID");
+    const key = id(itemId), saved = await snapshotUnlocked();
+    const library = await readWorkflowLibrary(app.getPath("userData"));
+    if (kind === "scenarios") library.scenarios = library.scenarios.filter((item) => !(item.id === key && item.workspace === fingerprint(saved.workspace.id)));
+    else library.runs = library.runs.filter((item) => !(item.id === key && item.workspace === fingerprint(saved.workspace.id)));
+    await writeWorkflowLibrary(app.getPath("userData"), library);
+  });
+}
+async function clearWorkflowLibrary() {
+  const parent = BrowserWindow.getAllWindows()[0];
+  if (!parent || parent.isDestroyed()) throw new Error("DESKTOP_REQUIRED");
+  const choice = await dialog.showMessageBox(parent, { type: "warning", title: "Clear saved testing library",
+    message: "Delete all saved scenarios and safe summaries on this device?", detail: "All workspaces are affected. API collections, environments and credentials are kept.",
+    buttons: ["Delete testing library", "Cancel"], defaultId: 1, cancelId: 1 });
+  if (choice.response !== 0) return false;
+  await serializeStorageMutation(async () => {
+    await unlink(workflowLibraryPath(app.getPath("userData"))).catch((error: NodeJS.ErrnoException) => { if (error.code !== "ENOENT") throw error; });
+    archivedReports.clear();
+  });
+  return true;
 }
 
 export function registerWorkflowIpc(): void {
@@ -287,4 +381,10 @@ export function registerWorkflowIpc(): void {
   });
   handle("workflow:cancel", () => cancelWorkflowRun());
   handle("workflow:report", (_event, reportId) => workflowReport(id(reportId)));
+  handle("workflow:library", (_event, profileId) => workflowLibrary(profileId === undefined ? undefined : id(profileId)));
+  handle("workflow:saveScenario", (_event, planId) => saveWorkflowScenario(id(planId)));
+  handle("workflow:previewScenario", (_event, scenarioId) => previewWorkflowScenario(id(scenarioId)));
+  handle("workflow:saveSummary", (_event, reportId) => saveWorkflowSummary(id(reportId)));
+  handle("workflow:deleteLibraryItem", (_event, kind, itemId) => deleteWorkflowLibraryItem(kind, itemId));
+  handle("workflow:clearLibrary", () => clearWorkflowLibrary());
 }

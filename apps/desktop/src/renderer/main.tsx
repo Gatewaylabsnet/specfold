@@ -45,6 +45,12 @@ if (browserPreview && typeof window.studio === "undefined") {
     runWorkflowPlan: async () => { throw new Error("Test workflow requires the desktop app."); },
     cancelWorkflowRun: async () => undefined,
     getWorkflowReport: async () => undefined,
+    getWorkflowLibrary: async () => ({ scenarios: [], runs: [] }),
+    saveWorkflowScenario: async () => { throw new Error("Desktop required."); },
+    previewWorkflowScenario: async () => { throw new Error("Desktop required."); },
+    saveWorkflowSummary: async () => { throw new Error("Desktop required."); },
+    deleteWorkflowLibraryItem: async () => { throw new Error("Desktop required."); },
+    clearWorkflowLibrary: async () => false,
     getAppInfo: async () => ({
       name: "Specfold",
       version: "browser-preview",

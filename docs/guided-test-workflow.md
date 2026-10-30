@@ -1,5 +1,7 @@
 # Guided test workflow
 
+> **1.12.0-dev.1 prerelease:** the new scenario/history controls below are additions to 1.11.0. They are not present in the installed or published 1.11.0. See [prerelease scope and limits](RELEASE_NOTES_v1.12.0-dev.1.md) and [the phased development plan](LOCAL_TESTING_DEVELOPMENT_PLAN.md).
+
 **Published stable Specfold 1.11.0.** Final integrated CI and the tagged three-platform release build passed. Source preparation passed 497 tests plus three version gates and nine packaged Windows E2E tests. Human testing is planned for October 15, 2026; it has not happened.
 
 The desktop's **Test workflow** guides you through **Connection → Authentication → Test preview → Results**. It prepares a reviewable test selection from saved API definitions and documented inputs. An MCP client can use an already configured profile, but only a person in the desktop can approve its run.
@@ -100,3 +102,16 @@ Source verification covers 220 core, 52 agent and 225 desktop tests (497 total),
 E2E tests used loopback synthetic APIs/credentials and covered import preservation, issuer authentication, selection and approval, status/schema failures, encryption, masked export, cancellation/disconnect, editor/import/backup/upload/portable-helper regressions. Real gateway, vendor-client UI and macOS/Linux GUI/keychain checks are not claimed. Human testing is planned for October 15, 2026 and has not happened. Old dev.1 binaries need a one-time manual stable download.
 
 The workflow does not supply load testing, fuzzing, arbitrary scripts, automatic retries, full schema conformance, management-project discovery or automatic report publication. Real APIs may reject documented examples or perform side effects despite a read-method label; use a test environment and inspect the exact preview.
+
+## Local candidate: saved scenarios and safe summary history
+
+These controls are local working-tree changes, not published 1.11.0 functionality. Open **Saved scenarios & safe history** beneath the workflow steps.
+
+1. Prepare a test preview and review its selected requests. **Save selected scenario** saves only an opaque selection preset for this setup. It does not grant permission or save a runnable plan. Scenarios use generated numbers instead of arbitrary labels. Up to 32 scenarios are kept across this device's workspaces.
+2. **Preview scenario** resolves current definitions and prepares a new expiring plan. Missing requests, a deleted setup or a changed HTTP method make the selection stale. Other changed inputs are evaluated by the normal fresh-preview rules. Review the destinations, authentication, blocked rows and data-changing methods again. Every run still requires native approval and consumes its plan once.
+3. After a run, **Save safe summary** explicitly saves a content-free summary. Nothing is saved automatically. The library contains status enums, HTTP status numbers, bounded timing, computed totals and opaque identities. It omits bodies, headers, URLs, request/profile names, path/query values, diagnostics, assertion messages and authentication messages. This is stricter than saving a masked response: unknown PII and secret values cannot be copied from those omitted fields.
+4. After saving two summaries for the same setup, choose an earlier run to compare with the latest. The table shows status/HTTP/assertion transitions and duration changes. Request labels resolve from the current workspace and are never written to history. Matching identities do not establish that inputs, environment values or contract versions were identical; this is not a performance benchmark or a contract-diff verdict.
+
+At most 50 summaries are retained across workspaces, with oldest summaries evicted first; a separate 1 MB library-file bound can reject larger saves. Delete individual records or use **Clear testing library on this device**; the native confirmation defaults to Cancel and explains that all workspaces' scenarios/history are affected. This also allows removal of a corrupt library without importing its content. **Delete all local data** removes the library as well.
+
+The library is local `workflow-library.json`, excluded from workspace backup/export and not exposed through new MCP tools. Moving a workspace backup to another installation does not move this history. Existing explicit JSON report export remains separate and may contain sensitive API data despite masking; inspect it before sharing. Saving a safe summary does not export that report.

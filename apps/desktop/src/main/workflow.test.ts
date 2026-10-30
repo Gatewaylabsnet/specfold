@@ -3,21 +3,27 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createCollection, createEmptyWorkspace, createRequest, type ConnectionProfile, type Workspace } from "@openapi-collection-studio/core";
 import { DEFAULT_SETTINGS } from "../shared/contracts";
 import { cancelWorkflowRun, previewWorkflowPlan, registerWorkflowIpc, resetWorkflowState, runWorkflowPlan,
-  saveWorkflowProfile, workflowProfiles, workflowReport } from "./workflow";
+  saveWorkflowProfile, workflowProfiles, workflowReport, workflowLibrary, saveWorkflowScenario, previewWorkflowScenario, saveWorkflowSummary, deleteWorkflowLibraryItem } from "./workflow";
+import type { WorkflowLibrary } from "../shared/workflowLibrary";
 
 const state = vi.hoisted(() => ({ workspace: undefined as Workspace | undefined, generation: 0, secure: true,
+  library: { scenarios: [], runs: [] } as WorkflowLibrary,
   encryptionNonce: 0,
   parent: undefined as unknown, settings: {} as typeof DEFAULT_SETTINGS,
-  flush: vi.fn(), send: vi.fn(), event: vi.fn(), dialog: vi.fn(), save: vi.fn(), trusted: vi.fn(), handlers: new Map<string, (...args: unknown[]) => unknown>() }));
+  flush: vi.fn(), send: vi.fn(), event: vi.fn(), dialog: vi.fn(), save: vi.fn(), unlink: vi.fn(), trusted: vi.fn(), handlers: new Map<string, (...args: unknown[]) => unknown>() }));
 vi.mock("electron", () => ({ app: { getPath: () => "C:/synthetic-workflow" },
   BrowserWindow: { getAllWindows: () => state.parent ? [state.parent] : [] }, dialog: { showMessageBox: state.dialog },
   ipcMain: { handle: (channel: string, handler: (...args: unknown[]) => unknown) => state.handlers.set(channel, handler) } }));
-vi.mock("node:fs/promises", () => ({ readFile: async () => JSON.stringify({ ...state.workspace,
+vi.mock("node:fs/promises", () => ({ unlink: async (path: string) => state.unlink(path), readFile: async () => JSON.stringify({ ...state.workspace,
   environments: state.workspace?.environments.map((environment) => ({ ...environment,
     variables: environment.variables.map((variable) => ({ ...variable,
       value: variable.secret ? `enc:v1:synthetic-${state.encryptionNonce}-${variable.value}` : variable.value })) })) }) }));
 vi.mock("./agentWorkspace", () => ({ flushAgentEditor: state.flush, agentEvent: state.event }));
 vi.mock("./http", () => ({ sendHttpRequest: state.send }));
+vi.mock("./workflowLibraryStore", async (original) => ({ ...await original<typeof import("./workflowLibraryStore")>(),
+  readWorkflowLibrary: async () => structuredClone(state.library),
+  writeWorkflowLibrary: async (_root: string, library: WorkflowLibrary) => { state.library = structuredClone(library); }
+}));
 vi.mock("./security", () => ({ assertTrustedIpcSender: state.trusted }));
 vi.mock("./workspaceGeneration", () => ({ workspaceGeneration: () => state.generation,
   bumpWorkspaceGeneration: () => ++state.generation,
@@ -51,6 +57,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   state.handlers.clear();
   state.generation = 0; state.secure = true; state.encryptionNonce = 0;
+  state.library = { scenarios: [], runs: [] };
   state.settings = { ...DEFAULT_SETTINGS, agentEnabled: true, agentNetworkEnabled: true };
   state.workspace = createEmptyWorkspace();
   const collection = createCollection("Saved requests");
@@ -67,6 +74,67 @@ beforeEach(() => {
   state.trusted.mockImplementation(() => undefined);
 });
 afterEach(() => { resetWorkflowState(); vi.useRealTimers(); });
+it("does not persist a rule comparison constant matching a known saved secret", async () => {
+  const selected = setup({ kind: "bearer", tokenVariable: "token" });
+  state.workspace!.environments[0].variables.push({ id: "sensitive", name: "token", value: "123", secret: true, enabled: true });
+  selected.rules = [{ id: "rule-secret", requestId: state.workspace!.collections[0].requests[0].id, kind: "equals", path: "/count", value: 123 }];
+  await expect(saveWorkflowProfile({ profile: selected, expectedGeneration: 0 })).rejects.toThrow("SENSITIVE_BUSINESS_RULE");
+  expect(state.save).not.toHaveBeenCalled();
+});
+
+it("clears the library only after native confirmation with Cancel as default", async () => {
+  registerWorkflowIpc();
+  state.dialog.mockResolvedValueOnce({ response: 1 });
+  expect(await state.handlers.get("workflow:clearLibrary")!({ sender: {} })).toBe(false);
+  expect(state.unlink).not.toHaveBeenCalled();
+  expect(state.dialog.mock.calls[0][1]).toMatchObject({ defaultId: 1, cancelId: 1 });
+  state.dialog.mockResolvedValueOnce({ response: 0 });
+  expect(await state.handlers.get("workflow:clearLibrary")!({ sender: {} })).toBe(true);
+  expect(state.unlink).toHaveBeenCalledWith(expect.stringMatching(/workflow-library\.json$/));
+});
+
+it("saves a selection without permission and reopens it as fresh one-use plans with consent every time", async () => {
+  const selected = setup();
+  const plan = await previewWorkflowPlan(selected.id);
+  await saveWorkflowScenario(plan.id);
+  expect(state.send).not.toHaveBeenCalled(); expect(state.dialog).not.toHaveBeenCalled();
+  const scenario = (await workflowLibrary(selected.id)).scenarios[0];
+  const reopened = await previewWorkflowScenario(scenario.id);
+  expect(reopened.id).not.toBe(plan.id); expect(reopened.rows[0].selected).toBe(true);
+  await runWorkflowPlan(reopened.id);
+  expect(state.dialog).toHaveBeenCalledTimes(1);
+  await expect(runWorkflowPlan(reopened.id)).rejects.toThrow("WORKFLOW_PLAN_NOT_FOUND");
+  await runWorkflowPlan((await previewWorkflowScenario(scenario.id)).id);
+  expect(state.dialog).toHaveBeenCalledTimes(2);
+  expect(state.library.runs).toEqual([]); // Persistence never happens automatically.
+});
+it("fails closed on missing scenario requests and hides other workspaces", async () => {
+  const selected = setup(); await saveWorkflowScenario((await previewWorkflowPlan(selected.id)).id);
+  const scenario = state.library.scenarios[0];
+  state.workspace!.collections[0].requests[0].method = "POST";
+  await expect(previewWorkflowScenario(scenario.id)).rejects.toThrow("WORKFLOW_SCENARIO_STALE");
+  state.workspace!.collections[0].requests = [];
+  await expect(previewWorkflowScenario(scenario.id)).rejects.toThrow("WORKFLOW_SCENARIO_STALE");
+  state.workspace!.id = "another-workspace";
+  expect((await workflowLibrary()).scenarios).toEqual([]);
+  await expect(previewWorkflowScenario(scenario.id)).rejects.toThrow("WORKFLOW_SCENARIO_STALE");
+  expect(state.send).not.toHaveBeenCalled();
+});
+it("requires explicit summary save, bounds history to 50, prevents duplicates and deletes records", async () => {
+  const selected = setup(), plan = await previewWorkflowPlan(selected.id);
+  const report = await runWorkflowPlan(plan.id);
+  expect(state.library.runs).toEqual([]);
+  await saveWorkflowSummary(report.id); await saveWorkflowSummary(report.id);
+  expect(state.library.runs).toHaveLength(1);
+  expect(JSON.stringify(state.library)).not.toContain("response");
+  const summary = state.library.runs[0];
+  await deleteWorkflowLibraryItem("runs", summary.id);
+  expect(state.library.runs).toEqual([]);
+  state.library.runs = Array.from({ length: 50 }, (_, index) => ({ ...summary, id: `old-${index}` }));
+  await saveWorkflowSummary(report.id); expect(state.library.runs).toHaveLength(50);
+  state.workspace!.id = "another-workspace";
+  await expect(saveWorkflowSummary(report.id)).rejects.toThrow("WORKFLOW_REPORT_NOT_FOUND");
+});
 
 describe("workflow desktop ownership", () => {
   it("appends an imported collection without replacing old requests and returns new generation", async () => {
@@ -246,10 +314,10 @@ describe("workflow desktop ownership", () => {
   it("checks trusted main-frame ownership on every workflow IPC channel", async () => {
     registerWorkflowIpc();
     state.trusted.mockImplementation(() => { throw new Error("untrusted"); });
-    for (const channel of ["workflow:saveProfile", "workflow:preview", "workflow:run", "workflow:cancel", "workflow:report"]) {
+    for (const channel of ["workflow:saveProfile", "workflow:preview", "workflow:run", "workflow:cancel", "workflow:report", "workflow:library", "workflow:saveScenario", "workflow:previewScenario", "workflow:saveSummary", "workflow:deleteLibraryItem", "workflow:clearLibrary"]) {
       await expect(state.handlers.get(channel)!({ sender: {} }, "anything")).rejects.toThrow("untrusted");
     }
-    expect(state.trusted).toHaveBeenCalledTimes(5);
+    expect(state.trusted).toHaveBeenCalledTimes(11);
     expect(state.save).not.toHaveBeenCalled(); expect(state.send).not.toHaveBeenCalled();
   });
 });

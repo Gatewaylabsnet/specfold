@@ -6,6 +6,8 @@
 
 <h1 align="center">Specfold</h1>
 
+**1.12.0-dev.1 prerelease:** reviewed token binding, reusable scenarios and safe history, synthetic JSON drafts, no-code response rules and supported-subset contract differences. See [prerelease notes and unsigned-package/rollback limits](docs/RELEASE_NOTES_v1.12.0-dev.1.md). **1.11.0 remains the latest stable release.**
+
 <p align="center">
   A local-first desktop API collection studio for OpenAPI, Swagger, Postman, Insomnia, HAR, cURL, and gateway request workflows.
 </p>

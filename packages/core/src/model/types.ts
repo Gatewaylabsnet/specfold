@@ -91,6 +91,10 @@ export interface OpenApiMetadata {
   tags?: string[];
   components?: Record<string, unknown>;
   securitySchemes?: Record<string, unknown>;
+  /** Declared document security, retained separately from user-edited request auth. */
+  security?: unknown;
+  /** Safe merge retained older shared components; a fresh baseline is needed for semantic comparison. */
+  contractSourceUncertain?: boolean;
   rawOperation?: unknown;
   /** Merged path/operation parameters retained for source-example provenance. */
   rawParameters?: unknown[];

@@ -383,6 +383,7 @@ export function createStorageService(options: StorageServiceOptions) {
     await Promise.all([
       unlink(paths.workspace).catch(() => undefined),
       unlink(paths.settings).catch(() => undefined),
+      unlink(join(paths.userData, "workflow-library.json")).catch(() => undefined),
       rm(paths.backups, { recursive: true, force: true })
     ]);
     // Clear user plans/approvals/keys, retaining only the live session bridge.
@@ -400,7 +401,7 @@ export function createStorageService(options: StorageServiceOptions) {
     }
     const entries = await readdir(paths.userData).catch(() => [] as string[]);
     await Promise.all(entries
-      .filter((name) => /^workspace\.(?:corrupt-|json\.tmp-)/i.test(name))
+      .filter((name) => /^workspace\.(?:corrupt-|json\.tmp-)/i.test(name) || /^workflow-library\.json\.tmp-/i.test(name))
       .map((name) => unlink(join(paths.userData, name)).catch(() => undefined)));
   };
 

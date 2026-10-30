@@ -19,6 +19,7 @@ export interface ConnectionProfile {
   baseUrl: string;
   source: { kind: "file" | "url" | "existing"; label: string };
   auth: WorkflowAuth;
+  rules?: import("./businessRules").BusinessRule[];
 }
 
 export interface TestInputEvidence {
@@ -42,6 +43,7 @@ export interface WorkflowTestRow {
   expectedStatuses: number[];
   responseSchema?: unknown;
   responseSchemas?: Record<string, unknown>;
+  rules?: import("./businessRules").BusinessRule[];
 }
 
 export interface WorkflowTestPlan {
@@ -60,7 +62,8 @@ export interface WorkflowTestPlan {
 }
 
 export interface WorkflowAssertion {
-  name: "status" | "schema";
+  name: "status" | "schema" | "rule";
+  ruleId?: string;
   outcome: "passed" | "failed" | "skipped" | "blocked";
   message: string;
 }
