@@ -16,6 +16,8 @@ Specfold 1.12.0 promotes reviewed API testing from the 1.12.0-dev.1 preview: rev
 
 - Contract comparisons preserve annotation-like property and literal names; adding a constrained optional request property is compared against the previous additional-property policy rather than assumed compatible.
 
+- Refresh the bundled Electron runtime to 43.8.7 and patch compatible HTTP, validation and transitive dependencies. The installed candidate's Electron version is checked, not inferred from the source manifest.
+
 ## Windows update and rollback
 
 **Windows packages remain unsigned.** No signing certificate was created. The installer retains the Specfold name, `net.gatewaylabs.specfold` AppId, executable name and existing installation identity. It updates that installation rather than creating a second product.
@@ -26,7 +28,9 @@ The validated rollback design is to close Specfold, reinstall the verified 1.11.
 
 ## Verification and boundaries
 
-Local stable preparation passed 559 unit/integration tests (242 core, 55 agent, 262 desktop), three release-version tests, six installer-guard/workflow tests, source-size, lint, typecheck and build.
+Local stable preparation passed 559 unit/integration tests (242 core, 55 agent, 262 desktop), three release-version tests, seven installer-guard/workflow tests, source-size, lint, typecheck and build.
+
+Dependency verification: the production dependency audit reports zero known advisories, and the full audit reports no high/critical findings after runtime and compatible tooling updates. Sixteen development-tool findings remain: fifteen moderate dependency-chain entries from minimatch and one low esbuild Windows development-server advisory. These tools are not shipped in the application payload; the release does not claim a clean full-development audit. No forced major upgrade or audit-suggested toolchain downgrade is used.
 
 Stable publication is gated on the full source suite, exact-commit CI, packaged Windows E2E, disposable Windows installer lifecycle checks, three-platform release builds, the expected eight assets and SHA-256 verification. Current run links and results are recorded in the GitHub release after verification. The existing user installation and real profile are not used as test fixtures.
 

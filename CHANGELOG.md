@@ -10,6 +10,7 @@
 - Settings saves occur outside React state updaters; stale acknowledgements cannot overwrite a newer explicit permission preference.
 - Windows atomic settings replacement tolerates short EPERM/EBUSY locks with bounded retries; persistent denial still fails without deleting the destination or changing permissions.
 - Contract-diff canonicalization preserves real annotation-like property names and literal keys; new optional input constraints are compared with the previous additional-property policy.
+- Patch the shipped Electron runtime to 43.8.7 and compatible HTTP/validation dependencies, including current TLS and parser security fixes.
 - Windows remains unsigned and retains the existing Specfold application identity. Isolated hosted-runner installer checks protect the user installation. Rollback to 1.11.0 requires the pre-update snapshot. See [release notes](docs/RELEASE_NOTES_v1.12.0.md) for evidence and limitations.
 
 See the [local development and verification plan](docs/LOCAL_TESTING_DEVELOPMENT_PLAN.md) for constraints and deferred Apinizer discovery.

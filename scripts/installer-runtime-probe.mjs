@@ -24,6 +24,17 @@ try {
   const actualProfile = await app.evaluate(({ app: mainApp }) => mainApp.getPath('userData'));
   expect(resolve(actualProfile).toLowerCase()).toBe(expectedProfile.toLowerCase());
   expect(await page.evaluate(async () => (await window.studio.getAppInfo()).version)).toBe(expectedVersion);
+  if (phase === 'upgrade') {
+    // Read the checked-out source manifest, not metadata from the installed payload.
+    // The published 1.11 baseline deliberately retains its historical runtime.
+    const desktopManifest = JSON.parse(await readFile(new URL('../apps/desktop/package.json', import.meta.url), 'utf8'));
+    const expectedElectron = desktopManifest.build.electronVersion;
+    expect(expectedElectron).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(desktopManifest.devDependencies.electron).toBe(expectedElectron);
+    const actualElectron = await app.evaluate(() => process.versions.electron);
+    expect(actualElectron).toBe(expectedElectron);
+    console.log(`Installed candidate Electron runtime verified (${actualElectron}).`);
+  }
   if (phase === 'seed') {
     const secret = randomBytes(24).toString('hex');
     await page.evaluate(async (value) => {

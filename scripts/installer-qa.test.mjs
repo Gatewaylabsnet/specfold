@@ -80,3 +80,12 @@ test('Windows PE version accepts only exact semver or stable zero fourth compone
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(result.stdout), [true, true, true, true, false, false, false, false, false, false]);
 });
+
+test('candidate installed Electron is checked against the source build manifest', async () => {
+  const probe = await readFile('scripts/installer-runtime-probe.mjs', 'utf8');
+  assert.match(probe, /if \(phase === 'upgrade'\) \{[\s\S]*?new URL\('\.\.\/apps\/desktop\/package\.json', import\.meta\.url\)/);
+  assert.match(probe, /expectedElectron = desktopManifest\.build\.electronVersion/);
+  assert.match(probe, /desktopManifest\.devDependencies\.electron\)\.toBe\(expectedElectron\)/);
+  assert.match(probe, /app\.evaluate\(\(\) => process\.versions\.electron\)/);
+  assert.match(probe, /expect\(actualElectron\)\.toBe\(expectedElectron\)/);
+});
