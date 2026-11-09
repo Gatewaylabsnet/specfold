@@ -6,7 +6,7 @@
 
 <h1 align="center">Specfold</h1>
 
-**1.12.0-dev.1 prerelease:** reviewed token binding, reusable scenarios and safe history, synthetic JSON drafts, no-code response rules and supported-subset contract differences. See [prerelease notes and unsigned-package/rollback limits](docs/RELEASE_NOTES_v1.12.0-dev.1.md). **1.11.0 remains the latest stable release.**
+**Specfold 1.12.0:** reviewed token binding, reusable scenarios and safe history, synthetic JSON drafts, no-code response rules and supported-subset contract differences. See [release notes and update/rollback limits](docs/RELEASE_NOTES_v1.12.0.md).
 
 <p align="center">
   A local-first desktop API collection studio for OpenAPI, Swagger, Postman, Insomnia, HAR, cURL, and gateway request workflows.
@@ -15,7 +15,7 @@
 <p align="center">
   <a href="https://gatewaylabs.net/specfold">gatewaylabs.net/specfold</a>
   /
-  <a href="https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.11.0">Download v1.11.0</a>
+  <a href="https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.12.0">Download v1.12.0</a>
   /
   <a href="docs/REDTEAM_REPORT.md">Security review</a>
   /
@@ -48,13 +48,13 @@ OpenAPI / Swagger / Postman / Insomnia / HAR / .http / cURL
 
 It is intentionally local-first. There is no account requirement, no cloud workspace, and no hosted sync layer. Your workspace, environments, request history, and secrets stay on the machine running the desktop app.
 
-## MCP and guided testing in 1.11.0
+## MCP and guided testing in 1.12.0
 
-Published stable 1.11.0 combines the optional local MCP helper, desktop-owned approval and a guided test workflow. [Release notes](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.11.0) and all eight Windows/macOS/Linux packages are verified against the published checksum manifest.
+Specfold 1.12.0 extends the optional local MCP helper, desktop-owned approval and guided test workflow with reviewed token binding, saved scenarios, content-free history and bounded response rules. The [release page](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.12.0) contains platform packages and SHA-256 checksums.
 
 ### Connect a local MCP client
 
-In **Settings → AI connections**, enable the default-off connection, copy JSON or Codex TOML configuration and click **Test connection**. Keep Specfold open. Packaged users need no separate Node.js installation; the bundled helper uses the desktop runtime. Windows portable users should copy configuration again after replacing the artifact.
+In **Settings → AI connections**, enable the default-off connection, copy JSON or Codex TOML configuration and click **Test bundled helper**. Keep Specfold open. Packaged users need no separate Node.js installation; the bundled helper uses the desktop runtime. Windows portable users should copy configuration again after replacing the artifact.
 
 Agents inspect masked saved requests, preview OpenAPI imports, bind token variable names, propose collection changes and request review. **Review changes** shows the exact diff for your approval; agents cannot approve themselves. Only desktop main writes the workspace and resolves encrypted credentials. Stale previews require refresh; repeated apply does not duplicate requests.
 
@@ -72,27 +72,27 @@ The Apinizer preset obtains a fresh issuer token for each approved run; it does 
 
 ### Upgrade and verification
 
-Stable preparation passed 497 unit/integration tests, three release-version gate tests and nine packaged Windows E2E tests. [Final integrated CI](https://github.com/Gatewaylabsnet/specfold/actions/runs/38582615898) and the [tagged release build](https://github.com/Gatewaylabsnet/specfold/actions/runs/38583387156) passed at `caf4cb486744c9ec614fb0a79fda93d401c3d57c`; all eight package hashes match the published asset digests and checksum manifest. Synthetic legacy schema-1 fixtures cover encrypted credentials, backups, restore, routing and import/export. macOS/Linux GUI and external vendor-client checks were not performed. The user's physical test is planned for October 15, 2026 and is not part of completed verification.
+The release gate checks manifest/tag consistency, source size, lint, types, unit/integration suites, packaged Windows E2E and a disposable Windows installer lifecycle. See the [1.12.0 verification record](docs/RELEASE_NOTES_v1.12.0.md#verification-and-boundaries) for completed evidence and limitations. Production user data and the existing installation are not test fixtures.
 
-Existing unpublished dev.1 binaries need a one-time manual stable download. Windows packages are unsigned; macOS packages are not notarized. Keep a backup before upgrading; complete backup exports may contain readable secrets.
+Windows packages remain unsigned and macOS packages are not notarized. Close Specfold and keep a complete backup plus a closed-app data snapshot before upgrading. A rollback to 1.11.0 requires restoring that pre-update snapshot; older versions cannot interpret new rule definitions. Snapshot rollback does not include edits made after the snapshot. Existing all-users installations require an already elevated installer process; the installer does not elevate itself or change permissions.
 
-Read the [1.11.0 release notes](docs/RELEASE_NOTES_v1.11.0.md) and [changelog](CHANGELOG.md).
+Read the [1.12.0 release notes](docs/RELEASE_NOTES_v1.12.0.md) and [changelog](CHANGELOG.md).
 
-## Download v1.11.0
+## Download v1.12.0
 
 | Platform | Package | Download |
 | --- | --- | --- |
-| Windows x64 | Installer | [Specfold-1.11.0-x64.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.11.0/Specfold-1.11.0-x64.exe) |
-| Windows x64 | Portable app | [Specfold-1.11.0-x64-portable.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.11.0/Specfold-1.11.0-x64-portable.exe) |
-| macOS Apple Silicon | DMG | [Specfold-1.11.0-mac-arm64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.11.0/Specfold-1.11.0-mac-arm64.dmg) |
-| macOS Apple Silicon | ZIP | [Specfold-1.11.0-mac-arm64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.11.0/Specfold-1.11.0-mac-arm64.zip) |
-| macOS Intel | DMG | [Specfold-1.11.0-mac-x64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.11.0/Specfold-1.11.0-mac-x64.dmg) |
-| macOS Intel | ZIP | [Specfold-1.11.0-mac-x64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.11.0/Specfold-1.11.0-mac-x64.zip) |
-| Linux x64 | AppImage | [Specfold-1.11.0-linux-x86_64.AppImage](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.11.0/Specfold-1.11.0-linux-x86_64.AppImage) |
-| Linux x64 | Debian package | [Specfold-1.11.0-linux-amd64.deb](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.11.0/Specfold-1.11.0-linux-amd64.deb) |
-| All platforms | SHA-256 checksums | [SHA256SUMS.txt](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.11.0/SHA256SUMS.txt) |
+| Windows x64 | Installer | [Specfold-1.12.0-x64.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.12.0/Specfold-1.12.0-x64.exe) |
+| Windows x64 | Portable app | [Specfold-1.12.0-x64-portable.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.12.0/Specfold-1.12.0-x64-portable.exe) |
+| macOS Apple Silicon | DMG | [Specfold-1.12.0-mac-arm64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.12.0/Specfold-1.12.0-mac-arm64.dmg) |
+| macOS Apple Silicon | ZIP | [Specfold-1.12.0-mac-arm64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.12.0/Specfold-1.12.0-mac-arm64.zip) |
+| macOS Intel | DMG | [Specfold-1.12.0-mac-x64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.12.0/Specfold-1.12.0-mac-x64.dmg) |
+| macOS Intel | ZIP | [Specfold-1.12.0-mac-x64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.12.0/Specfold-1.12.0-mac-x64.zip) |
+| Linux x64 | AppImage | [Specfold-1.12.0-linux-x86_64.AppImage](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.12.0/Specfold-1.12.0-linux-x86_64.AppImage) |
+| Linux x64 | Debian package | [Specfold-1.12.0-linux-amd64.deb](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.12.0/Specfold-1.12.0-linux-amd64.deb) |
+| All platforms | SHA-256 checksums | [SHA256SUMS.txt](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.12.0/SHA256SUMS.txt) |
 
-Release page: [github.com/Gatewaylabsnet/specfold/releases/tag/v1.11.0](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.11.0). Earlier releases remain available from the [release archive](https://github.com/Gatewaylabsnet/specfold/releases).
+Release page: [github.com/Gatewaylabsnet/specfold/releases/tag/v1.12.0](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.12.0). Earlier releases remain available from the [release archive](https://github.com/Gatewaylabsnet/specfold/releases).
 
 Verify a downloaded package against the published checksums:
 
@@ -100,7 +100,7 @@ Verify a downloaded package against the published checksums:
 sha256sum -c SHA256SUMS.txt --ignore-missing
 ```
 
-On Windows PowerShell, compare `Get-FileHash .\Specfold-1.11.0-x64.exe -Algorithm SHA256` with the matching line in `SHA256SUMS.txt`.
+On Windows PowerShell, compare `Get-FileHash .\Specfold-1.12.0-x64.exe -Algorithm SHA256` with the matching line in `SHA256SUMS.txt`.
 
 Unsigned Windows builds may trigger SmartScreen. Unsigned and non-notarized macOS builds may require opening from Finder with **Open** to confirm the Gatekeeper prompt.
 
@@ -108,6 +108,13 @@ See the [Code signing policy](docs/CODE_SIGNING_POLICY.md) for signing scope,
 approval roles, build provenance, privacy, and the current SignPath Foundation
 application status. Release artifacts remain unsigned until that policy
 explicitly states that signing is active.
+
+### v1.12.0 Highlights
+
+- Reviewed token binding with exact scope preview and protected shared-variable handling.
+- Reusable scenarios and opt-in content-free history, with fresh preview and approval for every run.
+- Seeded local JSON drafts, bounded declarative response rules and supported-subset contract differences.
+- Windows atomic-save retries for temporary file locks; persistent failures remain visible.
 
 ### v1.11.0 Highlights
 
@@ -286,21 +293,21 @@ Download the `.dmg` or `.zip` for your architecture:
 - Apple Silicon: `arm64`
 - Intel: `x64`
 
-Because v1.11.0 is not notarized, macOS may require opening the app from Finder with **Open**.
+Because v1.12.0 is not notarized, macOS may require opening the app from Finder with **Open**.
 
 ### Linux
 
 Download the `.AppImage` or `.deb`.
 
 ```bash
-chmod +x Specfold-1.11.0-linux-x86_64.AppImage
-./Specfold-1.11.0-linux-x86_64.AppImage
+chmod +x Specfold-1.12.0-linux-x86_64.AppImage
+./Specfold-1.12.0-linux-x86_64.AppImage
 ```
 
 For Debian-based distributions:
 
 ```bash
-sudo dpkg -i Specfold-1.11.0-linux-amd64.deb
+sudo dpkg -i Specfold-1.12.0-linux-amd64.deb
 sudo apt-get install -f
 ```
 
@@ -353,15 +360,15 @@ Artifacts are written to `apps/desktop/dist`.
 
 Run the release workflow manually first. `workflow_dispatch` builds and verifies every package plus `SHA256SUMS.txt` without creating a tag or release. Tag pushes run the same package gate and create a draft GitHub Release.
 
-The example below records the 1.11.0 publication sequence. For a future release, update all manifests/lockfile/dependency versions first and use that matching new tag; never move an already published tag.
+The example below shows the 1.12.0 publication sequence. For a future release, update all manifests/lockfile/dependency versions first and use that matching new tag; never move an already published tag.
 
 ```bash
-git tag -a v1.11.0 -m "Specfold v1.11.0"
+git tag -a v1.12.0 -m "Specfold v1.12.0"
 git push origin main
-git push origin v1.11.0
+git push origin v1.12.0
 ```
 
-Public release assets are only the two Windows packages, four macOS packages, Linux AppImage/DEB, and `SHA256SUMS.txt`. Builder debug YAML, updater YAML, and blockmaps are excluded. The generated release stays draft until package/checksum verification and the required smoke checks pass. Release 1.11.0 was published with the recorded Windows packaged checks; macOS/Linux GUI and human testing are not claimed.
+Public release assets are only the two Windows packages, four macOS packages, Linux AppImage/DEB, and `SHA256SUMS.txt`. Builder debug YAML, updater YAML, and blockmaps are excluded. The generated release stays draft until package/checksum verification and the required smoke checks pass. The stable release requires successful Windows packaged and installer checks. macOS/Linux GUI and external vendor-client testing are not claimed.
 
 ## Known Limitations
 
@@ -369,7 +376,7 @@ Public release assets are only the two Windows packages, four macOS packages, Li
 - macOS builds are not notarized yet.
 - Complete backups are plaintext by design and may contain secrets.
 - Very large imports/exports can still use the renderer thread, within configured size limits.
-- Automatic update download and installation are not implemented in v1.11.0; use Help -> Check for Updates to check manually and download from the release page.
+- Automatic update download and installation are not implemented in v1.12.0; use Help -> Check for Updates to check manually and download from the release page.
 - SOCKS proxies are not supported; configure an HTTP(S) proxy for Specfold.
 - Multipart uploads are capped at 200 parts, 50 files, and 100 MB of file and text content per request; selected files must be chosen again after an app restart.
 

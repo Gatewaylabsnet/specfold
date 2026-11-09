@@ -105,10 +105,12 @@ jobs:
   verify-packages:
     name: Verify release bundle
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, installer-upgrade-windows]
     steps:
+      - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
         with:
+          pattern: specfold-*
           path: release-artifacts
           merge-multiple: true
 
@@ -118,6 +120,19 @@ jobs:
       - name: Verify public asset set
         shell: bash
         run: |
+          version=$(node -p "require('./package.json').version")
+          test "$(find release-artifacts -type f | wc -l)" -eq 8
+          for asset in \
+            "Specfold-$version-x64.exe" \
+            "Specfold-$version-x64-portable.exe" \
+            "Specfold-$version-mac-x64.dmg" \
+            "Specfold-$version-mac-arm64.dmg" \
+            "Specfold-$version-mac-x64.zip" \
+            "Specfold-$version-mac-arm64.zip" \
+            "Specfold-$version-linux-x86_64.AppImage" \
+            "Specfold-$version-linux-amd64.deb"; do
+            test -s "release-artifacts/$asset"
+          done
           test "$(find release-artifacts -type f -name '*.exe' | wc -l)" -eq 2
           test "$(find release-artifacts -type f -name '*.dmg' | wc -l)" -eq 2
           test "$(find release-artifacts -type f -name '*.zip' | wc -l)" -eq 2
@@ -159,3 +174,45 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             release-artifacts/*
+
+  installer-upgrade-windows:
+    needs: build
+    name: Real Windows installer (${{ matrix.scope }})
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        scope: [currentUser, allUsers]
+    env:
+      SPECFOLD_INSTALLER_QA: "1"
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Test installer QA safety guards
+        run: node --test scripts/installer-qa.test.mjs
+      - uses: actions/download-artifact@v4
+        with:
+          name: specfold-windows
+          path: apps/desktop/dist
+      - name: Verify real install, upgrade and snapshot rollback
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          ./scripts/verify-windows-installer.ps1 -CandidateInstaller "apps/desktop/dist/Specfold-$version-x64.exe" -Scope '${{ matrix.scope }}'
+      - name: Upload installer verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-qa-${{ matrix.scope }}
+          path: installer-qa-${{ matrix.scope }}.json
+          if-no-files-found: warn

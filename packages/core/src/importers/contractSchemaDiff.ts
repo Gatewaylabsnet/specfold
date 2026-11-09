@@ -4,7 +4,7 @@ export const contractObject = (value: unknown): Record<string, unknown> => value
 const annotations = new Set(["title", "description", "example", "examples", "externalDocs", "$comment", "xml"]);
 export function contractCanonical(value: unknown): string {
   const normalize = (input: unknown): unknown => Array.isArray(input) ? input.map(normalize) : input && typeof input === "object"
-    ? Object.fromEntries(Object.entries(input).filter(([key]) => !annotations.has(key)).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, normalize(item)])) : input;
+    ? Object.fromEntries(Object.entries(input).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, normalize(item)])) : input;
   return JSON.stringify(normalize(value)) ?? "undefined";
 }
 const set = (value: unknown): string[] => Array.isArray(value) ? [...new Set(value.map(contractCanonical))].sort() : [];
@@ -55,7 +55,15 @@ export function diffContractSchema(before: unknown, after: unknown, response: bo
   const oldProperties = contractObject(old.properties), newProperties = contractObject(next.properties);
   for (const key of [...new Set([...Object.keys(oldProperties), ...Object.keys(newProperties)])].sort()) {
     const child = `${area}.${key}`.slice(0, 256);
-    if (!Object.hasOwn(oldProperties, key)) report(child, "additive", "An optional or newly required property was added; see required-property changes.");
+    if (!Object.hasOwn(oldProperties, key)) {
+      // An optional input still constrains values formerly accepted by additionalProperties.
+      const previous = old.additionalProperties ?? true;
+      if (!response && previous !== false) {
+        let reported = false;
+        diffContractSchema(previous, newProperties[key], false, (...change) => { reported = true; report(...change); }, child, depth + 1);
+        if (!reported) report(child, "additive", "A property declaration was added without narrowing its previous value policy; see required-property changes.");
+      } else report(child, "additive", "An optional or newly required property was added; see required-property changes.");
+    }
     else if (!Object.hasOwn(newProperties, key)) report(child, response && oldRequired.includes(contractCanonical(key)) ? "breaking" : "unknown", "A declared property was removed; consumer behavior needs review.");
     else diffContractSchema(oldProperties[key], newProperties[key], response, report, child, depth + 1);
   }

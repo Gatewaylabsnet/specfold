@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.12.0-dev.1 (prerelease)
+## 1.12.0
 
 - Reviewed folder/collection token binding, contextual guided setup, quieter advanced details and honest MCP helper-versus-client status.
 - Saved request-selection scenarios, fresh preview/consent for every run, and opt-in content-free run summaries/comparison.
@@ -9,7 +9,8 @@
 - Supported-subset OpenAPI contract differences in safe re-import preview, including explicit uncertainty and non-destructive merge behavior.
 - Settings saves occur outside React state updaters; stale acknowledgements cannot overwrite a newer explicit permission preference.
 - Windows atomic settings replacement tolerates short EPERM/EBUSY locks with bounded retries; persistent denial still fails without deleting the destination or changing permissions.
-- Windows prerelease is unsigned and retains the existing Specfold application identity for an update. No production installation is implied; see GitHub Releases for publication status.
+- Contract-diff canonicalization preserves real annotation-like property names and literal keys; new optional input constraints are compared with the previous additional-property policy.
+- Windows remains unsigned and retains the existing Specfold application identity. Isolated hosted-runner installer checks protect the user installation. Rollback to 1.11.0 requires the pre-update snapshot. See [release notes](docs/RELEASE_NOTES_v1.12.0.md) for evidence and limitations.
 
 See the [local development and verification plan](docs/LOCAL_TESTING_DEVELOPMENT_PLAN.md) for constraints and deferred Apinizer discovery.
 

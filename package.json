@@ -1,6 +1,6 @@
 {
   "name": "openapi-collection-studio",
-  "version": "1.12.0-dev.1",
+  "version": "1.12.0",
   "private": true,
   "type": "module",
   "description": "Local-first desktop REST API collection editor for OpenAPI and Swagger imports.",
@@ -26,12 +26,13 @@
     "check:source-size": "node scripts/check-source-size.mjs",
     "check:release-version": "node scripts/check-release-version.mjs",
     "test:release-version": "node --test scripts/check-release-version.test.mjs",
-    "release:check": "npm run check:release-version && npm run test:release-version && npm run check:source-size && npm run lint && npm run typecheck && npm test && npm run build",
+    "release:check": "npm run check:release-version && npm run test:release-version && npm run test:installer-qa && npm run check:source-size && npm run lint && npm run typecheck && npm test && npm run build",
     "package:win:portable": "npm run package:win:portable --workspace @openapi-collection-studio/desktop",
     "package:win:installer": "npm run package:win:installer --workspace @openapi-collection-studio/desktop",
     "package:win": "npm run package:win --workspace @openapi-collection-studio/desktop",
     "package:mac": "npm run package:mac --workspace @openapi-collection-studio/desktop",
-    "package:linux": "npm run package:linux --workspace @openapi-collection-studio/desktop"
+    "package:linux": "npm run package:linux --workspace @openapi-collection-studio/desktop",
+    "test:installer-qa": "node --test scripts/installer-qa.test.mjs"
   },
   "engines": {
     "node": ">=22.19.0",
@@ -42,6 +43,7 @@
     "eslint": "^10.8.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.8.0",
-    "typescript-eslint": "^8.65.0"
+    "typescript-eslint": "^8.65.0",
+    "yaml": "2.9.0"
   }
 }

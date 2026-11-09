@@ -1,16 +1,16 @@
 # Local agent integration
 
-Status: local MCP and CLI are included in published stable [v1.11.0](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.11.0). See the [release notes](RELEASE_NOTES_v1.11.0.md) and [guided workflow guide](guided-test-workflow.md). No model, hosted MCP endpoint, telemetry or automatic downloader is added. Packaged users need no separate Node.js installation.
+Status: local MCP and CLI are included in [Specfold 1.12.0](https://github.com/Gatewaylabsnet/specfold/releases/tag/v1.12.0). See the [release notes](RELEASE_NOTES_v1.12.0.md) and [guided workflow guide](guided-test-workflow.md). No model, hosted MCP endpoint, telemetry or automatic downloader is added. Packaged users need no separate Node.js installation.
 
-## 1.12.0-dev.1 connection flow
+## 1.12.0 connection flow
 
-The [prerelease](RELEASE_NOTES_v1.12.0-dev.1.md) presents three steps in **Settings > AI connections**:
+The [1.12.0 release](RELEASE_NOTES_v1.12.0.md) presents three steps in **Settings > AI connections**:
 
 1. Enable AI connections, select your client's format and **Copy configuration** into that client's MCP settings. Keep the same Specfold runtime open.
 2. Select **Test bundled helper**. A pass verifies the included helper's stdio connection to Specfold. It does not verify an external client. Recent local helper activity can come from this self-test and does not identify a client.
 3. In your configured client, try: **List my collections. Do not change data or send API requests.** Check that the client actually returns your collection list; the settings screen does not certify this result.
 
-Request permission remains separate and optional. Reading collections does not need network-send permission. Proposed changes and sends still need their existing previews and desktop approvals. Use synthetic data first; an external client may send returned structure to its provider. The 1.11.0 instructions below retain the older button label.
+Request permission remains separate and optional. Reading collections does not need network-send permission. Proposed changes and sends still need their existing previews and desktop approvals. Use synthetic data first; an external client may send returned structure to its provider.
 
 ## Quick start: keep Specfold open
 
@@ -19,7 +19,7 @@ The [guided test workflow](guided-test-workflow.md) adds reference-only connecti
 1. Save a sample workspace in the updated desktop.
 2. Open **Settings → AI connections → Enable AI connections**. Default: off.
 3. Select **JSON MCP clients** or **Codex (TOML)**, then **Copy configuration** into your client's MCP settings.
-4. Click **Test connection**. It starts the bundled helper and calls `list_collections` through the real stdio MCP SDK.
+4. Click **Test bundled helper**. It starts the bundled helper and calls `list_collections` through the real stdio MCP SDK.
 5. Keep Specfold open. Ask your agent to preview a change and request review, then use **Review changes** to apply or cancel it.
 
 Packaged builds bundle the helper and use Electron's Node runtime; users need no separate Node/npm installation. Copy configuration again after changing/moving the package. Packaging must retain Electron's `RunAsNode` capability or supply an equivalent helper runtime. Windows portable configuration points to the extracted runtime because the NSIS wrapper cannot forward stdio: keep the same portable artifact open, and copy configuration again after replacing it. Its extraction path is stable for that artifact, not a permanent standalone install. AppImage resources resolve at helper launch; Linux GUI verification is still required. Source builds require Node.js >=22.19 and npm >=10, matching the existing Undici 8 dependency:
@@ -229,7 +229,11 @@ Common credential fields, known secret values, resolved Authorization and TCKN/e
 - OS-account trust is the boundary. Same-user malware or an administrator can read process memory or profile files and bypass cooperative leases/approvals. Unix modes are `0600` for files / `0700` for state; Windows relies additionally on the profile's inherited user ACL. This feature is not a multi-user authorization system, an OS mandatory lock, or protection against arbitrary tools given to the agent outside Specfold.
 - No macOS/Linux GUI run or real TarımKredi API call was performed in the Windows acceptance run. The supplied OpenAPI fixture is synthetic, as authorized by the requester.
 
-## Stable 1.11.0 verification (2026-10-14)
+## 1.12.0 verification
+
+See the [1.12.0 release record](RELEASE_NOTES_v1.12.0.md#verification-and-boundaries) for current checks and remaining boundaries. Bundled-helper verification is not external-client certification.
+
+## Historical stable 1.11.0 verification (2026-10-14)
 
 [Integrated CI](https://github.com/Gatewaylabsnet/specfold/actions/runs/38582615898) and [tag build](https://github.com/Gatewaylabsnet/specfold/actions/runs/38583387156) passed at `caf4cb486744c9ec614fb0a79fda93d401c3d57c`. Source checks cover 497 tests plus three release-version gates; nine packaged Windows E2E tests passed. All eight published package hashes match the tag bundle and checksum manifest. Windows/macOS arm64/x64 ZIP/Linux DEB app versions and helper bundles match 1.11.0. macOS/Linux GUI, vendor-client UI and real gateway validation are not claimed. Human testing is planned for October 15, 2026.
 

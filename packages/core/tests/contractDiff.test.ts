@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import { contractCanonical, diffContractSchema, type ContractSeverity } from "../src/importers/contractSchemaDiff";
 import { importApiDocument } from "../src/importers";
 import { diffOpenApiContracts } from "../src/importers/contractDiff";
 import { applySafeReimport, previewSafeReimport } from "../src/importers/reimport";
@@ -62,4 +63,40 @@ it("resolves supported local schema refs and blocks excessive structures", () =>
   expect(diffOpenApiContracts(merged, collection(after)).some((item) => item.severity === "unknown" && item.message.includes("fresh baseline"))).toBe(true);
   const huge = collection(document()); huge.description = "x".repeat(1024 * 1024 + 1);
   expect(diffOpenApiContracts(huge, collection(document()))[0].severity).toBe("unknown");
+});
+
+it("preserves annotation-like property names and literal keys in canonical comparisons", () => {
+  const before = document(), after = structuredClone(before);
+  before.components.schemas.Item = { type: "object", properties: { description: { type: "string" } } };
+  after.components.schemas.Item = { type: "object", properties: { description: { type: "integer" } } };
+  expect(contractCanonical(before.components)).not.toBe(contractCanonical(after.components));
+  const merged = collection(before); applySafeReimport(merged, collection(after));
+  expect(merged.openApi?.contractSourceUncertain).toBe(true);
+  const changes: ContractSeverity[] = [];
+  diffContractSchema({ enum: [{ description: "old" }] }, { enum: [{ description: "new" }] }, false,
+    (_area, severity) => changes.push(severity), "request body");
+  expect(changes).toContain("breaking");
+  expect(contractCanonical({ title: "data", description: "value" })).toContain("description");
+});
+it("ignores schema annotations without ignoring properties with the same names", () => {
+  const changes: ContractSeverity[] = [];
+  diffContractSchema({ type: "string", description: "old" }, { type: "string", description: "new" }, false,
+    (_area, severity) => changes.push(severity), "request body");
+  expect(changes).toEqual([]);
+});
+it.each([
+  [undefined, { type: "integer" }, "breaking"],
+  [true, { type: "integer" }, "breaking"],
+  [false, { type: "integer" }, "additive"],
+  [{ type: "integer", minimum: 0 }, { type: "integer", minimum: 5 }, "breaking"],
+  [{ type: "integer", minimum: 0 }, { type: "integer", minimum: 0 }, "additive"],
+  [true, { pattern: "^[a-z]+$" }, "unknown"],
+  [true, {}, "additive"]
+])("compares a new optional input with the previous additional-property policy %j", (previous, property, expected) => {
+  const before = { type: "object", ...(previous !== undefined ? { additionalProperties: previous } : {}) };
+  const after = { ...before, properties: { count: property } };
+  const changes: ContractSeverity[] = [];
+  diffContractSchema(before, after, false, (_area, severity) => changes.push(severity), "request body");
+  expect(changes).toContain(expected);
+  if (expected !== "additive") expect(changes).not.toContain("additive");
 });

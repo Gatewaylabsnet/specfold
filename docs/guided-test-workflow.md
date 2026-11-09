@@ -1,8 +1,6 @@
 # Guided test workflow
 
-> **1.12.0-dev.1 prerelease:** the new scenario/history controls below are additions to 1.11.0. They are not present in the installed or published 1.11.0. See [prerelease scope and limits](RELEASE_NOTES_v1.12.0-dev.1.md) and [the phased development plan](LOCAL_TESTING_DEVELOPMENT_PLAN.md).
-
-**Published stable Specfold 1.11.0.** Final integrated CI and the tagged three-platform release build passed. Source preparation passed 497 tests plus three version gates and nine packaged Windows E2E tests. Human testing is planned for October 15, 2026; it has not happened.
+**Specfold 1.12.0** adds reviewed token binding, saved scenarios, safe summary history, synthetic JSON drafts, bounded response rules and supported-subset contract differences. See [release scope and update/rollback limits](RELEASE_NOTES_v1.12.0.md).
 
 The desktop's **Test workflow** guides you through **Connection → Authentication → Test preview → Results**. It prepares a reviewable test selection from saved API definitions and documented inputs. An MCP client can use an already configured profile, but only a person in the desktop can approve its run.
 
@@ -97,15 +95,13 @@ An example agent instruction is: “List my saved connection profiles, preview t
 
 ## Current scope and validation
 
-Source verification covers 220 core, 52 agent and 225 desktop tests (497 total), plus three version-gate tests. [Integrated CI](https://github.com/Gatewaylabsnet/specfold/actions/runs/38582615898) and [tag build](https://github.com/Gatewaylabsnet/specfold/actions/runs/38583387156) passed at caf4cb486744c9ec614fb0a79fda93d401c3d57c. Nine packaged Windows E2E scenarios passed. All eight published packages match the checksum manifest and uploaded asset digests; extracted Windows, macOS arm64/x64 ZIP and Linux DEB runtimes declare 1.11.0 with matching helper bundles. Windows packages are unsigned; macOS packages are not notarized. DMG/AppImage contents were not separately extracted on Windows; paired ZIP/DEB runtime metadata and all asset hashes were checked.
-
-E2E tests used loopback synthetic APIs/credentials and covered import preservation, issuer authentication, selection and approval, status/schema failures, encryption, masked export, cancellation/disconnect, editor/import/backup/upload/portable-helper regressions. Real gateway, vendor-client UI and macOS/Linux GUI/keychain checks are not claimed. Human testing is planned for October 15, 2026 and has not happened. Old dev.1 binaries need a one-time manual stable download.
+See the [1.12.0 release record](RELEASE_NOTES_v1.12.0.md#verification-and-boundaries) for completed verification. Tests use isolated synthetic profiles and loopback APIs. Windows packages are unsigned; macOS packages are not notarized. Real gateway, vendor-client UI and macOS/Linux GUI/keychain checks are not claimed.
 
 The workflow does not supply load testing, fuzzing, arbitrary scripts, automatic retries, full schema conformance, management-project discovery or automatic report publication. Real APIs may reject documented examples or perform side effects despite a read-method label; use a test environment and inspect the exact preview.
 
-## Local candidate: saved scenarios and safe summary history
+## Saved scenarios and safe summary history (1.12.0)
 
-These controls are local working-tree changes, not published 1.11.0 functionality. Open **Saved scenarios & safe history** beneath the workflow steps.
+These controls are new in 1.12.0 and are not available in 1.11.0. Open **Saved scenarios & safe history** beneath the workflow steps.
 
 1. Prepare a test preview and review its selected requests. **Save selected scenario** saves only an opaque selection preset for this setup. It does not grant permission or save a runnable plan. Scenarios use generated numbers instead of arbitrary labels. Up to 32 scenarios are kept across this device's workspaces.
 2. **Preview scenario** resolves current definitions and prepares a new expiring plan. Missing requests, a deleted setup or a changed HTTP method make the selection stale. Other changed inputs are evaluated by the normal fresh-preview rules. Review the destinations, authentication, blocked rows and data-changing methods again. Every run still requires native approval and consumes its plan once.

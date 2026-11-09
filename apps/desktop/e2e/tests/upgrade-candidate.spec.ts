@@ -41,7 +41,7 @@ test("existing 1.11 data upgrades and pre-update snapshot rolls back without los
     await copyFile(join(root, "workspace.json"), join(root, "pre-update-workspace.json"));
     await copyFile(join(root, "app-settings.json"), join(root, "pre-update-settings.json"));
     page = await launch(process.env.SPECFOLD_E2E_EXECUTABLE!);
-    expect(await page.evaluate(async () => (await window.studio.getAppInfo()).version)).toBe("1.12.0-dev.1");
+    expect(await page.evaluate(async () => (await window.studio.getAppInfo()).version)).toBe("1.12.0");
     const upgraded = await page.evaluate(() => window.studio.loadWorkspace());
     expect(upgraded.recovered).toBe(false); expect(JSON.stringify(upgraded.workspace.collections) === JSON.stringify(before.workspace.collections)).toBe(true);
     expect(upgraded.workspace.environments[0].variables.some((item) => item.name === "syntheticToken" && item.value === secret)).toBe(true);
