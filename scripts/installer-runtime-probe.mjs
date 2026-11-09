@@ -36,10 +36,16 @@ try {
     console.log(`Installed candidate Electron runtime verified (${actualElectron}).`);
   }
   if (phase === 'seed') {
+    // "Saved" is the initial renderer label too. Commit an actual UI edit
+    // before seeding via IPC so the baseline's initial autosave cannot undo it.
+    const workspaceName = 'Installer preserved workspace';
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    await page.getByLabel('Workspace name', { exact: true }).fill(workspaceName);
+    await expect.poll(async () => (await page.evaluate(() => window.studio.loadWorkspace())).workspace.name).toBe(workspaceName);
+    await expect(page.locator('.save-status')).toHaveText('Saved');
     const secret = randomBytes(24).toString('hex');
     await page.evaluate(async (value) => {
       const current = await window.studio.loadWorkspace();
-      current.workspace.name = 'Installer preserved workspace';
       current.workspace.collections = [{ id: 'installer-collection', name: 'Preserved API', folders: [], requests: [{
         id: 'installer-request', name: 'Preserved request', method: 'GET', url: 'http://127.0.0.1:9/preserved',
         queryParams: [], pathParams: [], headers: [], body: { mode: 'none' }, auth: { type: 'none' }, responseExamples: []
@@ -50,7 +56,7 @@ try {
       await window.studio.saveSettings({ ...settings, theme: 'dark', requestTimeoutMs: 8123, agentEnabled: false, agentNetworkEnabled: false });
     }, secret);
     const before = await page.evaluate(() => window.studio.loadWorkspace());
-    expect(before.workspace.environments[0].variables.find(item => item.id === 'installer-secret')?.value).toBe(secret);
+    expect(before.workspace.environments[0].variables.some(item => item.id === 'installer-secret' && item.value === secret)).toBe(true);
     await writeFile(evidencePath, JSON.stringify({ secret, workspace: before.workspace }));
   } else {
     const before = JSON.parse(await readFile(evidencePath, 'utf8'));
