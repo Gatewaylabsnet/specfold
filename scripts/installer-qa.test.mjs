@@ -47,3 +47,36 @@ test('installer QA uses the real default profile and guards snapshot restoration
   assert.match(probe, /mainApp\.getPath\('userData'\)/);
   assert.match(probe, /toBe\(expectedProfile\.toLowerCase\(\)\)/);
 });
+
+test('registry enumeration reads shared HKCU once and both redirected HKLM views', async () => {
+  const script = await readFile('scripts/verify-windows-installer.ps1', 'utf8');
+  assert.match(script, /\$views = if \(\$hive -eq 'HKCU'\) \{\s+@\(\[Microsoft\.Win32\.RegistryView\]::Registry64\)\s+\} else \{\s+@\(\[Microsoft\.Win32\.RegistryView\]::Registry64, \[Microsoft\.Win32\.RegistryView\]::Registry32\)\s+\}/);
+  assert.match(script, /foreach \(\$view in \$views\)/);
+  assert.match(script, /\$entries\.Count -ne 1/);
+  assert.doesNotMatch(script, /Select-Object[^\n]*-Unique|Sort-Object[^\n]*-Unique/);
+});
+
+test('Windows PE version accepts only exact semver or stable zero fourth component', { skip: process.platform !== 'win32' }, () => {
+  // Extract only this pure function; never execute installer orchestration.
+  const command = `
+    $ErrorActionPreference = 'Stop'
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path (Get-Location) 'scripts/verify-windows-installer.ps1'), [ref]$null, [ref]$null)
+    $fn = $ast.Find({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Test-PEVersion' }, $false)
+    . ([scriptblock]::Create($fn.Extent.Text))
+    @(
+      (Test-PEVersion '1.11.0' '1.11.0'),
+      (Test-PEVersion '1.11.0.0' '1.11.0'),
+      (Test-PEVersion '1.12.0.0' '1.12.0'),
+      (Test-PEVersion '1.12.0-dev.1' '1.12.0-dev.1'),
+      (Test-PEVersion '1.11.0.1' '1.11.0'),
+      (Test-PEVersion '1.11.0.0.0' '1.11.0'),
+      (Test-PEVersion '1.12.0' '1.11.0'),
+      (Test-PEVersion '1.12.0-dev.1.0' '1.12.0-dev.1'),
+      (Test-PEVersion '1.12.0.0' '1.12.0-dev.1'),
+      (Test-PEVersion '1.11.0.0 ' '1.11.0')
+    ) | ConvertTo-Json -Compress
+  `;
+  const result = spawnSync('pwsh', ['-NoProfile', '-Command', command], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), [true, true, true, true, false, false, false, false, false, false]);
+});

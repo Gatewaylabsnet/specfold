@@ -26,7 +26,7 @@ The validated rollback design is to close Specfold, reinstall the verified 1.11.
 
 ## Verification and boundaries
 
-Local stable preparation passed 559 unit/integration tests (242 core, 55 agent, 262 desktop), three release-version tests, four installer-guard/workflow tests, source-size, lint, typecheck and build.
+Local stable preparation passed 559 unit/integration tests (242 core, 55 agent, 262 desktop), three release-version tests, six installer-guard/workflow tests, source-size, lint, typecheck and build.
 
 Stable publication is gated on the full source suite, exact-commit CI, packaged Windows E2E, disposable Windows installer lifecycle checks, three-platform release builds, the expected eight assets and SHA-256 verification. Current run links and results are recorded in the GitHub release after verification. The existing user installation and real profile are not used as test fixtures.
 

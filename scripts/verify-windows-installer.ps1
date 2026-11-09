@@ -35,7 +35,15 @@ $report = Join-Path $repo "installer-qa-$Scope.json"
 $results = [System.Collections.Generic.List[object]]::new()
 function Get-Registrations {
   foreach ($hive in @('HKCU', 'HKLM')) {
-    foreach ($view in @([Microsoft.Win32.RegistryView]::Registry64, [Microsoft.Win32.RegistryView]::Registry32)) {
+    # HKCU\Software (including Uninstall) is shared across WOW64 views;
+    # HKLM\Software is redirected. Preserve real HKLM duplicates, but do not
+    # count the same per-user registration twice through two shared handles.
+    $views = if ($hive -eq 'HKCU') {
+      @([Microsoft.Win32.RegistryView]::Registry64)
+    } else {
+      @([Microsoft.Win32.RegistryView]::Registry64, [Microsoft.Win32.RegistryView]::Registry32)
+    }
+    foreach ($view in $views) {
       $hiveEnum = if ($hive -eq 'HKCU') { [Microsoft.Win32.RegistryHive]::CurrentUser } else { [Microsoft.Win32.RegistryHive]::LocalMachine }
       $base = [Microsoft.Win32.RegistryKey]::OpenBaseKey($hiveEnum, $view)
       try {
@@ -53,6 +61,11 @@ function Get-Registrations {
     }
   }
 }
+function Test-PEVersion([string]$Actual, [string]$Expected) {
+  # Windows VERSIONINFO may expose a zero fourth component for stable semver.
+  # Never normalize prereleases, accept nonzero revisions, or truncate metadata.
+  return $Actual -ceq $Expected -or ($Expected -cmatch '^\d+\.\d+\.\d+$' -and $Actual -ceq "$Expected.0")
+}
 function Assert-Installed([string]$ExpectedVersion, [string]$ExpectedPath = '') {
   $entries = @(Get-Registrations)
   if ($entries.Count -ne 1) { throw "Expected exactly one Specfold uninstall identity; found $($entries.Count)" }
@@ -65,7 +78,8 @@ function Assert-Installed([string]$ExpectedVersion, [string]$ExpectedPath = '') 
   if ($ExpectedPath -and $path -ne $ExpectedPath) { throw 'Upgrade changed installation path' }
   $exe = Join-Path $path 'Specfold.exe'
   if (-not (Test-Path $exe)) { throw 'Installed executable missing' }
-  if ((Get-Item $exe).VersionInfo.ProductVersion -ne $ExpectedVersion) { throw 'Installed PE product version mismatch' }
+  $peVersion = (Get-Item $exe).VersionInfo.ProductVersion
+  if (-not (Test-PEVersion $peVersion $ExpectedVersion)) { throw "Installed PE product version mismatch: expected $ExpectedVersion (or stable .0), got $peVersion" }
   $results.Add($entry)
   return $path
 }
