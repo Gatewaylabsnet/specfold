@@ -38,6 +38,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Prefetch verified official packaging downloads
+        timeout-minutes: 12
+        run: |
+          node --test scripts/prefetch-packaging-downloads.test.mjs
+          node scripts/prefetch-packaging-downloads.mjs
+
       - name: Build Windows portable package
         run: npm run package:win:portable --workspace @openapi-collection-studio/desktop
 
@@ -80,6 +86,12 @@ jobs:
       - run: npm ci
       - name: Test installer QA safety guards
         run: node --test scripts/installer-qa.test.mjs
+      - name: Prefetch verified official packaging downloads
+        timeout-minutes: 12
+        run: |
+          node --test scripts/prefetch-packaging-downloads.test.mjs
+          node scripts/prefetch-packaging-downloads.mjs
+
       - name: Build candidate NSIS installer
         run: npm run package:win:installer
       - name: Verify real install, upgrade and snapshot rollback

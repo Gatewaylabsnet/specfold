@@ -32,7 +32,7 @@
     "package:win": "npm run package:win --workspace @openapi-collection-studio/desktop",
     "package:mac": "npm run package:mac --workspace @openapi-collection-studio/desktop",
     "package:linux": "npm run package:linux --workspace @openapi-collection-studio/desktop",
-    "test:installer-qa": "node --test scripts/installer-qa.test.mjs"
+    "test:installer-qa": "node --test scripts/installer-qa.test.mjs scripts/prefetch-packaging-downloads.test.mjs"
   },
   "engines": {
     "node": ">=22.19.0",

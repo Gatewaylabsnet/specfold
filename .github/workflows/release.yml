@@ -74,6 +74,12 @@ jobs:
           fi
           ls -la node_modules/7zip-bin/win/x64/
 
+      - name: Prefetch verified official packaging downloads
+        timeout-minutes: 12
+        run: |
+          node --test scripts/prefetch-packaging-downloads.test.mjs
+          node scripts/prefetch-packaging-downloads.mjs
+
       - name: Typecheck and test
         run: |
           npm run check:source-size
