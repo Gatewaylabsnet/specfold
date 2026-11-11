@@ -100,7 +100,7 @@ export class AgentService {
     const id = revisionOf(JSON.stringify({ revision, action }));
     const directory = await this.repository.stateDirectory();
     // A separate state lease permits desktop-owned previews while serializing
-    // expiry/replacement across services and processes. Never force a stale lease.
+    // expiry/replacement across services and processes. Use the shared, fail-closed lease recovery.
     const release = acquireWorkspaceLease(directory, "agent");
     try {
       // Reuse an existing signed plan so repeated previews do not invalidate approval.

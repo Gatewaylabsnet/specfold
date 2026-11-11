@@ -37,8 +37,12 @@ if (!gotSingleInstanceLock) {
   app.whenReady().then(async () => {
     try {
       releaseWorkspaceLease = acquireWorkspaceLease(app.getPath("userData"), "desktop");
-    } catch {
-      dialog.showErrorBox("Specfold workspace is busy", "Another process owns the workspace writer lease. Wait for the agent operation to finish. If a process crashed, see docs/LOCAL_AGENT.md before removing the stale lease.");
+    } catch (error) {
+      if (error instanceof Error && error.message === "WORKSPACE_BUSY") {
+        dialog.showErrorBox("Specfold workspace is busy", "Close the other Specfold window or wait for the agent operation to finish. Specfold could not safely recover the lock. If this persists, see the recovery guidance in docs/LOCAL_AGENT.md.");
+      } else {
+        dialog.showErrorBox("Specfold could not open its workspace", "Check that the local Specfold profile is accessible and writable, then try again. Specfold did not open the workspace.");
+      }
       app.quit();
       return;
     }
