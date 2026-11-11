@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.12.1
+
+- Recover a workspace or agent plan-state lock after its owner process is confirmed gone. Keep the original lock bytes in a sibling archive before acquiring a fresh lease.
+- Leave live, inaccessible, malformed and ambiguous leases in place. Concurrent recovery cannot take a replacement writer's lease.
+- Distinguish a busy workspace from a profile that cannot be accessed. Workspace, settings and backup formats are unchanged.
+
 ## 1.12.0
 
 - Reviewed folder/collection token binding, contextual guided setup, quieter advanced details and honest MCP helper-versus-client status.
