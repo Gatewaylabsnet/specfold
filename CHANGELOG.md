@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.13.0
+
+- Refresh selected existing OpenAPI schemas and source examples without replacing saved request data. Review shared schema impacts before applying.
+- Preview explicit body and HTTP header edits through MCP, for one request or an atomic batch. An optional source schema refresh can use the same plan.
+- Require matching workspace revisions and desktop approval for these changes. Do not run requests or obtain a JWT during preview or apply.
+- Block editor saves that could overwrite credentials while the existing encrypted values cannot be unlocked.
+
+See the [release notes](docs/RELEASE_NOTES_v1.13.0.md) for upgrade guidance and supported inputs.
+
 ## 1.12.1
 
 - Recover a workspace or agent plan-state lock after its owner process is confirmed gone. Keep the original lock bytes in a sibling archive before acquiring a fresh lease.
