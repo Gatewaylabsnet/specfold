@@ -22,9 +22,17 @@ Preview runs Import Doctor. Its warnings identify skipped, unsupported, or manua
 
 OpenAPI diagnostics additionally warn about non-empty OAuth scopes on HTTP bearer schemes, schema/example type mismatches, and sensitive example data. Agent imports use these same warnings and redact credential-like/personal examples (including source metadata) before creating a signed plan. Desktop's ordinary import fidelity is unchanged; warnings are non-blocking. Neither import path executes requests or fetches remote references.
 
-The optional [local agent](LOCAL_AGENT.md) accepts OpenAPI/Swagger JSON/YAML only, not arbitrary portable formats. Its mutation previews produce a diff and exact workspace revision, require interactive human approval, and apply only with the desktop closed and a matching revision. Auto-targeting repeated imports uses collection title/base URL and stable method/path identities; explicit collection ID selection is recommended after renaming or rerouting. No credential value or new environment is invented by the Apinizer recipe.
+The optional [local agent](LOCAL_AGENT.md) accepts OpenAPI/Swagger JSON/YAML only, not arbitrary portable formats. Its mutation previews produce a diff and exact workspace revision. Applying requires human approval and a matching revision: through the desktop review when connected, or (for actions that support offline apply) from the CLI with the desktop closed. Auto-targeting repeated imports uses collection title/base URL and stable method/path identities; explicit collection ID selection is recommended after renaming or rerouting. No credential value or new environment is invented by the Apinizer recipe.
 
 Multipart text values remain editable. File paths from imported OpenAPI/Swagger/Postman/Insomnia/HAR/cURL content are untrusted: only the base filename is retained as a disabled placeholder and the user must choose the file again through the native picker. Upload IDs, absolute paths, and file bytes are excluded from Collection JSON, OpenAPI, workspace persistence, and complete backups.
+
+## Refresh OpenAPI Schemas Without Replacing Requests
+
+In **Import → Update schemas and keep request data**, choose the existing OpenAPI collection, paste the new JSON/YAML or open a local file, select the saved requests, and choose **Preview schema update**. Review changed fields and required properties. If a changed shared schema also affects unselected requests, check the acknowledgement for the exact list before choosing **Apply schema update**. A newer workspace revision requires a new review. This flow does not require enabling AI connections, fetching a remote document, resolving credentials for a request, or sending network requests.
+
+The update changes only source contract metadata, the selected requests' declared body schema/requiredness, and their reachable schema components. Saved payloads, form fields, routes, parameters, headers, auth, token flows, response examples, folders and environments are not overwritten. Conflicts are reported for review; this is not a full compatibility or input-validation verdict. New source operations are not imported and absent operations are not deleted. Unused definitions and security schemes are kept. An unselected request can see a changed shared definition once approved, but its inline source examples and its saved request data are not refreshed; select it explicitly if its source examples also need updating.
+
+This mode supports at most 500 operations per collection/document, up to 4 MiB of source text, and the same OpenAPI 3.0 or 3.1 dialect as the collection. Ambiguous identities, unresolved references, external references or unsupported anchors/dynamic scopes prevent applying the update. A reachable new or changed non-schema component (such as a named request body or example) is not installed: keep that definition unchanged or inline it in the new source. Sensitive examples may be redacted before the signed plan is stored. The existing credential guard can block a write when saved credentials are still unprotected; fix the credential storage rather than bypassing the guard. Ordinary safe re-import does not change.
 
 ## URL And Environment Rules
 
@@ -39,6 +47,7 @@ Multipart text values remain editable. File paths from imported OpenAPI/Swagger/
 
 - Public functions `exportCollectionToOpenApi`, `exportCollectionToOpenApiResult`, and `exportCollectionToOpenApiDocument` remain stable.
 - Imported OpenAPI 3 operations prefer source-operation fidelity and overlay editable fields.
+- A schema-refreshed request uses its new source body declaration, including an absent body, instead of reconstructing it from the retained request payload. With examples enabled, it uses the refreshed source body examples rather than inserting the saved payload. Referenced components needed by a refreshed operation are exported even if **Include all components** is off.
 - Selected folders export recursively; folder names can become tags.
 - Folder base URLs are emitted as OpenAPI operation-level `servers` when they differ from the collection server.
 - Parameters, request bodies, responses, and supported security schemes are mapped back to OpenAPI.

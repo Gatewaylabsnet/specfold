@@ -1,7 +1,7 @@
 import { stringify as stringifyYaml } from "yaml";
 import type { Collection } from "../../model/types";
 import { folderBaseUrl } from "../../model/traversal";
-import { buildInitialComponents, pruneUnusedComponents, serverList } from "./export/components";
+import { buildInitialComponents, includeReferencedComponents, pruneUnusedComponents, serverList } from "./export/components";
 import { operationForRequest, pathFromRequest, tagsForRequest } from "./export/operation";
 import { openApiVersion, selectRequests } from "./export/selection";
 import { stripUndefined } from "./export/shared";
@@ -62,6 +62,9 @@ export function exportCollectionToOpenApiDocument(
     tags.forEach((tag) => tagNames.add(tag));
     const pathItem = (paths[path] ?? {}) as AnyRecord;
     const operation = operationForRequest(item.request, tags, collection, components, options);
+    if (item.request.openApi?.schemaRefreshed && !options.includeAllComponents && collection.openApi?.components) {
+      includeReferencedComponents(components, collection.openApi.components, operation);
+    }
     const scopedBaseUrl = folderBaseUrl(item.folderPath);
     if (scopedBaseUrl && scopedBaseUrl !== collection.baseUrl) {
       if (scopedBaseUrl.includes("{{")) {

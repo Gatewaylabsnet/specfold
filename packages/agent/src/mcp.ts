@@ -1,8 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { safeAgentError } from "./errors";
+import { AgentError, safeAgentError } from "./errors";
 import type { AgentService } from "./service";
+import { schemaUpdateInput } from "./validation";
+import { batchRequestUpdateInput, singleRequestUpdateInput } from "./requestUpdateInput";
 import packageInfo from "../package.json";
 
 export async function startMcp(service: AgentService): Promise<void> {
@@ -23,6 +25,22 @@ export async function startMcp(service: AgentService): Promise<void> {
     inputSchema: { text: z.string().min(1).max(4 * 1024 * 1024), baseUrl: z.string().max(2000).optional(),
       targetCollectionId: id.optional(), apinizer: z.boolean().optional() }, annotations: readAnnotations },
     (args) => result(() => service.preview({ kind: "import-openapi", ...args })));
+  server.registerTool("preview_openapi_schema_update", {
+    description: "Preview refreshing only source OpenAPI schema and metadata for selected existing request IDs, without changing request data or calling the API. Use the revision from list_collections. Returns shared-schema impacts and a plan; only the desktop user can approve impacts and apply.",
+    inputSchema: schemaUpdateInput, annotations: readAnnotations
+  }, (args) => result(() => service.preview({ kind: "update-openapi-schema", ...args })));
+  server.registerTool("preview_request_update", {
+    description: "Preview editing an existing request body or real HTTP headers. The JSON body property requestHeader is not an HTTP header. Use a saved request ID and the revision from list_collections. Omitted edits stay unchanged. Never supply literal credentials or file contents. Requires human desktop approval; never sends the request.",
+    inputSchema: singleRequestUpdateInput, annotations: readAnnotations
+  }, ({ collectionId, expectedRevision, schemaUpdate, ...edit }) =>
+    result(() => service.preview({ kind: "update-request", collectionId, expectedRevision, schemaUpdate, updates: [edit] })));
+  server.registerTool("preview_request_updates", {
+    description: "Preview an atomic batch of up to 25 existing request body/header edits in a single collection. Optional schemaUpdate refreshes selected source schemas in the same desktop review, and never changes execution data on its own. Requires human approval; no API calls.",
+    inputSchema: batchRequestUpdateInput, annotations: readAnnotations
+  }, (args) => result(() => {
+    if ("kind" in args) throw new AgentError("INVALID_PLAN");
+    return service.preview({ ...args, kind: "update-request" });
+  }));
   server.registerTool("show_diff", { description: "Show the exact plan's non-destructive operation diff; refuses stale revisions.",
     inputSchema: { planId }, annotations: readAnnotations }, ({ planId }) => result(() => service.showDiff(planId)));
   server.registerTool("preview_bind_bearer", { description: "Plan binding a variable NAME, never a token value, to collection/folder/request bearer auth.",

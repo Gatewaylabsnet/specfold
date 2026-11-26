@@ -33,6 +33,7 @@ if (browserPreview && typeof window.studio === "undefined") {
     getAgentConnection: async () => ({ available: false, configuration: { command: "Specfold", args: [] }, pending: [] }),
     testAgentConnection: async () => ({ ok: false, message: "AI connections require the desktop app." }),
     reviewAgentPlan: async () => { throw new Error("AI connections require the desktop app."); },
+    previewSchemaUpdate: async () => { throw new Error("Schema updates require the desktop app."); },
     refreshAgentPlan: async () => { throw new Error("AI connections require the desktop app."); },
     applyAgentPlan: async () => { throw new Error("AI connections require the desktop app."); },
     rejectAgentPlan: async () => undefined,

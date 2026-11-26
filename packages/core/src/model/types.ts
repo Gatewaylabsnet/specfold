@@ -95,6 +95,8 @@ export interface OpenApiMetadata {
   security?: unknown;
   /** Safe merge retained older shared components; a fresh baseline is needed for semantic comparison. */
   contractSourceUncertain?: boolean;
+  /** Request contract was refreshed independently of the saved runnable request. */
+  schemaRefreshed?: boolean;
   rawOperation?: unknown;
   /** Merged path/operation parameters retained for source-example provenance. */
   rawParameters?: unknown[];

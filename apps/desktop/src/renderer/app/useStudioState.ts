@@ -80,7 +80,7 @@ export function useStudioState() {
       generation.current = result.generation ?? 0;
       setWorkspace(result.workspace);
       setSecureStorageAvailable(result.secureStorageAvailable);
-      if (result.recovered && result.message) {
+      if (result.message) {
         setNotice(result.message);
       }
       const firstCollection = result.workspace.collections[0];

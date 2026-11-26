@@ -64,7 +64,7 @@ export function App() {
     updateSettings, assignResponseValue, bindResponseToken, saveResponseAsExample, saveExport, copyExportToClipboard, exportFullBackup,
     restoreFullBackup, deleteAllData, isDeletingData, treeActions,
     agentConnection, agentReview, agentBusy, agentError, openAgentReview, applyAgentReview,
-    rejectAgentReview, refreshAgentReview, closeAgentReview
+    rejectAgentReview, refreshAgentReview, closeAgentReview, previewSchemaUpdate
   } = useStudioController();
   const navigate = useCallback((next: Screen) => {
     if (screen === "workflow" && next !== "workflow") {
@@ -233,6 +233,7 @@ export function App() {
             onOpenFile={openImportFile}
             onOpenPostmanFolder={openPostmanFolder}
             onPreview={handlePreviewImport}
+            onPreviewSchemaUpdate={previewSchemaUpdate}
             onTextChange={(value) => {
               setPostmanFolderSource(undefined);
               setPostmanFolderPath("");
@@ -396,8 +397,9 @@ export function App() {
           />
         </Suspense>
       )}
-      {agentReview && <AgentReviewDialog review={agentReview} busy={agentBusy} error={agentError}
-        onApply={() => void applyAgentReview()} onReject={() => void rejectAgentReview()}
+      {agentReview && <AgentReviewDialog key={`${agentReview.planId}:${agentReview.expectedRevision}:${agentReview.status}`}
+        review={agentReview} busy={agentBusy} error={agentError}
+        onApply={(ids) => void applyAgentReview(ids)} onReject={() => void rejectAgentReview()}
         onRefresh={() => void refreshAgentReview()} onClose={closeAgentReview} />}
       {!agentReview && agentError && <div className="notice-banner" role="alert">{agentError}</div>}
     </div>

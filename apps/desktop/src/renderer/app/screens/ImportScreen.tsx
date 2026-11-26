@@ -1,5 +1,7 @@
 import { Download, FolderPlus, Import, Play } from "lucide-react";
+import { useState } from "react";
 import type { Collection, GroupingStrategy, ImportOperationSummary, ReimportDiff } from "@openapi-collection-studio/core";
+import { SchemaUpdateScreen, type PreviewSchemaUpdate } from "./SchemaUpdateScreen";
 
 export function ImportScreen({
   importText,
@@ -23,6 +25,7 @@ export function ImportScreen({
   onFetchUrl,
   onOpenFile,
   onOpenPostmanFolder,
+  onPreviewSchemaUpdate,
   onGroupingChange,
   onPreview,
   onImport,
@@ -50,15 +53,22 @@ export function ImportScreen({
   onFetchUrl(): void;
   onOpenFile(): void;
   onOpenPostmanFolder(): void;
+  onPreviewSchemaUpdate?: PreviewSchemaUpdate;
   onGroupingChange(value: GroupingStrategy): void;
   onPreview(): void;
   onImport(): void;
   onImportVariablesAsEnvironmentChange(value: boolean): void;
   postmanFolderPath: string;
 }) {
+  const [schemaUpdate, setSchemaUpdate] = useState(false);
   const importDisabled =
     (!importText.trim() && !postmanFolderPath) ||
     (operations.length > 0 && selectedOperationKeys.size === 0);
+
+  if (schemaUpdate && onPreviewSchemaUpdate) {
+    return <SchemaUpdateScreen collections={collections} initialCollectionId={importTargetCollectionId}
+      onPreview={onPreviewSchemaUpdate} onBack={() => setSchemaUpdate(false)} />;
+  }
 
   return (
     <section className="import-layout">
@@ -132,6 +142,9 @@ export function ImportScreen({
           </select>
           <small>Safe update matches operations, adds new ones, and never deletes existing requests.</small>
         </label>
+        {onPreviewSchemaUpdate && <button className="secondary-button" onClick={() => setSchemaUpdate(true)} type="button">
+          Update schemas and keep request data
+        </button>}
         {importTargetCollectionId && importDiff && (
           <div className="reimport-diff" role="status">
             <strong>Safe re-import preview</strong>

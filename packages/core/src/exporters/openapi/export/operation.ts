@@ -46,6 +46,10 @@ export function operationForRequest(
   options: OpenApiExportOptions
 ): AnyRecord {
   const raw = sourceOperation(request, options);
+  const refreshed = request.openApi?.schemaRefreshed === true;
+  // A schema refresh separates saved execution data from its source contract.
+  // Do not turn the user's retained payload (or an absent old UI body) back into the contract.
+  const refreshedBody = refreshed ? refreshedRequestBody(request, options) : undefined;
 
   if (!raw) {
     const authSecurity = securityForAuth(request.auth, components, options);
@@ -55,7 +59,7 @@ export function operationForRequest(
       operationId: request.openApi?.operationId,
       tags,
       parameters: parametersForRequest(request, options),
-      requestBody: requestBodyForRequest(request, options),
+      requestBody: refreshed ? refreshedBody : requestBodyForRequest(request, options),
       responses: responsesForRequest(request, options),
       security: authSecurity.length > 0 ? authSecurity : undefined
     };
@@ -70,9 +74,13 @@ export function operationForRequest(
   operation.description = request.description ?? operation.description;
   operation.operationId = request.openApi?.operationId ?? operation.operationId;
   operation.tags = tags;
-  operation.parameters = mergeParameters(request, asArrayValue(raw.parameters), collection, options);
+  operation.parameters = refreshed
+    ? structuredClone(request.openApi?.rawParameters ?? raw.parameters)
+    : mergeParameters(request, asArrayValue(raw.parameters), collection, options);
 
-  if (request.body.mode === "none") {
+  if (refreshed) {
+    operation.requestBody = refreshedBody;
+  } else if (request.body.mode === "none") {
     delete operation.requestBody;
   } else if (request.body.mode === "multipart") {
     const generated = requestBodyForRequest(request, options);
@@ -101,6 +109,19 @@ export function operationForRequest(
   }
 
   return operation;
+}
+
+function refreshedRequestBody(request: ApiRequest, options: OpenApiExportOptions): AnyRecord | undefined {
+  const body = asRecord(request.openApi?.rawOperation).requestBody;
+  if (!isRecordValue(body)) return undefined;
+  const copy = structuredClone(body) as AnyRecord;
+  if (!options.includeRequestExamples) {
+    for (const media of Object.values(asRecord(copy.content))) {
+      delete asRecord(media).example;
+      delete asRecord(media).examples;
+    }
+  }
+  return copy;
 }
 
 export function sourceOperation(request: ApiRequest, options: OpenApiExportOptions): AnyRecord | undefined {

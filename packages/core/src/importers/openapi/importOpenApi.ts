@@ -223,7 +223,7 @@ function requestBodyFromOperation(
   };
 }
 
-function selectRequestBodyContent(
+export function selectRequestBodyContent(
   document: AnyRecord,
   contentInput: unknown
 ): { contentType?: string; media: AnyRecord } {

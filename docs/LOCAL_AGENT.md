@@ -167,6 +167,8 @@ This default has no write or network capability. To allow an agent to apply **al
 | `list_collections` | Saved collection/request IDs, hierarchy, routes and variable names |
 | `inspect_request` | Redacted request definition and folder route context |
 | `preview_openapi_import` | Inline OpenAPI/Swagger text → plan ID, expected revision, diff, intent, warnings |
+| `preview_openapi_schema_update` | Refresh selected source schemas, without changing saved execution data |
+| `preview_request_update` / `preview_request_updates` | Preview saved body and/or HTTP header edits in one collection; optional schema refresh in the same review |
 | `show_diff` | Re-check revision and display a stored plan |
 | `preview_bind_bearer` | Variable name + collection/folder/request → plan |
 | `preview_apinizer_jwt` | Collection API origin → JWT recipe plan |
@@ -193,6 +195,54 @@ Profile creation and real credential entry stay in the desktop. MCP passes saved
 No generic filesystem, shell, export, secret-read, raw Authorization, model-download or remote-ref-fetch tool is exposed. For file previews, use the CLI's explicit `--file`; MCP accepts document text rather than unrestricted file paths. Treat imported descriptions/examples as untrusted data, never as agent instructions.
 
 The transport uses the official [MCP TypeScript SDK stdio server](https://ts.sdk.modelcontextprotocol.io/server). The dependency is the maintained v1 SDK, with its exact resolved version in `package-lock.json`.
+
+## Refresh an existing OpenAPI schema
+
+Use `list_collections` to obtain the current `revision`, the target collection ID, and its existing request IDs. Call `preview_openapi_schema_update` with the new OpenAPI 3.x JSON/YAML as inline `text`. For example (replace the IDs, revision, and document):
+
+```json
+{
+  "targetCollectionId": "<existing collection ID>",
+  "text": "{\"openapi\":\"3.0.3\",\"info\":{\"title\":\"Demo\",\"version\":\"2\"},\"paths\":{\"/items\":{\"post\":{\"requestBody\":{\"content\":{\"application/json\":{\"schema\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"}},\"required\":[\"id\"]}}}},\"responses\":{\"200\":{\"description\":\"OK\"}}}}}}",
+  "requestIds": ["<existing POST /items request ID>"],
+  "expectedRevision": "<revision returned by list_collections>"
+}
+```
+
+1. Read the redacted `schemaUpdate` summary for field/requiredness changes, warnings, and other affected operation IDs. `show_diff` takes the returned `planId`. Neither preview nor diff applies contract changes; the desktop may flush already pending editor saves before reading the saved revision.
+2. Call `request_plan_review` with that `planId` and `expectedRevision`. Open the pending review in Specfold. Only the desktop user can approve it and acknowledge the exact additional affected operations. Standalone MCP and CLI cannot approve or apply this action offline.
+3. Read `get_plan_status` once the user has reviewed it. On a revision conflict, obtain the latest IDs/revision and preview again. An unchanged source is a no-op; applying an already committed plan does not create another request.
+
+No request or JWT exchange executes and no network permission is needed. The approved update commits the saved workspace atomically through the desktop owner, takes a local safety backup of the opaque saved data, and honors the existing credential guard. The [schema refresh limits and export behavior](IMPORT_EXPORT_RULES.md#refresh-openapi-schemas-without-replacing-requests) apply to both entry points.
+
+## Edit saved request bodies and HTTP headers
+
+Get exact saved IDs and the current revision with `list_collections`. Use `inspect_request` for the redacted field and HTTP header IDs. A JSON field called `requestHeader` belongs to the body; it is not an HTTP header. The following `preview_request_update` example removes that one JSON field, changes Content-Type by case-insensitive name, and disables a different header by its saved ID:
+
+```json
+{
+  "collectionId": "<collection-id>",
+  "requestId": "<saved-request-id>",
+  "expectedRevision": "<revision>",
+  "body": {
+    "op": "patch-json",
+    "patch": [{ "op": "remove", "path": "/requestHeader" }]
+  },
+  "headers": [
+    { "op": "set-value", "target": { "name": "Content-Type" }, "value": "application/vnd.example+json" },
+    { "op": "set-enabled", "target": { "id": "<saved-header-id>" }, "enabled": false }
+  ]
+}
+```
+
+- Omit `body` or `headers` to leave that part untouched. Body `{"op":"clear"}` removes the payload; `{"op":"replace","mode":"raw","value":""}` saves empty text; a JSON Patch `remove` deletes only the specified field. JSON `null`, an empty field, and a missing field are different things.
+- A full body replacement uses `op: "replace"` and `mode: "json"` with a JSON `value`, `mode: "raw"` with a string `value`, or `mode: "form"` (URL encoded) / `"multipart"` with `fields: [{ "key": "...", "value": "...", "enabled": true }]`. An optional `contentType` edits the body media type, not a manual HTTP header. Multipart accepts only text edits, never a filename, file ID, local path or file content for a file part. Local file selection remains a desktop action.
+- `patch-json` supports JSON Pointer with `add`, `replace`, and `remove`; escape a literal `~` as `~0` and `/` as `~1`. Use `clear` to remove the entire payload. A missing target, duplicate JSON keys, unsafe numeric round-trip, or invalid patch stops the entire preview. Encrypted bodies are not decrypted for structural edits; edit those in the desktop.
+- HTTP header actions are `add` (name, value, optional enabled), `set-value`, `set-enabled`, and `remove`. An empty header value is not removal. Prefer record IDs; a non-unique name is refused. Sensitive values require existing Secret variable references (e.g. `Bearer {{accessToken}}`); never supply literal credentials. Detection of sensitive data is not exhaustive. Request payloads are not echoed in the review. Authentication or media-type conflicts are warnings, not adjustments to auth or unlisted fields.
+
+For one atomic batch, call `preview_request_updates` with `collectionId`, `expectedRevision`, and `updates: [{requestId, body?, headers?}, ...]` (at most 25 distinct requests, one collection). Keep the body under 256 KiB of text, and the batch under the local input budgets. Large or dense batches can be rejected before reaching the per-field limits. To also refresh source schemas, add a separate `schemaUpdate: { "text": "<updated OpenAPI JSON/YAML>", "requestIds": ["<existing request-id>"] }` object. Omit it for a body/header-only plan; use `preview_openapi_schema_update` for schema changes alone. Shared-schema impact still requires separate acknowledgement in the same desktop dialog.
+
+Read `show_diff` and call `request_plan_review` with the returned plan ID and revision, then approve or reject in Specfold. `get_plan_status` reports that decision. Only desktop approval can apply request edits. If the revision changed, inspect the latest saved requests and create a fresh preview in your MCP client; the desktop will not replay positional JSON patches on a different revision. Preview and apply send no API traffic, and the persisted edit does not change URLs, methods, runtime auth, environments, or response examples.
 
 ## Optional network execution
 

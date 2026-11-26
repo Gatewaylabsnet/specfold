@@ -11,9 +11,9 @@ export function buildInitialComponents(
     const importedComponents = asRecord(collection.openApi?.components);
     for (const [key, value] of Object.entries(importedComponents)) {
       if (key === "definitions") {
-        components.schemas = value;
+        components.schemas = structuredClone(value);
       } else {
-        components[key] = value;
+        components[key] = structuredClone(value);
       }
     }
   }
@@ -47,6 +47,26 @@ export function ensureSecuritySchemes(components: AnyRecord): AnyRecord {
   const existing = asRecord(components.securitySchemes);
   components.securitySchemes = existing;
   return existing;
+}
+
+/** Include the local components a refreshed source operation actually uses.
+ *  "Include all" still controls unreferenced source components. */
+export function includeReferencedComponents(output: AnyRecord, source: AnyRecord, operation: AnyRecord): void {
+  const visited = new Set<string>();
+  const next = [operation as unknown];
+  while (next.length) {
+    for (const pointer of referencePointers(next.pop())) {
+      const ref = /^#\/components\/([^/]+)\/([^/]+)/.exec(pointer);
+      if (!ref && !Object.hasOwn(asRecord(source.schemas), pointer)) continue;
+      const section = ref ? decodeRefToken(ref[1]) : "schemas", name = ref ? decodeRefToken(ref[2]) : pointer;
+      const definitions = asRecord(source[section]), id = JSON.stringify([section, name]);
+      if (visited.has(id) || !Object.hasOwn(source, section) || !Object.hasOwn(definitions, name)) continue;
+      visited.add(id);
+      if (!Object.hasOwn(output, section)) output[section] = {};
+      Object.defineProperty(output[section], name, { value: structuredClone(definitions[name]), enumerable: true, configurable: true, writable: true });
+      next.push(definitions[name]);
+    }
+  }
 }
 
 /**
@@ -96,13 +116,31 @@ export function pruneUnusedComponents(paths: AnyRecord, components: AnyRecord): 
 
 export function collectSchemaRefNames(value: unknown): string[] {
   const names = new Set<string>();
-  const pattern = /#\/(?:components\/schemas|definitions)\/([^"/]+)/g;
-  const serialized = JSON.stringify(value) ?? "";
-  let match: RegExpExecArray | null;
-  while ((match = pattern.exec(serialized)) !== null) {
-    names.add(decodeRefToken(match[1]));
+  for (const pointer of referencePointers(value)) {
+    const match = /^#\/(?:components\/schemas|definitions)\/([^/]+)/.exec(pointer);
+    if (match) names.add(decodeRefToken(match[1]));
+    else if (!pointer.startsWith("#") && !pointer.includes("/")) names.add(pointer); // Discriminator mappings can name a schema.
   }
   return [...names];
+}
+
+function referencePointers(value: unknown): string[] {
+  const pointers: string[] = [];
+  const pending = [value];
+  while (pending.length) {
+    const item = pending.pop();
+    if (Array.isArray(item)) {
+      for (const child of item) pending.push(child);
+      continue;
+    }
+    const node = asRecord(item);
+    if (typeof node.$ref === "string") pointers.push(node.$ref);
+    for (const pointer of Object.values(asRecord(asRecord(node.discriminator).mapping))) {
+      if (typeof pointer === "string") pointers.push(pointer);
+    }
+    for (const child of Object.values(node)) pending.push(child);
+  }
+  return pointers;
 }
 
 export function decodeRefToken(token: string): string {

@@ -22,6 +22,7 @@ export function studioMock(workspace = sampleWorkspace()): StudioApi {
     getAgentConnection: vi.fn(async () => ({ available: false, configuration: { command: "Specfold.exe", args: [] }, pending: [] })),
     testAgentConnection: vi.fn(async () => ({ ok: true, message: "Connected" })),
     reviewAgentPlan: vi.fn(async () => { throw new Error("No pending plan"); }),
+    previewSchemaUpdate: vi.fn(async () => { throw new Error("No schema update preview configured"); }),
     refreshAgentPlan: vi.fn(async () => { throw new Error("No pending plan"); }),
     applyAgentPlan: vi.fn(async () => { throw new Error("No pending plan"); }),
     rejectAgentPlan: vi.fn(async () => undefined),

@@ -76,6 +76,7 @@ export function createStorageService(options: StorageServiceOptions) {
   const atomicWrite = options.atomicWrite ?? atomicWriteFile;
   const secureStorageAvailable = () => secureStorage.isEncryptionAvailable();
   const stamp = () => now().toISOString().replace(/[:.]/g, "-");
+  let loadedWithUnreadableSecrets = false;
 
   const encryptValue = (value: string): string => {
     if (!value || value.startsWith(ENCRYPTED_PREFIX) || value.includes("{{")) {
@@ -92,11 +93,13 @@ export function createStorageService(options: StorageServiceOptions) {
       return value;
     }
     if (!secureStorageAvailable()) {
+      loadedWithUnreadableSecrets = true;
       return "";
     }
     try {
       return secureStorage.decryptString(Buffer.from(value.slice(ENCRYPTED_PREFIX.length), "base64"));
     } catch {
+      loadedWithUnreadableSecrets = true;
       return "";
     }
   };
@@ -251,6 +254,7 @@ export function createStorageService(options: StorageServiceOptions) {
       raw = await readFile(paths.workspace, "utf8");
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        loadedWithUnreadableSecrets = false;
         return { workspace: createEmptyWorkspace(), recovered: false, secureStorageAvailable: secure };
       }
       return {
@@ -265,10 +269,13 @@ export function createStorageService(options: StorageServiceOptions) {
         disableFileFields: true,
         rootKind: "workspace"
       });
+      loadedWithUnreadableSecrets = false;
+      const workspace = ensureWorkspaceEnvironment(decryptSecrets(parsed));
       return {
-        workspace: ensureWorkspaceEnvironment(decryptSecrets(parsed)),
+        workspace,
         recovered: false,
-        secureStorageAvailable: secure
+        secureStorageAvailable: secure && !loadedWithUnreadableSecrets,
+        ...(loadedWithUnreadableSecrets ? { message: "Some saved credentials could not be decrypted. Workspace changes cannot be saved until secure storage works and the workspace is reopened." } : {})
       };
     } catch (error) {
       const target = await quarantineCorruptFile();
@@ -282,6 +289,14 @@ export function createStorageService(options: StorageServiceOptions) {
   };
 
   const saveWorkspace = async (workspace: Workspace): Promise<void> => {
+    if (loadedWithUnreadableSecrets) throw new Error("Saved credentials could not be unlocked. Reopen the workspace before saving.");
+    if (!secureStorageAvailable()) {
+      const previous = await readFile(paths.workspace, "utf8").catch((error: NodeJS.ErrnoException) => {
+        if (error.code !== "ENOENT") throw error;
+        return "";
+      });
+      if (previous.includes(ENCRYPTED_PREFIX)) throw new Error("Secure storage is unavailable. Existing encrypted data was not overwritten.");
+    }
     await rotateBackup();
     const normalized = ensureWorkspaceEnvironment(stripTransientUploadData({
       ...workspace,

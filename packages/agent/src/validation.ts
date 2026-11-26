@@ -1,11 +1,20 @@
 import { z } from "zod";
 import { validateConnectionProfile, type Workspace } from "@openapi-collection-studio/core";
 import { AgentError } from "./errors";
+import { batchRequestUpdateShape } from "./requestUpdateInput";
 
 const id = z.string().min(1).max(200);
+export const schemaUpdateInput = {
+  text: z.string().min(1).max(4 * 1024 * 1024),
+  targetCollectionId: id,
+  requestIds: z.array(id).min(1).max(500).refine((ids) => new Set(ids).size === ids.length),
+  expectedRevision: z.string().regex(/^[a-f0-9]{64}$/)
+};
 export const mutationSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("import-openapi"), text: z.string().min(1).max(4 * 1024 * 1024),
     baseUrl: z.string().max(2000).optional(), targetCollectionId: id.optional(), apinizer: z.boolean().optional() }).strict(),
+  z.object({ kind: z.literal("update-openapi-schema"), ...schemaUpdateInput }).strict(),
+  z.object({ kind: z.literal("update-request"), ...batchRequestUpdateShape }).strict(),
   z.object({ kind: z.literal("bind-bearer"), collectionId: id, variableName: z.string().regex(/^[a-zA-Z_][\w.-]{0,127}$/),
     requestId: id.optional(), folderId: id.optional() }).strict(),
   z.object({ kind: z.literal("create-apinizer"), collectionId: id, baseUrl: z.string().max(2000).optional() }).strict()

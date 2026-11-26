@@ -1,3 +1,5 @@
+import { OpenApiSchemaUpdateError } from "@openapi-collection-studio/core";
+
 export class AgentError extends Error {
   constructor(public readonly code: string) { super(code); }
 }
@@ -35,6 +37,28 @@ const messages: Record<string, string> = {
   WORKSPACE_CHANGED: "Saved data changed. Reload the workspace and review your changes before saving again.",
   DATA_DIRECTORY_REQUIRED: "Pass --data-dir with the exact local data folder shown in Specfold Settings.",
   INVALID_OPENAPI: "OpenAPI/Swagger input is invalid. Check the document locally; raw parser errors are not exposed.",
+  SCHEMA_DESKTOP_REVIEW_REQUIRED: "Schema updates require human review in the open Specfold desktop. Offline approval or apply cannot apply these plans.",
+  SCHEMA_IMPACT_APPROVAL_REQUIRED: "Review and explicitly approve every additional request affected by shared schemas in the desktop before applying.",
+  SCHEMA_SOURCE_REDACTION_REQUIRED: "The source has credential-like or personal data in a structural field. Remove or replace it locally before planning an update. Nothing was changed.",
+  SCHEMA_UPDATE_FORMAT: "Use an OpenAPI 3.0 or 3.1 document of the same dialect as the saved collection.",
+  SCHEMA_UPDATE_SELECTION: "Select unique existing request IDs from the target collection.",
+  SCHEMA_UPDATE_LIMIT: "The document or reference graph exceeds the safe schema inspection limit.",
+  SCHEMA_UPDATE_AMBIGUOUS: "The collection or new document contains duplicate operation identities. Resolve them before updating.",
+  SCHEMA_UPDATE_MISSING_MATCH: "One of the selected requests has no unique matching operation in the new document.",
+  SCHEMA_UPDATE_REF_UNSUPPORTED: "Only supported local OpenAPI component references can be refreshed. Resolve unsupported references or dialect features before retrying.",
+  SCHEMA_UPDATE_REF_UNRESOLVED: "A local component reference could not be resolved. Fix the reference before refreshing.",
+  SCHEMA_UPDATE_AUX_COMPONENT: "A selected operation depends on a new or changed non-schema component. Keep auxiliary components unchanged or inline the affected definition.",
+  REQUEST_UPDATE_DESKTOP_REVIEW_REQUIRED: "Request edits can only be applied after human approval in the open Specfold desktop.",
+  REQUEST_UPDATE_INVALID: "Choose a bounded request edit: select existing IDs and check the edit structure, data size, header fields, and body mode.",
+  REQUEST_UPDATE_HEADER_NOT_FOUND: "The selected HTTP header no longer exists. Inspect the current request and use its saved header ID.",
+  REQUEST_UPDATE_HEADER_AMBIGUOUS: "More than one HTTP header matches. Inspect the current request and use an exact saved header ID.",
+  REQUEST_UPDATE_CREDENTIAL_LITERAL: "The proposed edit contains a literal credential or sensitive value. Supply only safe variable references or non-sensitive data. Nothing was stored.",
+  REQUEST_UPDATE_CREDENTIAL_VARIABLE: "Use an existing variable reference for the credential header. Do not supply the literal value.",
+  REQUEST_BODY_INVALID: "The body edit is invalid for this request or body format.",
+  REQUEST_BODY_PATCH_INVALID: "The JSON patch or pointer is invalid for the current saved body. Inspect it and preview a new plan.",
+  REQUEST_BODY_SECRET_REFERENCE_REQUIRED: "Use a variable reference rather than a literal credential in the body.",
+  REQUEST_BODY_LIMIT: "The body edit exceeds the safe local processing limit.",
+  REQUEST_BODY_OPAQUE: "The saved body is encrypted and cannot be patched without revealing it. Use the desktop editor.",
   UNSAFE_DATA_PATH: "A linked or unsafe data path was rejected.",
   UNPROTECTED_SECRET: "The saved workspace contains literal credentials. Mark environment credentials as Secret and save with secure storage available, or replace inline credentials with variable references, before agent writes.",
   INPUT_TOO_LARGE: "Input or returned context exceeds the local integration size limit. Use a smaller document or inspect individual requests.",
@@ -53,6 +77,7 @@ const messages: Record<string, string> = {
 
 /** Never echo parser errors, raw arguments, document fragments, secrets or paths. */
 export function safeAgentError(error: unknown): { code: string; message: string } {
-  const code = error instanceof Error && Object.hasOwn(messages, error.message) ? error.message : "OPERATION_FAILED";
+  const candidate = error instanceof OpenApiSchemaUpdateError ? error.code : error instanceof Error ? error.message : "";
+  const code = Object.hasOwn(messages, candidate) ? candidate : "OPERATION_FAILED";
   return { code, message: messages[code] ?? "Operation could not be completed. Review IDs and input structure locally." };
 }

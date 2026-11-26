@@ -1,4 +1,4 @@
-import type { AgentMutation } from "@openapi-collection-studio/core";
+import type { AgentMutation, OpenApiSchemaUpdateSummary, RequestUpdateSummary } from "@openapi-collection-studio/core";
 
 export type DesktopAgentCall =
   | { operation: "ping" }
@@ -22,6 +22,8 @@ export interface AgentPlanReview {
   collection: { name: string; baseUrl?: string };
   diff: { added: string[]; changed: string[]; retained: number; requestCount: number };
   warnings: string[];
+  schemaUpdate?: OpenApiSchemaUpdateSummary;
+  requestUpdate?: RequestUpdateSummary;
   intent: { kind: string; tokenVariable?: string; variableName?: string; apinizer?: boolean;
     targetCollectionId?: string; collectionId?: string; requestId?: string; folderId?: string; baseUrl?: string };
   status: "pending" | "applied" | "rejected" | "stale";
@@ -39,3 +41,10 @@ export interface AgentConnectionInfo {
 export interface AgentSessionSelection { collectionId: string; requestIds: string[] }
 export type AgentPlanDiff = Omit<AgentPlanReview, "status" | "collectionId">;
 export type AgentPreview = AgentPlanDiff & { approvalRequired: boolean; expiresAfterHours: number; networkRequests: number };
+export interface AgentApplyResult {
+  planId: string;
+  revision: string;
+  collectionId: string;
+  alreadyApplied: boolean;
+  safetyBackup?: string;
+}

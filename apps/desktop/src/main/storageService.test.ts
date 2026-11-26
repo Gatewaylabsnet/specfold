@@ -118,6 +118,34 @@ describe("storage service", () => {
     expect(loaded.workspace.environments[0].variables[0].value).toBe("");
   });
 
+  it("does not replace encrypted credentials when an editor flush follows a keychain failure", async () => {
+    const paths = storagePaths(await testDirectory());
+    let available = true, decryptable = true;
+    const original = secureStorage();
+    const service = createStorageService({ paths, appVersion: "1.12.1", secureStorage: {
+      ...original, isEncryptionAvailable: () => available,
+      decryptString: (value) => {
+        if (!decryptable) throw new Error("simulated OS keychain failure");
+        return original.decryptString(value);
+      }
+    } });
+    const workspace = workspaceWithSecret("Before", "synthetic-keychain-secret");
+    await service.saveWorkspace(workspace);
+    const raw = await readFile(paths.workspace, "utf8");
+    available = false;
+    await expect(service.saveWorkspace(workspace)).rejects.toThrow("Existing encrypted data was not overwritten");
+    available = true; decryptable = false;
+    const locked = await service.loadWorkspace();
+    expect(locked.secureStorageAvailable).toBe(false);
+    await expect(service.saveWorkspace(locked.workspace)).rejects.toThrow("could not be unlocked");
+    expect(await readFile(paths.workspace, "utf8")).toBe(raw);
+    decryptable = true;
+    const restored = await service.loadWorkspace();
+    expect(restored.workspace.environments[0].variables[0].value).toBe("synthetic-keychain-secret");
+    await service.saveWorkspace({ ...restored.workspace, name: "After" });
+    expect((await service.loadWorkspace()).workspace.name).toBe("After");
+  });
+
   it("encrypts variables referenced as folder access tokens even when not manually marked secret", async () => {
     const userData = await testDirectory();
     const paths = storagePaths(userData);

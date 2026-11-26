@@ -79,6 +79,11 @@ export interface WorkflowProfileSaveInput {
   credentials?: Record<string, string>;
   expectedGeneration: number;
 }
+export interface SchemaUpdateInput {
+  targetCollectionId: string;
+  openApiText: string;
+  requestIds: string[];
+}
 export type WorkflowProfileSaveResult = WorkspaceLoadResult & { profileId: string };
 
 export interface RestoreBackupResult {
@@ -177,7 +182,8 @@ export interface StudioApi {
   testAgentConnection(): Promise<{ ok: boolean; message: string }>;
   reviewAgentPlan(planId: string): Promise<AgentPlanReview>;
   refreshAgentPlan(planId: string): Promise<AgentPlanReview>;
-  applyAgentPlan(planId: string, expectedRevision: string): Promise<WorkspaceLoadResult & { collectionId: string }>;
+  previewSchemaUpdate(input: SchemaUpdateInput): Promise<AgentPlanReview>;
+  applyAgentPlan(planId: string, expectedRevision: string, approvedAffectedRequestIds?: string[]): Promise<WorkspaceLoadResult & { collectionId: string }>;
   rejectAgentPlan(planId: string): Promise<void>;
   startAgentSession(selection: AgentSessionSelection): Promise<AgentConnectionInfo>;
   stopAgentSession(): Promise<void>;

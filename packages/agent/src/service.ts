@@ -14,7 +14,9 @@ import { mutationSchema } from "./validation";
 import { callDesktopHost, callNetworkHost } from "./networkTransport";
 import { assertOpaqueCredentialStorage } from "./secretGuard";
 import { acquireWorkspaceLease } from "./workspaceLock";
-import type { AgentPlanDiff, AgentPreview } from "./desktopContracts";
+import { safeSchemaUpdateText } from "./schemaUpdateSource";
+import { assertSafeRequestUpdateInput } from "./requestUpdateGuard";
+import type { AgentApplyResult, AgentPlanDiff, AgentPreview } from "./desktopContracts";
 import type { ApiRequest } from "@openapi-collection-studio/core";
 
 interface StoredPlan {
@@ -29,6 +31,7 @@ interface StoredPlan {
 }
 const PLAN_TTL_MS = 24 * 60 * 60 * 1000;
 const checkId = (id: string) => { if (!/^[a-f0-9]{64}$/.test(id)) throw new AgentError("INVALID_PLAN"); };
+const needsRevision = (action: AgentMutation) => action.kind === "update-openapi-schema" || action.kind === "update-request";
 
 export class AgentService {
   constructor(readonly repository: AgentRepository, readonly allowApply = false, readonly allowNetwork = false,
@@ -83,15 +86,31 @@ export class AgentService {
   async preview(input: unknown): Promise<AgentPreview> {
     const parsed = mutationSchema.safeParse(input);
     if (!parsed.success) throw new AgentError("INVALID_PLAN");
-    if (this.desktopOnly) return callDesktopHost(this.repository.root, { operation: "preview", action: parsed.data });
+    if (this.desktopOnly) {
+      if (parsed.data.kind === "update-request") assertSafeRequestUpdateInput(parsed.data, []);
+      return callDesktopHost(this.repository.root, { operation: "preview", action: parsed.data });
+    }
     const { workspace, revision } = await this.repository.snapshot();
     let action = parsed.data;
+    if (needsRevision(action) && action.expectedRevision !== revision) throw new AgentError("REVISION_CONFLICT");
+    const secrets = workspaceSecrets(workspace);
+    if (action.kind === "update-openapi-schema") {
+      action = { ...action, requestIds: [...action.requestIds].sort(), text: safeSchemaUpdateText(action.text, secrets) };
+    } else if (action.kind === "update-request") {
+      assertOpaqueCredentialStorage(workspace);
+      assertSafeRequestUpdateInput(action, secrets);
+      if (action.schemaUpdate) {
+        const { text, requestIds } = action.schemaUpdate;
+        action = { ...action, schemaUpdate: { text: safeSchemaUpdateText(text, secrets), requestIds: [...requestIds].sort() } };
+      }
+    }
     let proposal;
     try { proposal = previewAgentMutation(workspace, action); }
     catch (error) {
       if (action.kind === "import-openapi") throw new AgentError("INVALID_OPENAPI");
       throw error;
     }
+    if (action.kind === "update-request") assertOpaqueCredentialStorage(applyAgentProposal(workspace, proposal));
     if (action.kind === "import-openapi") {
       // Store only sanitized source data; imported secrets/PII never enter a plan file.
       const document = parseApiText(action.text).document;
@@ -127,9 +146,12 @@ export class AgentService {
         await atomicWriteFile(path, JSON.stringify(plan));
       }
     } finally { release(); }
-    return redactAgentValue({ planId: id, expectedRevision: revision, diff: proposal.diff,
+    const summary = redactAgentValue({ diff: proposal.diff, schemaUpdate: proposal.schemaUpdate, requestUpdate: proposal.requestUpdate,
       warnings: [...new Set(proposal.warnings)], collection: { name: proposal.collection.name, baseUrl: proposal.collection.baseUrl },
-      intent: this.intent(action), approvalRequired: true, expiresAfterHours: 24, networkRequests: 0 }, workspaceSecrets(workspace));
+      intent: this.intent(action), approvalRequired: true, expiresAfterHours: 24, networkRequests: 0 }, secrets);
+    // These are generated digests, not workspace values. Redaction must not
+    // invalidate an identifier when it coincidentally contains a masked substring.
+    return { ...summary, planId: id, expectedRevision: revision };
   }
 
   async loadPlan(id: string): Promise<StoredPlan> {
@@ -146,6 +168,7 @@ export class AgentService {
           typeof plan.createdAt !== "number" || !Number.isFinite(plan.createdAt) ||
           (!allowExpired && Date.now() - plan.createdAt > PLAN_TTL_MS) ||
           plan.createdAt > Date.now() + 1000 || !mutationSchema.safeParse(plan.action).success ||
+          (needsRevision(plan.action) && plan.action.expectedRevision !== plan.expectedRevision) ||
           typeof signature !== "string" || !/^[a-f0-9]{64}$/.test(signature)) throw new AgentError("INVALID_PLAN");
       const expected = await this.sign(payload);
       if (!timingSafeEqual(Buffer.from(signature, "hex"), Buffer.from(expected, "hex"))) throw new AgentError("INVALID_PLAN");
@@ -189,15 +212,23 @@ export class AgentService {
     const { workspace, revision } = await this.repository.snapshot();
     if (revision !== plan.expectedRevision) throw new AgentError("REVISION_CONFLICT");
     const proposal = previewAgentMutation(workspace, plan.action);
-    return redactAgentValue({ planId, expectedRevision: revision, diff: proposal.diff,
+    const summary = redactAgentValue({ diff: proposal.diff, schemaUpdate: proposal.schemaUpdate, requestUpdate: proposal.requestUpdate,
       collection: { name: proposal.collection.name, baseUrl: proposal.collection.baseUrl },
       warnings: plan.warnings, intent: this.intent(plan.action) }, workspaceSecrets(workspace));
+    return { ...summary, planId, expectedRevision: revision };
   }
 
   /** Called only after interactive CLI or trusted desktop human approval. */
   async approve(planId: string, expectedRevision: string) {
     if (this.desktopOnly) throw new AgentError("APPROVAL_REQUIRED");
     const plan = await this.loadPlan(planId);
+    if (plan.action.kind === "update-openapi-schema") throw new AgentError("SCHEMA_DESKTOP_REVIEW_REQUIRED");
+    if (plan.action.kind === "update-request") throw new AgentError("REQUEST_UPDATE_DESKTOP_REVIEW_REQUIRED");
+    return this.recordApproval(plan, expectedRevision);
+  }
+
+  private async recordApproval(plan: StoredPlan, expectedRevision: string) {
+    const planId = plan.id;
     const { revision } = await this.repository.snapshot();
     if (plan.expectedRevision !== expectedRevision || revision !== expectedRevision) throw new AgentError("REVISION_CONFLICT");
     const approvalPayload = { planId, expectedRevision, planSignature: plan.signature };
@@ -206,19 +237,21 @@ export class AgentService {
     return { planId, approved: true, expectedRevision };
   }
 
-  async apply(planId: string, expectedRevision: string): Promise<{ planId: string; revision: string; collectionId: string; alreadyApplied: boolean; safetyBackup?: string }> {
+  async apply(planId: string, expectedRevision: string): Promise<AgentApplyResult> {
     if (this.desktopOnly) throw new AgentError("WRITES_DISABLED");
     return this.applyLocally(planId, expectedRevision, false);
   }
 
   /** Only the trusted desktop UI calls this. No MCP approval tool exists. */
-  async approveAndApply(planId: string, expectedRevision: string) {
-    return this.applyLocally(planId, expectedRevision, true);
+  async approveAndApply(planId: string, expectedRevision: string, approvedAffectedRequestIds?: string[]) {
+    return this.applyLocally(planId, expectedRevision, true, approvedAffectedRequestIds);
   }
 
-  private async applyLocally(planId: string, expectedRevision: string, desktopApproval: boolean) {
+  private async applyLocally(planId: string, expectedRevision: string, desktopApproval: boolean, approvedAffectedRequestIds?: string[]): Promise<AgentApplyResult> {
     if (!this.allowApply) throw new AgentError("WRITES_DISABLED");
     const plan = await this.loadPlan(planId);
+    if (plan.action.kind === "update-openapi-schema" && !desktopApproval) throw new AgentError("SCHEMA_DESKTOP_REVIEW_REQUIRED");
+    if (plan.action.kind === "update-request" && !desktopApproval) throw new AgentError("REQUEST_UPDATE_DESKTOP_REVIEW_REQUIRED");
     if (expectedRevision !== plan.expectedRevision) throw new AgentError("REVISION_CONFLICT");
     return this.repository.locked(async () => {
       const snapshot = await this.repository.snapshot();
@@ -233,16 +266,27 @@ export class AgentService {
       } catch { /* An absent receipt does not grant permission. */ }
       if (snapshot.revision !== expectedRevision) throw new AgentError("REVISION_CONFLICT");
       assertOpaqueCredentialStorage(snapshot.workspace);
+      const reviewedProposal = needsRevision(plan.action)
+        ? previewAgentMutation(snapshot.workspace, plan.action) : undefined;
+      if (reviewedProposal?.schemaUpdate) {
+        const summary = reviewedProposal.schemaUpdate;
+        const approved = new Set(approvedAffectedRequestIds ?? []);
+        if (approved.size !== (approvedAffectedRequestIds?.length ?? 0) || approved.size !== summary.affectedRequestIds.length ||
+            summary.affectedRequestIds.some((id) => !approved.has(id))) throw new AgentError("SCHEMA_IMPACT_APPROVAL_REQUIRED");
+      }
+      if (reviewedProposal && !reviewedProposal.schemaUpdate?.changed && !reviewedProposal.requestUpdate?.changed) {
+        return { planId, revision: snapshot.revision, collectionId: plan.collectionId, alreadyApplied: true };
+      }
       const approvalPath = join(directory, `${planId}.approval.json`);
       try {
-        if (desktopApproval) await this.approve(planId, expectedRevision);
+        if (desktopApproval) await this.recordApproval(plan, expectedRevision);
         try {
           const approval = JSON.parse(await readBoundedFile(approvalPath, 4096));
           if (approval.planId !== planId || approval.expectedRevision !== expectedRevision ||
               approval.planSignature !== plan.signature ||
               approval.signature !== await this.sign({ planId, expectedRevision, planSignature: plan.signature })) throw new AgentError("APPROVAL_REQUIRED");
         } catch { throw new AgentError("APPROVAL_REQUIRED"); }
-        const proposal = previewAgentMutation(snapshot.workspace, plan.action);
+        const proposal = reviewedProposal ?? previewAgentMutation(snapshot.workspace, plan.action);
         if (!proposal.targetCollectionId) proposal.collection.id = plan.collectionId;
         const workspace = applyAgentProposal(snapshot.workspace, proposal);
         assertOpaqueCredentialStorage(workspace);
@@ -284,6 +328,8 @@ export class AgentService {
   private intent(action: AgentMutation) {
     if (action.kind === "import-openapi") return { kind: action.kind, targetCollectionId: action.targetCollectionId, apinizer: action.apinizer === true,
       tokenVariable: action.apinizer ? "apinizerAuthAccessToken" : undefined };
+    if (action.kind === "update-openapi-schema") return { kind: action.kind, targetCollectionId: action.targetCollectionId };
+    if (action.kind === "update-request") return { kind: action.kind, collectionId: action.collectionId };
     if (action.kind === "bind-bearer") return { kind: action.kind, collectionId: action.collectionId, variableName: action.variableName,
       requestId: action.requestId, folderId: action.folderId };
     return { kind: action.kind, collectionId: action.collectionId, baseUrl: action.baseUrl };

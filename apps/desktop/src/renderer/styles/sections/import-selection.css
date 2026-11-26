@@ -56,3 +56,16 @@
   font-size: 12px;
 }
 
+.schema-update-layout .pane__header { flex-wrap: wrap; }
+.schema-update-layout .pane__header .button-row { flex-wrap: wrap; }
+.schema-update-layout .source-textarea { min-height: 10rem; }
+
+@media (max-width: 1180px) {
+  .schema-update-layout { grid-template-columns: minmax(0, 1fr) minmax(215px, 38%); }
+}
+
+@media (max-width: 850px) {
+  .schema-update-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: max-content max-content; overflow: auto; }
+  .schema-update-layout .source-textarea { height: 12rem; }
+}
+

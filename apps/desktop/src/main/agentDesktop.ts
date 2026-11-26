@@ -2,7 +2,7 @@ import { app, dialog, ipcMain } from "electron";
 import { AgentService } from "../../../../packages/agent/src/service";
 import { safeAgentError } from "../../../../packages/agent/src/errors";
 import type { DesktopAgentCall } from "../../../../packages/agent/src/desktopContracts";
-import type { AgentConnectionInfo, AgentPlanReview, AgentSessionSelection } from "../shared/contracts";
+import type { AgentConnectionInfo, AgentPlanReview, AgentSessionSelection, SchemaUpdateInput } from "../shared/contracts";
 import { agentEvent, DesktopAgentRepository, flushAgentEditor } from "./agentWorkspace";
 import { agentConfiguration, testBundledAgent } from "./agentConnection";
 import { agentDocumentation, networkSession, resetAgentExecution, sendAgentRequest, startAgentSession } from "./agentExecution";
@@ -14,13 +14,14 @@ import { cancelWorkflowRun, previewWorkflowPlan, resetWorkflowState, runWorkflow
 let service: AgentService | undefined;
 let available = false, lastConnectedAt: string | undefined;
 const reviews = new Map<string, AgentPlanReview>();
+const desktopSchemaPlans = new Set<string>();
 const agentService = () => service ??= new AgentService(new DesktopAgentRepository(app.getPath("userData")), true);
 const planId = (value: unknown): string => {
   if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value)) throw new Error("INVALID_PLAN");
   return value;
 };
 export function setAgentHostAvailable(value: boolean): void { available = value; }
-export function resetAgentState(): void { reviews.clear(); resetAgentExecution(); resetWorkflowState(); }
+export function resetAgentState(): void { reviews.clear(); desktopSchemaPlans.clear(); resetAgentExecution(); resetWorkflowState(); }
 export function revokeAgentSession(): void { networkSession.stop(); cancelWorkflowRun(true); }
 
 async function connectionInfo(): Promise<AgentConnectionInfo> {
@@ -79,6 +80,24 @@ export function registerAgentIpc(): void {
   });
   handle("agent:connection", connectionInfo);
   handle("agent:test", testBundledAgent);
+  handle("schema-update:preview", async (value: unknown) => {
+    if (!value || typeof value !== "object") throw new Error("INVALID_ARGUMENTS");
+    const input = value as SchemaUpdateInput;
+    if (typeof input.openApiText !== "string" || input.openApiText.length > 4 * 1024 * 1024 ||
+        typeof input.targetCollectionId !== "string" || !Array.isArray(input.requestIds)) throw new Error("INVALID_ARGUMENTS");
+    await flushAgentEditor();
+    const service = agentService();
+    const { revision } = await service.repository.snapshot();
+    const action = { kind: "update-openapi-schema", targetCollectionId: input.targetCollectionId,
+      text: input.openApiText, requestIds: input.requestIds, expectedRevision: revision };
+    const { planId: key } = await service.preview(action);
+    if (reviews.size >= 128 && !reviews.has(key)) throw new Error("PLAN_LIMIT");
+    const review: AgentPlanReview = { ...await service.showDiff(key), status: "pending" };
+    reviews.set(key, review);
+    desktopSchemaPlans.add(key);
+    agentEvent("review");
+    return review;
+  });
   handle("agent:review", async (id: unknown) => {
     const key = planId(id), existing = reviews.get(key);
     if (!existing) throw new Error("REVIEW_NOT_FOUND");
@@ -94,19 +113,27 @@ export function registerAgentIpc(): void {
     if (!old || old.status === "applied") throw new Error("REVIEW_NOT_FOUND");
     await flushAgentEditor();
     const action = (await agentService().loadPlan(key)).action;
+    // Positional JSON edits must be re-inspected by the client after a revision
+    // change, not replayed against an implicitly refreshed array or header.
+    if (action.kind === "update-request") throw new Error("REVISION_CONFLICT");
+    if (action.kind === "update-openapi-schema") action.expectedRevision = (await agentService().repository.snapshot()).revision;
     const preview = await agentService().preview(action) as { planId: string };
     const diff = await agentService().showDiff(preview.planId) as Omit<AgentPlanReview, "status">;
     old.status = "rejected";
     const review: AgentPlanReview = { ...diff, status: "pending" };
+    if (desktopSchemaPlans.has(key)) desktopSchemaPlans.add(preview.planId);
     reviews.set(preview.planId, review); agentEvent("review"); return review;
   });
-  handle("agent:apply", async (id: unknown, expected: unknown) => {
+  handle("agent:apply", async (id: unknown, expected: unknown, affected: unknown) => {
     const key = planId(id), revision = planId(expected), review = reviews.get(key);
     if (!review || review.expectedRevision !== revision || review.status === "rejected") throw new Error("APPROVAL_REQUIRED");
-    if (!(await loadSettings()).agentEnabled) throw new Error("AGENT_DISABLED");
+    if (affected !== undefined && (!Array.isArray(affected) || affected.length > 500 ||
+        affected.some((entry) => typeof entry !== "string" || entry.length > 200))) throw new Error("INVALID_ARGUMENTS");
+    if (!desktopSchemaPlans.has(key) && !(await loadSettings()).agentEnabled) throw new Error("AGENT_DISABLED");
     await flushAgentEditor();
+    if (reviews.get(key) !== review || reviews.get(key)?.status === "rejected") throw new Error("APPROVAL_REQUIRED");
     let result;
-    try { result = await agentService().approveAndApply(key, revision); }
+    try { result = await agentService().approveAndApply(key, revision, affected as string[] | undefined); }
     catch (error) { if ((error as Error).message === "REVISION_CONFLICT") review.status = "stale"; throw error; }
     review.status = "applied"; review.collectionId = result.collectionId;
     networkSession.stop();

@@ -3,9 +3,11 @@ import { findFolder, findRequest, flattenRequests, folderBaseUrl } from "../mode
 import type { Collection, Workspace } from "../model/types";
 import { importApiDocument } from "../importers";
 import { applySafeReimport, stableRequestKey } from "../importers/reimport";
+import { planOpenApiSchemaUpdate } from "../importers/schemaUpdate";
 import { parseApiText } from "../importers/shared";
 import { agentOpenApiWarnings } from "./openApiWarnings";
 import { redactAgentValue, workspaceSecrets } from "./redaction";
+import { planRequestEdits } from "./requestUpdate";
 import type { AgentMutation, AgentProposal } from "./types";
 
 export function requireAgentCollection(workspace: Workspace, id: string): Collection {
@@ -50,6 +52,8 @@ export function previewAgentMutation(workspace: Workspace, input: AgentMutation)
   let target: Collection | undefined;
   let collection: Collection;
   let warnings: string[] = [];
+  let schemaUpdate: AgentProposal["schemaUpdate"];
+  let requestUpdate: AgentProposal["requestUpdate"];
   if (input.kind === "import-openapi") {
     const parsed = parseApiText(input.text);
     warnings = agentOpenApiWarnings(parsed.document);
@@ -69,6 +73,23 @@ export function previewAgentMutation(workspace: Workspace, input: AgentMutation)
       addAgentApinizer(collection);
       bindAgentBearer(collection, "apinizerAuthAccessToken");
     }
+  } else if (input.kind === "update-openapi-schema") {
+    target = requireAgentCollection(workspace, input.targetCollectionId);
+    const imported = importApiDocument(input.text, { grouping: "tags" });
+    const update = planOpenApiSchemaUpdate(target, imported.collection, { requestIds: input.requestIds });
+    collection = update.collection;
+    schemaUpdate = update.summary;
+    warnings = imported.warnings;
+  } else if (input.kind === "update-request") {
+    target = requireAgentCollection(workspace, input.collectionId);
+    if (input.schemaUpdate) {
+      const imported = importApiDocument(input.schemaUpdate.text, { grouping: "tags" });
+      const update = planOpenApiSchemaUpdate(target, imported.collection, { requestIds: input.schemaUpdate.requestIds });
+      collection = update.collection;
+      schemaUpdate = update.summary;
+      warnings = imported.warnings;
+    } else collection = structuredClone(target);
+    requestUpdate = planRequestEdits(collection, workspace, input.updates);
   } else {
     target = requireAgentCollection(workspace, input.collectionId);
     collection = structuredClone(target);
@@ -81,10 +102,17 @@ export function previewAgentMutation(workspace: Workspace, input: AgentMutation)
     if (!oldRequests.has(request.id)) added.push(stableRequestKey(request));
     else if (JSON.stringify(oldRequests.get(request.id)) !== JSON.stringify(request)) changed.push(stableRequestKey(request));
   }
+  if (schemaUpdate?.changed) {
+    const affected = new Set(schemaUpdate.affectedRequestIds);
+    for (const { request } of flattenRequests(collection)) {
+      const operation = stableRequestKey(request);
+      if (affected.has(request.id) && !changed.includes(operation)) changed.push(operation);
+    }
+  }
   // This is an internal proposal; transports expose only redacted summaries
   // and store the action, never this complete target collection, in plan files.
   return {
-    collection, targetCollectionId: target?.id, warnings: redactAgentValue(warnings, workspaceSecrets(workspace)),
+    collection, targetCollectionId: target?.id, warnings: redactAgentValue(warnings, workspaceSecrets(workspace)), schemaUpdate, requestUpdate,
     diff: { added, changed, retained: oldRequests.size - changed.length, requestCount: flattenRequests(collection).length }
   };
 }
@@ -96,7 +124,7 @@ export function applyAgentProposal(workspace: Workspace, proposal: AgentProposal
   if (index >= 0) next.collections[index] = proposal.collection;
   else next.collections.push(proposal.collection);
   next.updatedAt = new Date().toISOString();
-  return ensureWorkspaceEnvironment(next);
+  return proposal.schemaUpdate || proposal.requestUpdate ? next : ensureWorkspaceEnvironment(next);
 }
 
 export function validateAgentCollection(workspace: Workspace, id: string) {

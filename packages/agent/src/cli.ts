@@ -65,6 +65,8 @@ export async function runCli(service: AgentService, command: string, options: Re
       if (!process.stdin.isTTY || !process.stderr.isTTY) throw new AgentError("APPROVAL_REQUIRED");
       const plan = required("plan"), revision = required("revision");
       const diff = await service.showDiff(plan);
+      if (diff.requestUpdate) throw new AgentError("REQUEST_UPDATE_DESKTOP_REVIEW_REQUIRED");
+      if (diff.schemaUpdate) throw new AgentError("SCHEMA_DESKTOP_REVIEW_REQUIRED");
       process.stderr.write(`${JSON.stringify(diff, null, 2)}\n`);
       const reader = createInterface({ input: process.stdin, output: process.stderr });
       try {
