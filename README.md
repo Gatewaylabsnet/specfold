@@ -90,15 +90,15 @@ Read the [1.14.0 release notes](docs/RELEASE_NOTES_v1.14.0.md) and [changelog](C
 
 | Platform | Package | Download |
 | --- | --- | --- |
-| Windows x64 | Installer | [Specfold-1.14.0-x64.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.14.0/Specfold-1.14.0-x64.exe) |
-| Windows x64 | Portable app | [Specfold-1.14.0-x64-portable.exe](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.14.0/Specfold-1.14.0-x64-portable.exe) |
-| macOS Apple Silicon | DMG | [Specfold-1.14.0-mac-arm64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.14.0/Specfold-1.14.0-mac-arm64.dmg) |
-| macOS Apple Silicon | ZIP | [Specfold-1.14.0-mac-arm64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.14.0/Specfold-1.14.0-mac-arm64.zip) |
-| macOS Intel | DMG | [Specfold-1.14.0-mac-x64.dmg](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.14.0/Specfold-1.14.0-mac-x64.dmg) |
-| macOS Intel | ZIP | [Specfold-1.14.0-mac-x64.zip](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.14.0/Specfold-1.14.0-mac-x64.zip) |
-| Linux x64 | AppImage | [Specfold-1.14.0-linux-x86_64.AppImage](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.14.0/Specfold-1.14.0-linux-x86_64.AppImage) |
-| Linux x64 | Debian package | [Specfold-1.14.0-linux-amd64.deb](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.14.0/Specfold-1.14.0-linux-amd64.deb) |
-| All platforms | SHA-256 checksums | [SHA256SUMS.txt](https://github.com/Gatewaylabsnet/specfold/releases/download/v1.14.0/SHA256SUMS.txt) |
+| Windows x64 | Installer | [Specfold-1.14.0-x64.exe](https://github.com/gatewaylabsnet/specfold/releases/download/v1.14.0/Specfold-1.14.0-x64.exe) |
+| Windows x64 | Portable app | [Specfold-1.14.0-x64-portable.exe](https://github.com/gatewaylabsnet/specfold/releases/download/v1.14.0/Specfold-1.14.0-x64-portable.exe) |
+| macOS Apple Silicon | DMG | [Specfold-1.14.0-mac-arm64.dmg](https://github.com/gatewaylabsnet/specfold/releases/download/v1.14.0/Specfold-1.14.0-mac-arm64.dmg) |
+| macOS Apple Silicon | ZIP | [Specfold-1.14.0-mac-arm64.zip](https://github.com/gatewaylabsnet/specfold/releases/download/v1.14.0/Specfold-1.14.0-mac-arm64.zip) |
+| macOS Intel | DMG | [Specfold-1.14.0-mac-x64.dmg](https://github.com/gatewaylabsnet/specfold/releases/download/v1.14.0/Specfold-1.14.0-mac-x64.dmg) |
+| macOS Intel | ZIP | [Specfold-1.14.0-mac-x64.zip](https://github.com/gatewaylabsnet/specfold/releases/download/v1.14.0/Specfold-1.14.0-mac-x64.zip) |
+| Linux x64 | AppImage | [Specfold-1.14.0-linux-x86_64.AppImage](https://github.com/gatewaylabsnet/specfold/releases/download/v1.14.0/Specfold-1.14.0-linux-x86_64.AppImage) |
+| Linux x64 | Debian package | [Specfold-1.14.0-linux-amd64.deb](https://github.com/gatewaylabsnet/specfold/releases/download/v1.14.0/Specfold-1.14.0-linux-amd64.deb) |
+| All platforms | SHA-256 checksums | [SHA256SUMS.txt](https://github.com/gatewaylabsnet/specfold/releases/download/v1.14.0/SHA256SUMS.txt) |
 
 Earlier releases remain available from the [release archive](https://github.com/Gatewaylabsnet/specfold/releases).
 
