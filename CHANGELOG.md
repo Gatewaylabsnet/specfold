@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.14.0
+
+- Open the response above the token and variable controls after sending an Auth request. Hide detected sensitive values until revealed.
+- Automatically store supported Bearer access tokens as encrypted secrets for the active environment. Reuse them on eligible same-origin manual requests within the collection while preserving explicit request and folder auth.
+- Add a per-collection opt-out in Auth. Automatic reuse does not follow redirects or bypass TLS validation, and is not inherited by MCP or guided tests.
+
+See the [release notes](docs/RELEASE_NOTES_v1.14.0.md) for compatibility and upgrade guidance.
+
 ## 1.13.0
 
 - Refresh selected existing OpenAPI schemas and source examples without replacing saved request data. Review shared schema impacts before applying.
