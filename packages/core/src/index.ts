@@ -11,6 +11,8 @@ export * from "./exporters/portable/postman";
 export * from "./exporters/portable/http";
 export * from "./variables/resolveVariables";
 export * from "./http/prepareHttpRequest";
+export { collectionBearerForRequest, collectionTokenOrigin, isCollectionBearerToken, isCollectionTokenIssuer,
+  resolveCollectionTokenRequestUrl } from "./http/collectionBearer";
 export * from "./curl/curl";
 export * from "./storage/storage";
 export * from "./agent/types";

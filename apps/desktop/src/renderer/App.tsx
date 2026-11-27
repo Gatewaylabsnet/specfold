@@ -61,7 +61,7 @@ export function App() {
     toggleImportOperation, handlePreviewImport, handleImport, copyActiveRequestAsCurl,
     sendActiveRequest, updateEnvironment, updateEnvironmentBaseUrl, createNewEnvironment,
     selectEnvironment, deleteEnvironment,
-    updateSettings, assignResponseValue, bindResponseToken, saveResponseAsExample, saveExport, copyExportToClipboard, exportFullBackup,
+    updateSettings, assignResponseValue, bindResponseToken, toggleCollectionTokenCapture, saveResponseAsExample, saveExport, copyExportToClipboard, exportFullBackup,
     restoreFullBackup, deleteAllData, isDeletingData, treeActions,
     agentConnection, agentReview, agentBusy, agentError, openAgentReview, applyAgentReview,
     rejectAgentReview, refreshAgentReview, closeAgentReview, previewSchemaUpdate
@@ -287,6 +287,7 @@ export function App() {
               onUpdateRequest={updateActiveRequest}
               onAssignResponseValue={assignResponseValue}
               onBindToken={bindResponseToken}
+              onToggleCollectionTokenCapture={toggleCollectionTokenCapture}
               tokenBindingContext={activeCollection && activeEnvironment && activeRequest ? { workspace,
                 collectionId: activeCollection.id, environmentId: activeEnvironment.id, sourceRequestId: activeRequest.id,
                 secureStorageAvailable } : undefined}

@@ -22,6 +22,8 @@ export interface ResponseState {
   rawBody: string;
   truncated?: boolean;
   error?: string;
+  tokenIssuerOrigin?: string;
+  collectionTokenCapture?: "saved" | "skipped";
 }
 
 export interface ResponseHistoryEntry { at: string; response: ResponseState; }

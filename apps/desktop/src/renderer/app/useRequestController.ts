@@ -16,6 +16,7 @@ import type { ResponseState } from "./types";
 import type { StudioState } from "./useStudioState";
 import type { WorkspaceController } from "./useWorkspaceController";
 import { useSettingsUpdates } from "./useSettingsUpdates";
+import { prepareCollectionTokenCapture } from "./collectionTokenCapture";
 
 export function useRequestController(state: StudioState, workspaceController: WorkspaceController) {
   const { workspace, setWorkspace, loaded, setLoaded, screen, setScreen,
@@ -33,6 +34,9 @@ export function useRequestController(state: StudioState, workspaceController: Wo
     settings, setSettings, notice, setNotice, activeCollection, activeRequestLocation,
     activeRequest, activeEnvironment, exportResult, exportContent, mutateWorkspace, saveWorkspaceNow } = state;
   const { updateActiveRequest } = workspaceController;
+  const latest = useRef({ workspace, activeCollectionId, selectedRequestId, secure: state.secureStorageAvailable });
+  latest.current = { workspace, activeCollectionId, selectedRequestId, secure: state.secureStorageAvailable };
+  const sendInFlight = useRef(false);
   const copyActiveRequestAsCurl = async () => {
     if (!activeRequest) {
       return;
@@ -47,33 +51,54 @@ export function useRequestController(state: StudioState, workspaceController: Wo
   };
 
   const sendActiveRequest = async () => {
-    if (!activeRequest || isSending) {
+    if (!activeRequest || isSending || sendInFlight.current) {
       return;
     }
     const requestId = activeRequest.id;
+    sendInFlight.current = true;
     setIsSending(true);
     setResponse(undefined);
-    const folderPath = activeRequestLocation?.folderPath.map(({ baseUrl }) => ({ baseUrl }));
-    const result = await window.studio.sendRequest(
-      activeRequest,
-      activeEnvironment,
-      activeCollection,
-      folderPath
-    );
-    setResponse(result);
-    if (!result.error) {
-      setResponseHistory((current) => {
-        const entries = current[requestId] ?? [];
-        return {
-          ...current,
-          [requestId]: [{ at: new Date().toISOString(), response: result }, ...entries].slice(
-            0,
-            MAX_HISTORY_PER_REQUEST
-          )
-        };
-      });
+    const folderPath = activeRequestLocation?.folderPath.map(({ baseUrl, accessTokenVariable }) => ({ baseUrl, accessTokenVariable }));
+    try {
+      const response = await window.studio.sendRequest(activeRequest, activeEnvironment, activeCollection, folderPath);
+      const result: ResponseState = { ...response };
+      const current = latest.current;
+      if (response.tokenIssuerOrigin && activeCollection && activeEnvironment && !activeCollection.autoTokenCaptureDisabled) {
+        const next = current.workspace === workspace && current.secure
+          ? prepareCollectionTokenCapture(workspace, activeCollection.id, activeEnvironment.id, requestId, response.tokenIssuerOrigin, response.rawBody)
+          : undefined;
+        if (next) {
+          setWorkspace((value) => value === workspace ? next : value);
+          setSaveStatus("dirty");
+        }
+        result.collectionTokenCapture = next ? "saved" : "skipped";
+      }
+      // A response belongs to the request that was actually sent.
+      if (current.activeCollectionId === activeCollection?.id && current.selectedRequestId === requestId) setResponse(result);
+      if (!result.error && current.workspace.id === workspace.id) {
+        setResponseHistory((history) => ({
+          ...history,
+          [requestId]: [{ at: new Date().toISOString(), response: result }, ...(history[requestId] ?? [])].slice(0, MAX_HISTORY_PER_REQUEST)
+        }));
+      }
+    } catch {
+      const current = latest.current;
+      if (current.activeCollectionId === activeCollection?.id && current.selectedRequestId === requestId) {
+        setResponse({ status: 0, statusText: "Request failed", durationMs: 0, sizeBytes: 0, headers: {}, body: "", rawBody: "",
+          error: "The desktop could not send this request." });
+      }
+    } finally {
+      sendInFlight.current = false;
+      setIsSending(false);
     }
-    setIsSending(false);
+  };
+
+  const toggleCollectionTokenCapture = (enabled: boolean) => {
+    if (!activeCollection) return;
+    mutateWorkspace((draft) => {
+      const collection = draft.collections.find(({ id }) => id === activeCollection.id);
+      if (collection) collection.autoTokenCaptureDisabled = !enabled;
+    });
   };
 
   // Keyboard shortcuts: Ctrl/Cmd+Enter sends the active request,
@@ -253,6 +278,6 @@ export function useRequestController(state: StudioState, workspaceController: Wo
   return {
     copyActiveRequestAsCurl, sendActiveRequest, updateEnvironment,
     updateEnvironmentBaseUrl, createNewEnvironment, selectEnvironment, deleteEnvironment,
-    updateSettings, assignResponseValue, saveResponseAsExample
+    updateSettings, assignResponseValue, saveResponseAsExample, toggleCollectionTokenCapture
   };
 }

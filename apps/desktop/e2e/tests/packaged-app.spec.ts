@@ -88,7 +88,10 @@ test("imports a document, manages routing, sends a request, and exports it", asy
   await page.getByLabel("Editor").click();
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(page.locator(".status-pill")).toContainText("200");
-  await page.getByText("View response body (may contain credentials)", { exact: true }).click();
+  await expect(page.locator(".response-body-view")).toHaveAttribute("open", "");
+  await expect(page.locator(".response-panel pre")).toContainText("[REDACTED]");
+  await expect(page.locator(".response-panel pre")).not.toContainText("e2e-access-token");
+  await page.getByRole("button", { name: "Reveal sensitive response", exact: true }).click();
   await expect(page.locator(".response-panel pre")).toContainText("e2e-access-token");
   await page.getByText("Advanced: save any response field to a variable", { exact: true }).click();
   await page.getByLabel("Target variable name").fill("accessToken");

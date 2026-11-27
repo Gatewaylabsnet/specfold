@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { ApiRequest, Collection, Environment, Folder, Workspace } from "@openapi-collection-studio/core";
+import type { ApiRequest, Environment, Workspace } from "@openapi-collection-studio/core";
 import { APP_MENU_ACTIONS, type AgentTokenCapture, type AppMenuAction, type StudioApi } from "../shared/contracts";
 
 const studioApi: StudioApi = {
@@ -63,8 +63,8 @@ const studioApi: StudioApi = {
   sendRequest: (
     request: ApiRequest,
     environment?: Environment,
-    collection?: Pick<Collection, "baseUrl">,
-    folderPath?: Array<Pick<Folder, "baseUrl">>
+    collection?: Parameters<StudioApi["sendRequest"]>[2],
+    folderPath?: Parameters<StudioApi["sendRequest"]>[3]
   ) => ipcRenderer.invoke("http:send", { request, environment, collection, folderPath }),
   saveExportFile: (defaultPath: string, content: string) =>
     ipcRenderer.invoke("file:saveExport", { defaultPath, content }),

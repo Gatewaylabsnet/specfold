@@ -49,8 +49,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 export interface SendRequestPayload {
   request: ApiRequest;
   environment?: Environment;
-  collection?: Pick<Collection, "baseUrl">;
-  folderPath?: Array<Pick<Folder, "baseUrl">>;
+  collection?: Pick<Collection, "baseUrl" | "autoAccessToken" | "autoTokenCaptureDisabled">;
+  folderPath?: Array<Pick<Folder, "baseUrl" | "accessTokenVariable">>;
 }
 
 export interface SendRequestResult {
@@ -63,6 +63,8 @@ export interface SendRequestResult {
   rawBody: string;
   truncated?: boolean;
   error?: string;
+  /** Only returned for a safe, unredirected, manually sent token endpoint. */
+  tokenIssuerOrigin?: string;
 }
 
 export interface WorkspaceLoadResult {
@@ -206,8 +208,8 @@ export interface StudioApi {
   sendRequest(
     request: ApiRequest,
     environment?: Environment,
-    collection?: Pick<Collection, "baseUrl">,
-    folderPath?: Array<Pick<Folder, "baseUrl">>
+    collection?: SendRequestPayload["collection"],
+    folderPath?: SendRequestPayload["folderPath"]
   ): Promise<SendRequestResult>;
   saveExportFile(defaultPath: string, content: string): Promise<FileActionResult>;
   openImportFile(): Promise<OpenImportResult>;

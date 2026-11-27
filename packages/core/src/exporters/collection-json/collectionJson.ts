@@ -10,11 +10,16 @@ export interface CollectionJsonDocument {
   collection: Collection;
 }
 
+function withoutLocalTokenBinding(collection: Collection): Collection {
+  const { autoAccessToken: _localBinding, autoTokenCaptureDisabled: _localOptOut, ...portable } = collection;
+  return portable;
+}
+
 export function serializeCollectionJson(collection: Collection): string {
   const document: CollectionJsonDocument = {
     schema: COLLECTION_JSON_SCHEMA,
     exportedAt: new Date().toISOString(),
-    collection: stripTransientUploadData(collection, { rootKind: "collection" })
+    collection: stripTransientUploadData(withoutLocalTokenBinding(collection), { rootKind: "collection" })
   };
   return JSON.stringify(document, null, 2);
 }
@@ -26,7 +31,7 @@ export function parseCollectionJson(text: string): Collection {
   if (!isSupportedSchema || !parsed.collection) {
     throw new Error("Not a Specfold collection JSON document.");
   }
-  return stripTransientUploadData(parsed.collection, {
+  return stripTransientUploadData(withoutLocalTokenBinding(parsed.collection), {
     disableFileFields: true,
     rootKind: "collection"
   });

@@ -6,11 +6,11 @@ import type {
   KeyValue,
   MultipartField
 } from "../model/types";
-import {
-  environmentToMap,
-  resolveRequestVariables,
-  resolveVariablesInText
-} from "../variables/resolveVariables";
+import { resolveRequestVariables } from "../variables/resolveVariables";
+import { collectionBearerAtRoute } from "./collectionBearer";
+import { MissingVariablesError, resolveRelativeUrl, substitutePathParams } from "./requestRoute";
+
+export { MissingVariablesError } from "./requestRoute";
 
 export interface PreparedHttpRequest {
   url: string;
@@ -18,35 +18,32 @@ export interface PreparedHttpRequest {
   headers: Record<string, string>;
   body?: string;
   multipart?: MultipartField[];
-}
-
-export class MissingVariablesError extends Error {
-  readonly variables: string[];
-
-  constructor(variables: string[]) {
-    super(`Missing environment variables: ${variables.join(", ")}`);
-    this.name = "MissingVariablesError";
-    this.variables = variables;
-  }
+  collectionTokenApplied?: true;
 }
 
 export function prepareHttpRequest(
   request: ApiRequest,
   environment?: Environment,
-  collection?: Pick<Collection, "baseUrl">,
-  folderPath: readonly Pick<Folder, "baseUrl">[] = []
+  collection?: Pick<Collection, "baseUrl" | "autoAccessToken" | "autoTokenCaptureDisabled">,
+  folderPath: readonly Pick<Folder, "baseUrl" | "accessTokenVariable">[] = [],
+  options: { allowCollectionToken?: boolean } = {}
 ): PreparedHttpRequest {
   const resolved = resolveRequestVariables(request, environment, collection, folderPath);
   if (resolved.missing.length > 0) {
     throw new MissingVariablesError(resolved.missing);
   }
 
-  const requestWithPathParams = replacePathParams(resolved.request);
+  const requestWithPathParams = { ...resolved.request, url: substitutePathParams(resolved.request.url, resolved.request.pathParams) };
   const url = appendQueryParams(
     resolveRelativeUrl(requestWithPathParams.url, environment, collection, folderPath),
     requestWithPathParams.queryParams
   );
   const headers = keyValuesToHeaders(requestWithPathParams.headers);
+  // A plain prepare call (MCP, workflow or export) must not inherit a desktop secret.
+  const automatic = options.allowCollectionToken === true
+    ? collectionBearerAtRoute(requestWithPathParams, url, environment, collection, folderPath)
+    : undefined;
+  if (automatic) setHeader(headers, "Authorization", `Bearer ${automatic.value}`);
 
   if (requestWithPathParams.auth.type === "bearer") {
     deleteHeader(headers, "authorization");
@@ -109,47 +106,9 @@ export function prepareHttpRequest(
     method: requestWithPathParams.method,
     headers,
     body,
-    multipart
+    multipart,
+    ...(automatic ? { collectionTokenApplied: true as const } : {})
   };
-}
-
-function resolveRelativeUrl(
-  requestUrl: string,
-  environment?: Environment,
-  collection?: Pick<Collection, "baseUrl">,
-  folderPath: readonly Pick<Folder, "baseUrl">[] = []
-): string {
-  if (/^https?:\/\//i.test(requestUrl) || !requestUrl.trim()) {
-    return requestUrl;
-  }
-  const variables = environmentToMap(environment, collection, folderPath);
-  const baseUrlInput = variables.baseUrl?.trim();
-  if (!baseUrlInput) {
-    return requestUrl;
-  }
-  const baseUrl = resolveVariablesInText(baseUrlInput, variables);
-  if (baseUrl.missing.length > 0) {
-    throw new MissingVariablesError(baseUrl.missing);
-  }
-  if (!/^https?:\/\//i.test(baseUrl.value)) {
-    return requestUrl;
-  }
-  const normalizedBase = `${baseUrl.value.replace(/\/+$/, "")}/`;
-  const normalizedRequest = requestUrl.replace(/^\/+/, "");
-  return new URL(normalizedRequest, normalizedBase).toString();
-}
-
-function replacePathParams(request: ApiRequest): ApiRequest {
-  let url = request.url;
-  for (const param of request.pathParams.filter((item) => item.enabled)) {
-    if (!param.key) {
-      continue;
-    }
-    url = url
-      .replaceAll(`{${param.key}}`, encodeURIComponent(param.value))
-      .replaceAll(`:${param.key}`, encodeURIComponent(param.value));
-  }
-  return { ...request, url };
 }
 
 function appendQueryParams(urlInput: string, queryParams: KeyValue[]): string {

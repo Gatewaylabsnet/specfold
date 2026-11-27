@@ -1,5 +1,5 @@
 import { session } from "electron";
-import { MissingVariablesError, prepareHttpRequest } from "@openapi-collection-studio/core";
+import { collectionTokenOrigin, isCollectionTokenIssuer, MissingVariablesError, prepareHttpRequest } from "@openapi-collection-studio/core";
 import { fetchWithProxy, ProxyAgentCache } from "./proxy";
 import { MAX_IMPORT_BYTES } from "./constants";
 import { loadSettings } from "./storage";
@@ -27,7 +27,8 @@ export async function sendHttpRequest(
       payload.request,
       payload.environment,
       payload.collection,
-      payload.folderPath
+      payload.folderPath,
+      { allowCollectionToken: !limits }
     );
     let requestHeaders = prepared.headers;
     let requestBody: RequestInit["body"] = prepared.body;
@@ -46,13 +47,13 @@ export async function sendHttpRequest(
         method: prepared.method,
         headers: requestHeaders,
         body: requestBody,
-        redirect: limits?.redirect,
+        redirect: prepared.collectionTokenApplied ? "error" : limits?.redirect,
         signal
       },
       (url) => session.defaultSession.resolveProxy(url),
       proxyAgents,
       process.env,
-      settings.allowInsecureTls
+      prepared.collectionTokenApplied ? false : settings.allowInsecureTls
     );
 
     const { bytes, truncated } = await readCappedBody(response, settings.maxResponseBytes);
@@ -62,6 +63,12 @@ export async function sendHttpRequest(
     response.headers.forEach((value, key) => {
       responseHeaders[key] = value;
     });
+    const origin = !limits && !response.redirected && !truncated &&
+      response.status >= 200 && response.status < 300 && isCollectionTokenIssuer(payload.request, prepared.url)
+      ? collectionTokenOrigin(prepared.url)
+      : undefined;
+    const tokenIssuerOrigin = origin && !(origin.startsWith("https:") && settings.allowInsecureTls) &&
+      collectionTokenOrigin(response.url) === origin ? origin : undefined;
 
     return {
       status: response.status,
@@ -71,7 +78,8 @@ export async function sendHttpRequest(
       headers: responseHeaders,
       body,
       rawBody,
-      truncated
+      truncated,
+      ...(tokenIssuerOrigin ? { tokenIssuerOrigin } : {})
     };
   } catch (error) {
     if (limits?.signal?.aborted) return emptyError("Request canceled", "The request was canceled.");

@@ -187,19 +187,16 @@ export function createStorageService(options: StorageServiceOptions) {
 
   const encryptSecrets = (workspace: Workspace): Workspace => {
     const protectedWorkspace = transformRequests(workspace, protectRequest);
-    const folderTokenVariables = new Set(
-      protectedWorkspace.collections.flatMap((collection) =>
-        flattenFolders(collection)
-          .map(({ folder }) => folder.accessTokenVariable?.trim())
-          .filter((name): name is string => Boolean(name))
-      )
-    );
+    const scopeTokenVariables = new Set(protectedWorkspace.collections.flatMap((collection) => [
+      collection.autoAccessToken?.variableName,
+      ...flattenFolders(collection).map(({ folder }) => folder.accessTokenVariable?.trim())
+    ]).filter((name): name is string => Boolean(name)));
     return {
       ...protectedWorkspace,
       environments: protectedWorkspace.environments.map((environment) => ({
         ...environment,
         variables: environment.variables.map((variable) =>
-          variable.secret || folderTokenVariables.has(variable.name)
+          variable.secret || scopeTokenVariables.has(variable.name)
             ? { ...variable, secret: true, value: encryptValue(variable.value) }
             : variable
         )
@@ -291,6 +288,11 @@ export function createStorageService(options: StorageServiceOptions) {
   const saveWorkspace = async (workspace: Workspace): Promise<void> => {
     if (loadedWithUnreadableSecrets) throw new Error("Saved credentials could not be unlocked. Reopen the workspace before saving.");
     if (!secureStorageAvailable()) {
+      const autoTokenNames = new Set(workspace.collections.map((collection) => collection.autoAccessToken?.variableName));
+      if (workspace.environments.some((environment) => environment.variables.some((variable) =>
+        autoTokenNames.has(variable.name) && variable.value.length > 0))) {
+        throw new Error("Secure storage is unavailable. Collection token was not written.");
+      }
       const previous = await readFile(paths.workspace, "utf8").catch((error: NodeJS.ErrnoException) => {
         if (error.code !== "ENOENT") throw error;
         return "";

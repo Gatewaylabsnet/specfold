@@ -2,12 +2,16 @@ import type { AuthConfig, Folder } from "@openapi-collection-studio/core";
 
 export function RequestAuthFields({
   auth,
+  collectionTokenVariable,
+  collectionTokenSettings,
   folderAuthScope,
   folderAccessTokenVariable,
   onFolderTokenVariableChange,
   onChange
 }: {
   auth: AuthConfig;
+  collectionTokenVariable?: string;
+  collectionTokenSettings?: { enabled: boolean; onChange(enabled: boolean): void };
   folderAuthScope?: {
     folder: Folder;
     parentVariable?: string;
@@ -43,12 +47,24 @@ export function RequestAuthFields({
       </label>
     </div>
   ) : null;
+  const sharedTokenFields = <>
+    {collectionTokenVariable && <p className="ops-hint">Uses the collection Bearer token from encrypted variable <code>{collectionTokenVariable}</code>.</p>}
+    {collectionTokenSettings && <div className="auth-folder-token">
+      <label className="check-row">
+        <input type="checkbox" checked={collectionTokenSettings.enabled}
+          onChange={(event) => collectionTokenSettings.onChange(event.target.checked)} />
+        <span>Capture and use the collection token automatically</span>
+      </label>
+      <small>After a successful token request, eligible requests at the same origin use the encrypted token. Explicit request auth and folder tokens take priority.</small>
+    </div>}
+    {folderTokenBinding}
+  </>;
 
-  if (auth.type === "none") return folderTokenBinding;
+  if (auth.type === "none") return sharedTokenFields;
   if (auth.type === "bearer") {
     return (
       <>
-        {folderTokenBinding}
+        {sharedTokenFields}
         <div className="auth-token-field">
           <label className="field">
             <span>Token</span>
@@ -75,7 +91,7 @@ export function RequestAuthFields({
   if (auth.type === "basic") {
     return (
       <>
-        {folderTokenBinding}
+        {sharedTokenFields}
         <label className="field">
           <span>Username</span>
           <input
@@ -96,7 +112,7 @@ export function RequestAuthFields({
   }
   return (
     <>
-      {folderTokenBinding}
+      {sharedTokenFields}
       <label className="field">
         <span>Location</span>
         <select

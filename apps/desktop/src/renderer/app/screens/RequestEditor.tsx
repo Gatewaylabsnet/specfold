@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Copy, Plus, Send, Terminal, Trash2, Wand2 } from "lucide-react";
-import { flattenFolders, folderAccessTokenVariable, type ApiRequest, type AuthConfig, type Collection, type Environment, type Folder, type HttpMethod } from "@openapi-collection-studio/core";
+import { collectionBearerForRequest, flattenFolders, folderAccessTokenVariable, isCollectionTokenIssuer, resolveCollectionTokenRequestUrl, type ApiRequest, type AuthConfig, type Collection, type Environment, type Folder, type HttpMethod } from "@openapi-collection-studio/core";
 import { KeyValueEditor } from "../../components/KeyValueEditor";
 import { HorizontalSplitPane } from "../../components/HorizontalSplitPane";
 import { methods } from "../types";
@@ -41,6 +41,7 @@ export function RequestWorkspace({
   environmentVariableNames,
   responseHistory,
   tokenBindingContext,
+  onToggleCollectionTokenCapture,
   onBindToken
 }: {
   activeCollection?: Collection;
@@ -55,6 +56,7 @@ export function RequestWorkspace({
   isSending: boolean;
   responseHistory: ResponseHistoryEntry[];
   tokenBindingContext?: Omit<TokenBindingContext, "folderId">;
+  onToggleCollectionTokenCapture?(enabled: boolean): void;
   onBindToken?(review: TokenBindingReview): void;
   onAddRequest(): void;
   onAddJwtRequest(): void;
@@ -97,6 +99,11 @@ export function RequestWorkspace({
     ? resolveRoutePreview(activeRequest, activeEnvironment, activeCollection, routingFolder, folderOptions)
     : undefined;
   const isTokenRequest = activeRequest ? isTokenEndpointRequest(activeRequest) : false;
+  const isIssuer = activeRequest ? isCollectionTokenIssuer(activeRequest,
+    resolveCollectionTokenRequestUrl(activeRequest, activeEnvironment, activeCollection, routingFolderPath)) : false;
+  const collectionTokenVariable = activeRequest
+    ? collectionBearerForRequest(activeRequest, activeEnvironment, activeCollection, routingFolderPath)
+    : undefined;
   const tokenEndpointNeedsAttention = Boolean(
     isTokenRequest && activeRequest && (
       !activeRequest.url.trim() ||
@@ -105,7 +112,7 @@ export function RequestWorkspace({
     )
   );
   const requestAuthSummary = activeRequest
-    ? authSummary(activeRequest.auth, inheritedTokenVariable)
+    ? authSummary(activeRequest.auth, inheritedTokenVariable, collectionTokenVariable)
     : "No request selected";
 
   return (
@@ -243,6 +250,8 @@ export function RequestWorkspace({
             </div>
             <RequestTabPanel
               collection={activeCollection}
+              collectionTokenVariable={collectionTokenVariable}
+              onToggleCollectionTokenCapture={isIssuer || activeCollection?.autoAccessToken ? onToggleCollectionTokenCapture : undefined}
               activeRequest={activeRequest}
               folderAuthScope={routingFolder ? {
                 folder: routingFolder,
@@ -291,6 +300,7 @@ export function RequestWorkspace({
         key={activeRequest?.id}
         tokenBindingContext={tokenBindingContext ? { ...tokenBindingContext, folderId: routingFolder?.id } : undefined}
         onBindToken={onBindToken}
+        tokenIssuer={isIssuer}
         response={response}
         history={responseHistory}
         onAssignResponseValue={onAssignResponseValue}
@@ -306,8 +316,8 @@ export function RequestWorkspace({
   );
 }
 
-function authSummary(auth: AuthConfig, inheritedTokenVariable?: string): string {
-  if (auth.type === "none") return "None";
+function authSummary(auth: AuthConfig, inheritedTokenVariable?: string, collectionTokenVariable?: string): string {
+  if (auth.type === "none") return collectionTokenVariable ? "Bearer · collection token" : "None";
   if (auth.type === "basic") return "Basic";
   if (auth.type === "apiKey") return `API key · ${auth.in}`;
   const folderReference = inheritedTokenVariable ? `{{${inheritedTokenVariable}}}` : undefined;
@@ -354,6 +364,8 @@ function RequestNameInput({ name, onCommit }: { name: string; onCommit(name: str
 
 export function RequestTabPanel({
   collection,
+  collectionTokenVariable,
+  onToggleCollectionTokenCapture,
   activeRequest,
   folderAuthScope,
   folderAccessTokenVariable,
@@ -362,6 +374,8 @@ export function RequestTabPanel({
   onUpdateRequest
 }: {
   collection?: Collection;
+  collectionTokenVariable?: string;
+  onToggleCollectionTokenCapture?(enabled: boolean): void;
   activeRequest: ApiRequest;
   folderAuthScope?: {
     folder: Folder;
@@ -426,7 +440,7 @@ export function RequestTabPanel({
             }
             value={activeRequest.auth.type}
           >
-            <option value="none">None</option>
+            <option value="none">{collectionTokenVariable ? "Collection token (inherited)" : "None"}</option>
             <option value="bearer">Bearer token</option>
             <option value="basic">Basic</option>
             <option value="apiKey">API key</option>
@@ -434,6 +448,10 @@ export function RequestTabPanel({
         </label>
         <RequestAuthFields
           auth={activeRequest.auth}
+          collectionTokenVariable={collectionTokenVariable}
+          collectionTokenSettings={collection && onToggleCollectionTokenCapture ? {
+            enabled: collection.autoTokenCaptureDisabled !== true, onChange: onToggleCollectionTokenCapture
+          } : undefined}
           folderAuthScope={folderAuthScope}
           folderAccessTokenVariable={folderAccessTokenVariable}
           onFolderTokenVariableChange={onUpdateFolderTokenVariable}

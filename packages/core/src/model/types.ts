@@ -137,10 +137,20 @@ export interface Collection {
   name: string;
   version?: string;
   baseUrl?: string;
+  /** Local-only, origin-bound default. The value lives in an environment secret. */
+  autoAccessToken?: CollectionAccessTokenBinding;
+  /** Disables automatic capture and use of the collection default. */
+  autoTokenCaptureDisabled?: boolean;
   description?: string;
   folders: Folder[];
   requests: ApiRequest[];
   openApi?: OpenApiMetadata;
+}
+
+export interface CollectionAccessTokenBinding {
+  variableName: string;
+  issuerRequestId: string;
+  origin: string;
 }
 
 export interface EnvironmentVariable {

@@ -42,6 +42,7 @@ test("token selection reviews exact scope, keeps credentials private and starts 
     await page.getByText("Selected API", { exact: true }).first().click();
     await page.getByText("Issuer", { exact: true }).first().click();
     await page.getByRole("button", { name: "Send", exact: true }).click();
+    await page.getByText("Use a response field as a token", { exact: true }).click();
     await expect(page.getByRole("heading", { name: "Use this token", exact: true })).toBeVisible();
     expect(issuerCalls).toBe(1); expect(serviceCalls).toBe(0);
     expect((await page.locator("body").innerText()).includes(token)).toBe(false);

@@ -56,6 +56,8 @@ Live-desktop calls flush pending renderer edits before inspection/review. Main s
 
 JWT capture sends a targeted token update to the trusted desktop editor instead of replacing its whole workspace. The captured value is merged only if that variable still matches its pre-capture state; pending edits to requests and environments are retained, and a newer manual edit, rename or removal of the token variable wins. The editor rebases its next save onto the new workspace generation. Token values do not enter MCP replies.
 
+The editor’s [automatic collection token](RELEASE_NOTES_v1.14.0.md) is separate from agent and guided-test auth. It applies only to manual desktop sends; agent and guided execution do not inherit it.
+
 ## Advanced CLI: build and select a profile
 
 Requirements: Node.js >=22.19 and npm >=10. Run from the repository root:
